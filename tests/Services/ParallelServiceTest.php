@@ -1,19 +1,27 @@
 <?php
 
-namespace SParallel\Tests\Drivers\Sync;
+namespace SParallel\Tests\Services;
 
-use RuntimeException;
-use SParallel\Drivers\Sync\SyncDriver;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
+use SParallel\Contracts\DriverInterface;
+use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Objects\ResultObject;
+use SParallel\Services\ParallelService;
 
-class SyncDriverTest extends TestCase
+class ParallelServiceTest extends TestCase
 {
-    public function testSuccess(): void
+    #[Test]
+    #[DataProvider('driversDataProvider')]
+    public function success(DriverInterface $driver): void
     {
-        $driver = new SyncDriver();
+        $service = new ParallelService(
+            driver: $driver
+        );
 
-        $results = $driver->run([
+        $results = $service->run([
             'first'  => static fn() => 'first',
             'second' => static fn() => 'second',
         ]);
@@ -40,13 +48,17 @@ class SyncDriverTest extends TestCase
         self::assertEquals('first', $resultsArray['first']->result);
     }
 
-    public function testFailure(): void
+    #[Test]
+    #[DataProvider('driversDataProvider')]
+    public function failure(DriverInterface $driver): void
     {
-        $driver = new SyncDriver();
+        $service = new ParallelService(
+            driver: $driver
+        );
 
         $exceptionMessage = uniqid();
 
-        $results = $driver->run([
+        $results = $service->run([
             'first'  => static fn() => 'first',
             'second' => static fn() => throw new RuntimeException($exceptionMessage),
         ]);
@@ -105,5 +117,27 @@ class SyncDriverTest extends TestCase
         self::assertFalse(is_null($resultErrorObject));
         self::assertEquals(RuntimeException::class, $resultErrorObject->exceptionClass);
         self::assertEquals($exceptionMessage, $resultErrorObject->message);
+    }
+
+    /**
+     * @return array{driver: DriverInterface}[]
+     */
+    public static function driversDataProvider(): array
+    {
+        return [
+            'sync' => self::makeDriverCase(
+                driver: new SyncDriver()
+            ),
+        ];
+    }
+
+    /**
+     * @return array{driver: DriverInterface}
+     */
+    private static function makeDriverCase(DriverInterface $driver): array
+    {
+        return [
+            'driver' => $driver,
+        ];
     }
 }
