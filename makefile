@@ -11,4 +11,11 @@ composer:
 	docker-compose run -it --rm --user $$(id -u):$$(id -g) -e XDEBUG_MODE=off php composer ${c}
 
 test:
-	docker-compose run -it --rm --user $$(id -u):$$(id -g) php ./vendor/bin/phpunit --colors=auto --testdox --display-phpunit-deprecations tests ${c}
+	docker-compose run -it --rm --user $$(id -u):$$(id -g) php ./vendor/bin/phpunit \
+		--colors=auto \
+		--testdox \
+		--display-phpunit-deprecations \
+		--display-errors \
+		--display-notices \
+		--display-warnings \
+		tests ${c}

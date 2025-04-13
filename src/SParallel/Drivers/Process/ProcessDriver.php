@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
-use SParallel\Objects\ResultsObject;
+use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Contracts\DriverInterface;
 
 class ProcessDriver implements DriverInterface
 {
-    public function run(array $callbacks): ResultsObject
+    public function wait(array $callbacks): WaitGroupInterface
     {
         // TODO: Implement run() method.
     }

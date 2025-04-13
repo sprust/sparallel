@@ -1,10 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SParallel\Services;
 
 use Closure;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\WaitGroupInterface;
+use SParallel\Exceptions\ParallelTimeoutException;
 use SParallel\Objects\ResultsObject;
 
 class ParallelService
@@ -16,23 +20,56 @@ class ParallelService
 
     /**
      * @param array<Closure> $callbacks
+     *
+     * @throws ParallelTimeoutException
      */
-    public function run(array $callbacks): ResultsObject
+    public function wait(array $callbacks, int $waitMicroseconds): ResultsObject
     {
-        $results = $this->driver->run($callbacks);
+        $waitGroup = $this->driver->wait(
+            callbacks: $callbacks
+        );
 
         $expectedResultCount = count($callbacks);
 
-        $resultsCount = $results->count();
+        $startTime       = microtime(true);
+        $comparativeTime = $waitMicroseconds / 1_000_000;
 
-        if ($resultsCount === $expectedResultCount) {
-            $results->finish();
-        } elseif ($resultsCount >= $expectedResultCount) {
-            throw new RuntimeException(
-                "Expected result count of $expectedResultCount, but got " . $resultsCount
+        while (true) {
+            $results = $waitGroup->current();
+
+            $this->checkTimedOut(
+                waitGroup: $waitGroup,
+                startTime: $startTime,
+                comparativeTime: $comparativeTime
             );
+
+            $resultsCount = $results->count();
+
+            if ($resultsCount === $expectedResultCount) {
+                $results->finish();
+            } elseif ($resultsCount >= $expectedResultCount) {
+                throw new RuntimeException(
+                    "Expected result count of $expectedResultCount, but got " . $resultsCount
+                );
+            }
+
+            if ($results->isFinished()) {
+                break;
+            }
         }
 
         return $results;
+    }
+
+    /**
+     * @throws ParallelTimeoutException
+     */
+    private function checkTimedOut(WaitGroupInterface $waitGroup, float $startTime, float $comparativeTime): void
+    {
+        if ($comparativeTime > 0 && (microtime(true) - $startTime) > $comparativeTime) {
+            $waitGroup->break();
+
+            throw new ParallelTimeoutException();
+        }
     }
 }

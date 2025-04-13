@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Fork;
 
-use SParallel\Objects\ResultsObject;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\WaitGroupInterface;
 
 class ForkDriver implements DriverInterface
 {
-    public function run(array $callbacks): ResultsObject
+    public function wait(array $callbacks): WaitGroupInterface
     {
         // TODO: Implement run() method.
     }

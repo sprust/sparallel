@@ -8,11 +8,15 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Drivers\Sync\SyncDriver;
+use SParallel\Exceptions\ParallelTimeoutException;
 use SParallel\Objects\ResultObject;
 use SParallel\Services\ParallelService;
 
 class ParallelServiceTest extends TestCase
 {
+    /**
+     * @throws ParallelTimeoutException
+     */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function success(DriverInterface $driver): void
@@ -21,10 +25,13 @@ class ParallelServiceTest extends TestCase
             driver: $driver
         );
 
-        $results = $service->run([
-            'first'  => static fn() => 'first',
-            'second' => static fn() => 'second',
-        ]);
+        $results = $service->wait(
+            callbacks: [
+                'first'  => static fn() => 'first',
+                'second' => static fn() => 'second',
+            ],
+            waitMicroseconds: 1000
+        );
 
         self::assertTrue($results->isFinished());
 
@@ -48,6 +55,9 @@ class ParallelServiceTest extends TestCase
         self::assertEquals('first', $resultsArray['first']->result);
     }
 
+    /**
+     * @throws ParallelTimeoutException
+     */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function failure(DriverInterface $driver): void
@@ -58,10 +68,13 @@ class ParallelServiceTest extends TestCase
 
         $exceptionMessage = uniqid();
 
-        $results = $service->run([
-            'first'  => static fn() => 'first',
-            'second' => static fn() => throw new RuntimeException($exceptionMessage),
-        ]);
+        $results = $service->wait(
+            callbacks: [
+                'first'  => static fn() => 'first',
+                'second' => static fn() => throw new RuntimeException($exceptionMessage),
+            ],
+            waitMicroseconds: 1000
+        );
 
         self::assertTrue($results->isFinished());
 
@@ -117,6 +130,34 @@ class ParallelServiceTest extends TestCase
         self::assertFalse(is_null($resultErrorObject));
         self::assertEquals(RuntimeException::class, $resultErrorObject->exceptionClass);
         self::assertEquals($exceptionMessage, $resultErrorObject->message);
+    }
+
+    #[Test]
+    #[DataProvider('driversDataProvider')]
+    public function timeout(DriverInterface $driver): void
+    {
+        $service = new ParallelService(
+            driver: $driver
+        );
+
+        $exception = null;
+
+        try {
+            $service->wait(
+                callbacks: [
+                    'first'  => static fn() => 'first',
+                    'second' => static fn() => usleep(2),
+                ],
+                waitMicroseconds: 1
+            );
+        } catch (ParallelTimeoutException $exception) {
+            //
+        } finally {
+            self::assertInstanceOf(
+                ParallelTimeoutException::class,
+                $exception
+            );
+        }
     }
 
     /**
