@@ -58,4 +58,9 @@ class ResultsObject
     {
         return new ArrayIterator($this->failed);
     }
+
+    public function count(): int
+    {
+        return count($this->results);
+    }
 }
