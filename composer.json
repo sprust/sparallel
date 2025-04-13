@@ -1,0 +1,21 @@
+{
+  "name": "sprust/sparallel",
+  "description": "Parallel PHP via processes",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Pavel",
+      "email": "sprust28@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "SParallel\\": "src/"
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

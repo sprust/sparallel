@@ -1,0 +1,11 @@
+services:
+  php:
+    container_name: sp-php
+    restart: unless-stopped
+    build:
+      context: ./docker/php
+    working_dir: /sparallel
+    volumes:
+      - ./:/sparallel
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
