@@ -7,6 +7,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Exceptions\ParallelTimeoutException;
 use SParallel\Objects\ResultObject;
@@ -164,8 +165,13 @@ class ParallelServiceTest extends TestCase
     public static function driversDataProvider(): array
     {
         return [
-            'sync' => self::makeDriverCase(
+            'sync'    => self::makeDriverCase(
                 driver: new SyncDriver()
+            ),
+            'process' => self::makeDriverCase(
+                driver: new ProcessDriver(
+                    __DIR__ . '/../process-handler.php'
+                )
             ),
         ];
     }

@@ -12,6 +12,7 @@ use SParallel\Contracts\FactoryInterface;
 class Factory implements FactoryInterface
 {
     public function __construct(
+        protected string $processScriptPath = '',
         protected ?bool $isRunningInConsole = null,
         protected ?DriverInterface $driver = null,
     ) {
@@ -25,7 +26,9 @@ class Factory implements FactoryInterface
 
         return $this->driver = $this->runningInConsole()
             ? new ForkDriver()
-            : new ProcessDriver();
+            : new ProcessDriver(
+                scriptPath: $this->processScriptPath
+            );
     }
 
     private function runningInConsole(): bool

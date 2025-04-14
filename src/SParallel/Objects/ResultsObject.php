@@ -16,12 +16,12 @@ class ResultsObject
     /**
      * @var array<mixed, ResultObject> $results
      */
-    private array $results;
+    private array $results = [];
 
     /**
      * @var array<mixed, ResultObject> $failed
      */
-    private array $failed;
+    private array $failed = [];
 
     public function addResult(mixed $key, ResultObject $result): void
     {
