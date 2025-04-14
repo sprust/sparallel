@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
-use RuntimeException;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Objects\ResultObject;
 use SParallel\Objects\ResultsObject;
+use SParallel\Transport\TaskResultTransport;
 use Symfony\Component\Process\Process;
 use Throwable;
 
@@ -35,25 +34,12 @@ class ProcessWaitGroup implements WaitGroupInterface
                 continue;
             }
 
-            if ($process->isSuccessful()) {
-                $output = $process->getOutput();
+            $output = $this->getOutput($process);
 
-                $this->results->addResult(
-                    key: $key,
-                    result: new ResultObject(
-                        result: $output ? \Opis\Closure\unserialize($output) : null,
-                    )
-                );
-            } else {
-                $this->results->addResult(
-                    key: $key,
-                    result: new ResultObject(
-                        exception: new RuntimeException(
-                            message: $process->getErrorOutput() ?: 'Unknown error',
-                        )
-                    )
-                );
-            }
+            $this->results->addResult(
+                key: $key,
+                result: TaskResultTransport::unSerialize($output),
+            );
 
             unset($this->processes[$key]);
         }
@@ -78,5 +64,18 @@ class ProcessWaitGroup implements WaitGroupInterface
 
             unset($this->processes[$key]);
         }
+    }
+
+    private function getOutput(Process $process): ?string
+    {
+        if ($output = $process->getOutput()) {
+            return $output;
+        }
+
+        if ($errorOutput = $process->getErrorOutput()) {
+            return $errorOutput;
+        }
+
+        return null;
     }
 }

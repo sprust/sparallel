@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Fork;
 
-use RuntimeException;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Fork\Service\Task;
-use SParallel\Objects\ResultObject;
 use SParallel\Objects\ResultsObject;
+use SParallel\Transport\TaskResultTransport;
 use Throwable;
 
 class ForkWaitGroup implements WaitGroupInterface
@@ -37,39 +36,10 @@ class ForkWaitGroup implements WaitGroupInterface
 
             $output = $task->output();
 
-            $outputData = json_decode($output, true);
-
-            if (!is_array($outputData)) {
-                $this->results->addResult(
-                    key: $key,
-                    result: new ResultObject(
-                        exception: new RuntimeException(
-                            "Failed to decode JSON for task [$key]"
-                        )
-                    )
-                );
-            } else {
-                $data = $outputData['data'];
-
-                if ($outputData['success'] === true) {
-                    $this->results->addResult(
-                        key: $key,
-                        result: new ResultObject(
-                            result: \Opis\Closure\unserialize($data)
-                        )
-                    );
-                } else {
-                    $this->results->addResult(
-                        key: $key,
-                        result: new ResultObject(
-                            exception: new RuntimeException(
-                                message: $data ? \Opis\Closure\unserialize($data) : 'Unknown error',
-                            )
-                        )
-                    );
-                }
-            }
-
+            $this->results->addResult(
+                key: $key,
+                result: TaskResultTransport::unSerialize($output),
+            );
 
             unset($this->tasks[$key]);
         }

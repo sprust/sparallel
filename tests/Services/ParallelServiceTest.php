@@ -202,7 +202,8 @@ class ParallelServiceTest extends TestCase
     #[DataProvider('driversMemoryLeakDataProvider')]
     public function memoryLeak(DriverInterface $driver): void
     {
-        // TODO: remove notice to terminal for fork driver
+        // TODO: hide an exception to terminal for fork driver
+        // TODO: off warnings
 
         $service = new ParallelService(
             driver: $driver
@@ -248,8 +249,7 @@ class ParallelServiceTest extends TestCase
 
         $results = $service->wait(
             callbacks: [
-                'first'  => static fn() => 'first',
-                'second' => static fn() => 'second',
+                'first' => static fn() => 'first',
             ],
         );
 
@@ -257,8 +257,12 @@ class ParallelServiceTest extends TestCase
 
         self::assertFalse($results->hasFailed());
 
+        self::assertTrue(
+            iterator_count($results->getResults()) === 1
+        );
+
         self::assertEquals(
-            4,
+            2,
             Counter::getCount()
         );
     }

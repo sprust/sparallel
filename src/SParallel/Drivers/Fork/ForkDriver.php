@@ -9,6 +9,8 @@ use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Fork\Service\Connection;
 use SParallel\Drivers\Fork\Service\Task;
+use SParallel\Objects\ResultObject;
+use SParallel\Transport\Serializer;
 use Throwable;
 
 class ForkDriver implements DriverInterface
@@ -44,17 +46,19 @@ class ForkDriver implements DriverInterface
 
             try {
                 $socketToParent->write(
-                    json_encode([
-                        'success' => true,
-                        'data'    => \Opis\Closure\serialize($callback()),
-                    ])
+                    Serializer::serialize(
+                        new ResultObject(
+                            result: $callback(),
+                        )
+                    )
                 );
             } catch (Throwable $exception) {
                 $socketToParent->write(
-                    json_encode([
-                        'success' => false,
-                        'data'    => \Opis\Closure\serialize($exception->getMessage()),
-                    ])
+                    Serializer::serialize(
+                        new ResultObject(
+                            exception: $exception,
+                        )
+                    )
                 );
             } finally {
                 $socketToParent->close();

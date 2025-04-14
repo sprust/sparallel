@@ -16,10 +16,13 @@ test:
 	"$(PHP_CLI)" ./vendor/bin/phpunit \
 		--colors=auto \
 		--testdox \
-		--display-phpunit-deprecations \
-		--display-errors \
-		--display-notices \
-		--display-warnings \
+  		--display-incomplete \
+  		--display-skipped \
+  		--display-deprecations \
+  		--display-phpunit-deprecations \
+  		--display-errors \
+  		--display-notices \
+  		--display-warnings \
 		tests ${c}
 
 phpstan:
