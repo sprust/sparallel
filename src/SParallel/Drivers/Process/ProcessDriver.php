@@ -7,6 +7,7 @@ namespace SParallel\Drivers\Process;
 use RuntimeException;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Transport\Serializer;
 use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
 
@@ -36,7 +37,7 @@ class ProcessDriver implements DriverInterface
             $process = Process::fromShellCommandline(command: $command, cwd: $workDir)
                 ->setTimeout(null)
                 ->setEnv([
-                    static::VARIABLE_NAME => \Opis\Closure\serialize($callback),
+                    static::VARIABLE_NAME => Serializer::serialize($callback),
                 ]);
 
             $process->start();
