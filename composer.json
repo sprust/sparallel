@@ -1,5 +1,5 @@
 {
-    "name": "sprust/sparallel",
+    "name": "sparallel/sparallel",
     "description": "Parallel PHP via processes",
     "license": "MIT",
     "authors": [
