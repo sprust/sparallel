@@ -49,7 +49,7 @@ class ProcessWaitGroup implements WaitGroupInterface
                     key: $key,
                     result: new ResultObject(
                         exception: new RuntimeException(
-                            message: \Opis\Closure\unserialize($process->getErrorOutput())
+                            message: $process->getErrorOutput() ?: 'Unknown error',
                         )
                     )
                 );

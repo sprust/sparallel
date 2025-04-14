@@ -190,6 +190,41 @@ class ParallelServiceTest extends TestCase
     }
 
     /**
+     * @throws ParallelTimeoutException
+     */
+    #[Test]
+    #[DataProvider('driversMemoryLeakDataProvider')]
+    public function memoryLeak(DriverInterface $driver): void
+    {
+        $service = new ParallelService(
+            driver: $driver
+        );
+
+        $results = $service->wait(
+            callbacks: [
+                'first'  => static fn() => 'first',
+                'second' => static function () {
+                    ini_set('memory_limit', '60m');
+
+                    str_repeat(uniqid(), 1000000000);
+                },
+            ],
+        );
+
+        self::assertTrue($results->isFinished());
+
+        self::assertTrue($results->hasFailed());
+
+        self::assertTrue(
+            iterator_count($results->getResults()) === 2
+        );
+
+        self::assertTrue(
+            iterator_count($results->getFailed()) === 1
+        );
+    }
+
+    /**
      * @return array{driver: DriverInterface}[]
      */
     public static function driversDataProvider(): array
@@ -198,6 +233,23 @@ class ParallelServiceTest extends TestCase
             'sync'    => self::makeDriverCase(
                 driver: new SyncDriver()
             ),
+            'process' => self::makeDriverCase(
+                driver: new ProcessDriver(
+                    __DIR__ . '/../process-handler.php'
+                )
+            ),
+            'fork'    => self::makeDriverCase(
+                driver: new ForkDriver()
+            ),
+        ];
+    }
+
+    /**
+     * @return array{driver: DriverInterface}[]
+     */
+    public static function driversMemoryLeakDataProvider(): array
+    {
+        return [
             'process' => self::makeDriverCase(
                 driver: new ProcessDriver(
                     __DIR__ . '/../process-handler.php'

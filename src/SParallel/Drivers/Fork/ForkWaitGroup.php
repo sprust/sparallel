@@ -39,7 +39,7 @@ class ForkWaitGroup implements WaitGroupInterface
 
             $outputData = json_decode($output, true);
 
-            if ($outputData === false) {
+            if (!is_array($outputData)) {
                 $this->results->addResult(
                     key: $key,
                     result: new ResultObject(
@@ -49,11 +49,13 @@ class ForkWaitGroup implements WaitGroupInterface
                     )
                 );
             } else {
+                $data = $outputData['data'];
+
                 if ($outputData['success'] === true) {
                     $this->results->addResult(
                         key: $key,
                         result: new ResultObject(
-                            result: \Opis\Closure\unserialize($outputData['data'])
+                            result: \Opis\Closure\unserialize($data)
                         )
                     );
                 } else {
@@ -61,7 +63,7 @@ class ForkWaitGroup implements WaitGroupInterface
                         key: $key,
                         result: new ResultObject(
                             exception: new RuntimeException(
-                                message: \Opis\Closure\unserialize($outputData['data'])
+                                message: $data ? \Opis\Closure\unserialize($data) : 'Unknown error',
                             )
                         )
                     );

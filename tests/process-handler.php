@@ -13,7 +13,7 @@ try {
 
     exit(0);
 } catch (Throwable $exception) {
-    fwrite(STDERR, \Opis\Closure\serialize($exception->getMessage()));
+    fwrite(STDERR, $exception->getMessage());
 
     exit(1);
 }
