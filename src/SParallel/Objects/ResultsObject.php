@@ -14,12 +14,12 @@ class ResultsObject
     private bool $finished = false;
 
     /**
-     * @param array<mixed, ResultObject> $results
+     * @var array<mixed, ResultObject> $results
      */
     private array $results;
 
     /**
-     * @param array<mixed, ResultObject> $failed
+     * @var array<mixed, ResultObject> $failed
      */
     private array $failed;
 
@@ -49,11 +49,17 @@ class ResultsObject
         return $this->finished;
     }
 
+    /**
+     * @return Traversable<ResultObject>
+     */
     public function getResults(): Traversable
     {
         return new ArrayIterator($this->results);
     }
 
+    /**
+     * @return Traversable<ResultObject>
+     */
     public function getFailed(): Traversable
     {
         return new ArrayIterator($this->failed);

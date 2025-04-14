@@ -11,6 +11,8 @@ class ForkDriver implements DriverInterface
 {
     public function wait(array $callbacks): WaitGroupInterface
     {
-        // TODO: Implement run() method.
+        return new ForkWaitGroup(
+            callbacks: $callbacks,
+        );
     }
 }
