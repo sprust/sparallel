@@ -29,8 +29,7 @@ class ParallelServiceTest extends TestCase
             callbacks: [
                 'first'  => static fn() => 'first',
                 'second' => static fn() => 'second',
-            ],
-            waitMicroseconds: 1000
+            ]
         );
 
         self::assertTrue($results->isFinished());
@@ -72,8 +71,7 @@ class ParallelServiceTest extends TestCase
             callbacks: [
                 'first'  => static fn() => 'first',
                 'second' => static fn() => throw new RuntimeException($exceptionMessage),
-            ],
-            waitMicroseconds: 1000
+            ]
         );
 
         self::assertTrue($results->isFinished());
@@ -146,7 +144,7 @@ class ParallelServiceTest extends TestCase
             $service->wait(
                 callbacks: [
                     'first'  => static fn() => 'first',
-                    'second' => static fn() => usleep(2),
+                    'second' => static fn() => usleep(200),
                 ],
                 waitMicroseconds: 1
             );

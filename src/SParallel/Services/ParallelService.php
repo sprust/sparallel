@@ -23,7 +23,7 @@ class ParallelService
      *
      * @throws ParallelTimeoutException
      */
-    public function wait(array $callbacks, int $waitMicroseconds): ResultsObject
+    public function wait(array $callbacks, int $waitMicroseconds = 0): ResultsObject
     {
         $waitGroup = $this->driver->wait(
             callbacks: $callbacks
