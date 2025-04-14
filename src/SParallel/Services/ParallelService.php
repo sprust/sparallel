@@ -23,8 +23,11 @@ class ParallelService
      *
      * @throws ParallelTimeoutException
      */
-    public function wait(array $callbacks, int $waitMicroseconds = 0): ResultsObject
-    {
+    public function wait(
+        array $callbacks,
+        int $waitMicroseconds = 0,
+        bool $breakAtFirstError = false
+    ): ResultsObject {
         $waitGroup = $this->driver->wait(
             callbacks: $callbacks
         );
@@ -37,6 +40,12 @@ class ParallelService
         while (true) {
             $results = $waitGroup->current();
 
+            if ($breakAtFirstError && $results->hasFailed()) {
+                $waitGroup->break();
+
+                break;
+            }
+
             $this->checkTimedOut(
                 waitGroup: $waitGroup,
                 startTime: $startTime,
@@ -45,15 +54,15 @@ class ParallelService
 
             $resultsCount = $results->count();
 
-            if ($resultsCount === $expectedResultCount) {
-                $results->finish();
-            } elseif ($resultsCount >= $expectedResultCount) {
+            if ($resultsCount > $expectedResultCount) {
                 throw new RuntimeException(
                     "Expected result count of $expectedResultCount, but got " . $resultsCount
                 );
             }
 
-            if ($results->isFinished()) {
+            if ($resultsCount === $expectedResultCount) {
+                $results->finish();
+
                 break;
             }
         }

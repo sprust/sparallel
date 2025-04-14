@@ -160,6 +160,35 @@ class ParallelServiceTest extends TestCase
     }
 
     /**
+     * @throws ParallelTimeoutException
+     */
+    #[Test]
+    #[DataProvider('driversDataProvider')]
+    public function breakAtFirstError(DriverInterface $driver): void
+    {
+        $service = new ParallelService(
+            driver: $driver
+        );
+
+        $results = $service->wait(
+            callbacks: [
+                'first'  => static fn() => 'first',
+                'second' => static fn() => usleep(200) || throw new RuntimeException(),
+                'third'  => static fn() => 'third',
+            ],
+            breakAtFirstError: true
+        );
+
+        self::assertFalse($results->isFinished());
+
+        self::assertTrue($results->hasFailed());
+
+        self::assertTrue(
+            iterator_count($results->getResults()) >= 0
+        );
+    }
+
+    /**
      * @return array{driver: DriverInterface}[]
      */
     public static function driversDataProvider(): array
