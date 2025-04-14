@@ -19,3 +19,7 @@ test:
 		--display-notices \
 		--display-warnings \
 		tests ${c}
+
+phpstan:
+	docker-compose run -it --rm --user $$(id -u):$$(id -g) php ./vendor/bin/phpstan analyse \
+		--memory-limit=1G
