@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
+use RuntimeException;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Contracts\DriverInterface;
 use Symfony\Component\Process\PhpExecutableFinder;
@@ -19,6 +20,8 @@ class ProcessDriver implements DriverInterface
 
     public function wait(array $callbacks): WaitGroupInterface
     {
+        $this->checkScriptPath();
+
         $processes = [];
 
         $command = sprintf(
@@ -42,5 +45,17 @@ class ProcessDriver implements DriverInterface
         return new ProcessWaitGroup(
             processes: $processes,
         );
+    }
+
+    private function checkScriptPath(): void
+    {
+        if (!file_exists($this->scriptPath)) {
+            throw new RuntimeException(
+                message: sprintf(
+                    'Script path [%s] does not exist.',
+                    $this->scriptPath,
+                )
+            );
+        }
     }
 }
