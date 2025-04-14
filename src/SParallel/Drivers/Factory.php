@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers;
 
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Contracts\DriverInterface;
@@ -12,12 +15,16 @@ use SParallel\Contracts\FactoryInterface;
 class Factory implements FactoryInterface
 {
     public function __construct(
-        protected string $processScriptPath = '',
+        protected ContainerInterface $container,
         protected ?bool $isRunningInConsole = null,
         protected ?DriverInterface $driver = null,
     ) {
     }
 
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
     public function detect(): DriverInterface
     {
         if (!is_null($this->driver)) {
@@ -25,10 +32,8 @@ class Factory implements FactoryInterface
         }
 
         return $this->driver = $this->runningInConsole()
-            ? new ForkDriver()
-            : new ProcessDriver(
-                scriptPath: $this->processScriptPath
-            );
+            ? $this->container->get(ForkDriver::class)
+            : $this->container->get(ProcessDriver::class);
     }
 
     private function runningInConsole(): bool

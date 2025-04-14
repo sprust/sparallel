@@ -5,6 +5,8 @@ namespace SParallel\Tests\Services;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Drivers\Fork\ForkDriver;
@@ -13,9 +15,12 @@ use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Exceptions\ParallelTimeoutException;
 use SParallel\Objects\ResultObject;
 use SParallel\Services\ParallelService;
+use SParallel\Tests\ContainerTrait;
 
 class ParallelServiceTest extends TestCase
 {
+    use ContainerTrait;
+
     /**
      * @throws ParallelTimeoutException
      */
@@ -196,6 +201,8 @@ class ParallelServiceTest extends TestCase
     #[DataProvider('driversMemoryLeakDataProvider')]
     public function memoryLeak(DriverInterface $driver): void
     {
+        // TODO: remove notice to terminal for fork driver
+
         $service = new ParallelService(
             driver: $driver
         );
@@ -226,37 +233,43 @@ class ParallelServiceTest extends TestCase
 
     /**
      * @return array{driver: DriverInterface}[]
-     */
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * */
     public static function driversDataProvider(): array
     {
+        $container = self::getContainer();
+
         return [
             'sync'    => self::makeDriverCase(
-                driver: new SyncDriver()
+                driver: $container->get(id: SyncDriver::class)
             ),
             'process' => self::makeDriverCase(
-                driver: new ProcessDriver(
-                    __DIR__ . '/../process-handler.php'
-                )
+                driver: $container->get(id: ProcessDriver::class)
             ),
             'fork'    => self::makeDriverCase(
-                driver: new ForkDriver()
+                driver: $container->get(id: ForkDriver::class)
             ),
         ];
     }
 
     /**
      * @return array{driver: DriverInterface}[]
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
      */
     public static function driversMemoryLeakDataProvider(): array
     {
+        $container = self::getContainer();
+
         return [
             'process' => self::makeDriverCase(
-                driver: new ProcessDriver(
-                    __DIR__ . '/../process-handler.php'
-                )
+                driver: $container->get(id: ProcessDriver::class)
             ),
             'fork'    => self::makeDriverCase(
-                driver: new ForkDriver()
+                driver: $container->get(id: ForkDriver::class)
             ),
         ];
     }
