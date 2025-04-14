@@ -16,6 +16,7 @@ use SParallel\Exceptions\ParallelTimeoutException;
 use SParallel\Objects\ResultObject;
 use SParallel\Services\ParallelService;
 use SParallel\Tests\ContainerTrait;
+use SParallel\Tests\Counter;
 
 class ParallelServiceTest extends TestCase
 {
@@ -228,6 +229,37 @@ class ParallelServiceTest extends TestCase
 
         self::assertTrue(
             iterator_count($results->getFailed()) === 1
+        );
+    }
+
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ParallelTimeoutException
+     */
+    #[Test]
+    public function forkActions(): void
+    {
+        $service = new ParallelService(
+            driver: self::getContainer()->get(ForkDriver::class),
+        );
+
+        Counter::reset();
+
+        $results = $service->wait(
+            callbacks: [
+                'first'  => static fn() => 'first',
+                'second' => static fn() => 'second',
+            ],
+        );
+
+        self::assertTrue($results->isFinished());
+
+        self::assertFalse($results->hasFailed());
+
+        self::assertEquals(
+            4,
+            Counter::getCount()
         );
     }
 

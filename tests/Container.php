@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SParallel\Tests;
 
 use Closure;
@@ -16,6 +18,11 @@ class Container implements ContainerInterface
      */
     private array $resolvers;
 
+    /**
+     * @var array<class-string, object>
+     */
+    private static array $cache = [];
+
     public function __construct()
     {
         $this->resolvers = [
@@ -23,19 +30,32 @@ class Container implements ContainerInterface
             ProcessDriver::class => static fn() => new ProcessDriver(
                 __DIR__ . '/process-handler.php'
             ),
-            ForkDriver::class    => static fn() => new ForkDriver(),
+            ForkDriver::class    => static fn() => new ForkDriver(
+                beforeTask: static fn() => Counter::increment(),
+                afterTask: static fn() => Counter::increment(),
+            ),
         ];
     }
 
+    /**
+     * @template TClass
+     *
+     * @param class-string<TClass> $id
+     *
+     * @return TClass
+     */
     public function get(string $id)
     {
         if (!$this->has($id)) {
             throw new RuntimeException("No entry found for $id");
         }
 
-        return $this->resolvers[$id]();
+        return self::$cache[$id] ??= $this->resolvers[$id]();
     }
 
+    /**
+     * @param class-string<object> $id
+     */
     public function has(string $id): bool
     {
         return array_key_exists($id, $this->resolvers);

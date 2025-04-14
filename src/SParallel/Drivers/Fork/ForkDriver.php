@@ -13,6 +13,12 @@ use Throwable;
 
 class ForkDriver implements DriverInterface
 {
+    public function __construct(
+        protected ?Closure $beforeTask = null,
+        protected ?Closure $afterTask = null,
+    ) {
+    }
+
     public function wait(array $callbacks): WaitGroupInterface
     {
         return new ForkWaitGroup(
@@ -32,6 +38,10 @@ class ForkDriver implements DriverInterface
         if ($pid === 0) {
             $socketToChild->close();
 
+            if (!is_null($this->beforeTask)) {
+                call_user_func($this->beforeTask);
+            }
+
             try {
                 $socketToParent->write(
                     json_encode([
@@ -48,6 +58,10 @@ class ForkDriver implements DriverInterface
                 );
             } finally {
                 $socketToParent->close();
+
+                if (!is_null($this->afterTask)) {
+                    call_user_func($this->afterTask);
+                }
 
                 posix_kill(getmypid(), SIGKILL);
             }

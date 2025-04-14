@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SParallel\Drivers\Fork\Service;
 
 use RuntimeException;
