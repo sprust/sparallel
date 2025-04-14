@@ -57,7 +57,7 @@ class ProcessDriver implements DriverInterface
             throw new RuntimeException(
                 message: sprintf(
                     'Script path [%s] does not exist.',
-                    $this->scriptPath,
+                    $scriptPath,
                 )
             );
         }
