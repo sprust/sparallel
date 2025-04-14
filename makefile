@@ -1,3 +1,5 @@
+PHP_CLI="docker-compose run -it --rm --user $$(id -u):$$(id -g) php"
+
 build:
 	docker-compose build
 
@@ -5,13 +7,13 @@ down:
 	docker-compose down
 
 bash:
-	docker-compose run -it --rm --user $$(id -u):$$(id -g) php bash
+	"$(PHP_CLI)" bash
 
 composer:
-	docker-compose run -it --rm --user $$(id -u):$$(id -g) -e XDEBUG_MODE=off php composer ${c}
+	"$(PHP_CLI)" composer ${c}
 
 test:
-	docker-compose run -it --rm --user $$(id -u):$$(id -g) php ./vendor/bin/phpunit \
+	"$(PHP_CLI)" ./vendor/bin/phpunit \
 		--colors=auto \
 		--testdox \
 		--display-phpunit-deprecations \
@@ -21,5 +23,9 @@ test:
 		tests ${c}
 
 phpstan:
-	docker-compose run -it --rm --user $$(id -u):$$(id -g) php ./vendor/bin/phpstan analyse \
+	"$(PHP_CLI)" ./vendor/bin/phpstan analyse \
 		--memory-limit=1G
+
+check:
+	make phpstan
+	make test
