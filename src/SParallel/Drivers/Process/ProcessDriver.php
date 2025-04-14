@@ -51,7 +51,9 @@ class ProcessDriver implements DriverInterface
 
     private function checkScriptPath(): void
     {
-        if (!file_exists($this->scriptPath)) {
+        $scriptPath = explode(' ', $this->scriptPath)[0];
+
+        if (!file_exists($scriptPath)) {
             throw new RuntimeException(
                 message: sprintf(
                     'Script path [%s] does not exist.',
