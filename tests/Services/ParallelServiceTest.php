@@ -7,6 +7,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Exceptions\ParallelTimeoutException;
@@ -201,6 +202,9 @@ class ParallelServiceTest extends TestCase
                 driver: new ProcessDriver(
                     __DIR__ . '/../process-handler.php'
                 )
+            ),
+            'fork'    => self::makeDriverCase(
+                driver: new ForkDriver()
             ),
         ];
     }

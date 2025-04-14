@@ -4,28 +4,93 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Fork;
 
-use Closure;
+use RuntimeException;
 use SParallel\Contracts\WaitGroupInterface;
+use SParallel\Drivers\Fork\Service\Task;
+use SParallel\Objects\ResultObject;
 use SParallel\Objects\ResultsObject;
+use Throwable;
 
 class ForkWaitGroup implements WaitGroupInterface
 {
+    protected ResultsObject $results;
+
     /**
-     * @param array<mixed, Closure> $callbacks
+     * @param array<mixed, Task> $tasks
      */
     public function __construct(
-        protected array $callbacks,
+        protected array $tasks,
     ) {
+        $this->results = new ResultsObject();
     }
 
     public function current(): ResultsObject
     {
-        // TODO
-        return new ResultsObject();
+        $keys = array_keys($this->tasks);
+
+        foreach ($keys as $key) {
+            $task = $this->tasks[$key];
+
+            if (!$task->isFinished()) {
+                continue;
+            }
+
+            $output = $task->output();
+
+            $outputData = json_decode($output, true);
+
+            if ($outputData === false) {
+                $this->results->addResult(
+                    key: $key,
+                    result: new ResultObject(
+                        exception: new RuntimeException(
+                            "Failed to decode JSON for task [$key]"
+                        )
+                    )
+                );
+            } else {
+                if ($outputData['success'] === true) {
+                    $this->results->addResult(
+                        key: $key,
+                        result: new ResultObject(
+                            result: \Opis\Closure\unserialize($outputData['data'])
+                        )
+                    );
+                } else {
+                    $this->results->addResult(
+                        key: $key,
+                        result: new ResultObject(
+                            exception: new RuntimeException(
+                                message: \Opis\Closure\unserialize($outputData['data'])
+                            )
+                        )
+                    );
+                }
+            }
+
+
+            unset($this->tasks[$key]);
+        }
+
+        return $this->results;
     }
 
     public function break(): void
     {
-        // TODO
+        $keys = array_keys($this->tasks);
+
+        foreach ($keys as $key) {
+            $task = $this->tasks[$key];
+
+            if (!$task->isFinished()) {
+                try {
+                    posix_kill($task->getPid(), SIGKILL);
+                } catch (Throwable) {
+                    //
+                }
+            }
+
+            unset($this->tasks[$key]);
+        }
     }
 }

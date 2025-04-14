@@ -65,6 +65,8 @@ class ParallelService
 
                 break;
             }
+
+            usleep(100);
         }
 
         return $results;

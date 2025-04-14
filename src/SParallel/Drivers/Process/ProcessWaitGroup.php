@@ -41,7 +41,7 @@ class ProcessWaitGroup implements WaitGroupInterface
                 $this->results->addResult(
                     key: $key,
                     result: new ResultObject(
-                        result: $output ? unserialize($output) : null,
+                        result: $output ? \Opis\Closure\unserialize($output) : null,
                     )
                 );
             } else {
@@ -49,7 +49,7 @@ class ProcessWaitGroup implements WaitGroupInterface
                     key: $key,
                     result: new ResultObject(
                         exception: new RuntimeException(
-                            message: unserialize($process->getErrorOutput())
+                            message: \Opis\Closure\unserialize($process->getErrorOutput())
                         )
                     )
                 );
