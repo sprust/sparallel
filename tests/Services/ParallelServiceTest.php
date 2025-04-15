@@ -45,10 +45,7 @@ class ParallelServiceTest extends TestCase
 
         self::assertEquals(2, $results->count());
 
-        /**
-         * @var array<string, ResultObject> $resultsArray
-         */
-        $resultsArray = iterator_to_array($results->getResults());
+        $resultsArray = $results->getResults();
 
         self::assertArrayHasKey(
             'first',
@@ -86,10 +83,7 @@ class ParallelServiceTest extends TestCase
         self::assertTrue($results->isFinished());
         self::assertTrue($results->hasFailed());
 
-        /**
-         * @var array<string, ResultObject> $resultsArray
-         */
-        $resultsArray = iterator_to_array($results->getResults());
+        $resultsArray = $results->getResults();
 
         self::assertCount(2, $resultsArray);
 
@@ -112,10 +106,7 @@ class ParallelServiceTest extends TestCase
         self::assertEquals(RuntimeException::class, $resultErrorObject->exceptionClass);
         self::assertEquals($exceptionMessage, $resultErrorObject->message);
 
-        /**
-         * @var array<string, ResultObject> $failedResultsArray
-         */
-        $failedResultsArray = iterator_to_array($results->getFailed());
+        $failedResultsArray = $results->getFailed();
 
         self::assertCount(1, $failedResultsArray);
 

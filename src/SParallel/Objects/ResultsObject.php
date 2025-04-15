@@ -50,19 +50,19 @@ class ResultsObject
     }
 
     /**
-     * @return Traversable<ResultObject>
+     * @return array<ResultObject>
      */
-    public function getResults(): Traversable
+    public function getResults(): array
     {
-        return new ArrayIterator($this->results);
+        return $this->results;
     }
 
     /**
-     * @return Traversable<ResultObject>
+     * @return array<ResultObject>
      */
-    public function getFailed(): Traversable
+    public function getFailed(): array
     {
-        return new ArrayIterator($this->failed);
+        return $this->failed;
     }
 
     public function count(): int
