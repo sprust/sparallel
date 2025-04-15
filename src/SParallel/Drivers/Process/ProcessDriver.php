@@ -13,7 +13,7 @@ use Symfony\Component\Process\Process;
 
 class ProcessDriver implements DriverInterface
 {
-    public const VARIABLE_NAME = 'S_PARALLEL_SERIALIZED_CALLBACK';
+    public const VARIABLE_NAME = 'SPARALLEL_SERIALIZED_CLOSURE';
 
     public function __construct(protected string $scriptPath)
     {
