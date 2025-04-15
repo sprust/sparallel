@@ -31,10 +31,8 @@ class ProcessDriver implements DriverInterface
             $this->scriptPath,
         );
 
-        $workDir = dirname($this->scriptPath);
-
         foreach ($callbacks as $key => $callback) {
-            $process = Process::fromShellCommandline(command: $command, cwd: $workDir)
+            $process = Process::fromShellCommandline(command: $command)
                 ->setTimeout(null)
                 ->setEnv([
                     static::VARIABLE_NAME => Serializer::serialize($callback),
