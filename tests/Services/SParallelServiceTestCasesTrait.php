@@ -9,17 +9,17 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
-use SParallel\Exceptions\ParallelTimeoutException;
+use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\Context;
-use SParallel\Services\ParallelService;
+use SParallel\Services\SParallelService;
 use SParallel\Tests\Counter;
 
-trait ParallelServiceTestCasesTrait
+trait SParallelServiceTestCasesTrait
 {
     /**
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      */
-    protected function onSuccess(ParallelService $service): void
+    protected function onSuccess(SParallelService $service): void
     {
         $results = $service->wait(
             callbacks: [
@@ -48,9 +48,9 @@ trait ParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      */
-    protected function onFailure(ParallelService $service): void
+    protected function onFailure(SParallelService $service): void
     {
         $exceptionMessage = uniqid();
 
@@ -108,7 +108,7 @@ trait ParallelServiceTestCasesTrait
         self::assertEquals($exceptionMessage, $resultErrorObject->message);
     }
 
-    protected function onTimeout(ParallelService $service): void
+    protected function onTimeout(SParallelService $service): void
     {
         $exception = null;
 
@@ -120,20 +120,20 @@ trait ParallelServiceTestCasesTrait
                 ],
                 waitMicroseconds: 1
             );
-        } catch (ParallelTimeoutException $exception) {
+        } catch (SParallelTimeoutException $exception) {
             //
         } finally {
             self::assertInstanceOf(
-                ParallelTimeoutException::class,
+                SParallelTimeoutException::class,
                 $exception
             );
         }
     }
 
     /**
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      */
-    protected function onBreakAtFirstError(ParallelService $service): void
+    protected function onBreakAtFirstError(SParallelService $service): void
     {
         $results = $service->wait(
             callbacks: [
@@ -150,9 +150,9 @@ trait ParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      */
-    protected function onMemoryLeak(ParallelService $service): void
+    protected function onMemoryLeak(SParallelService $service): void
     {
         $results = $service->wait(
             callbacks: [
@@ -174,11 +174,11 @@ trait ParallelServiceTestCasesTrait
     /**
      * @param Closure(): ContainerInterface $containerResolver
      *
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      * @throws NotFoundExceptionInterface
      * @throws ContainerExceptionInterface
      */
-    protected function onEvents(ParallelService $service, Closure $containerResolver): void
+    protected function onEvents(SParallelService $service, Closure $containerResolver): void
     {
         $counterKey = uniqid();
 

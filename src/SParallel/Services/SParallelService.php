@@ -8,10 +8,10 @@ use Closure;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Exceptions\ParallelTimeoutException;
+use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\ResultsObject;
 
-class ParallelService
+class SParallelService
 {
     public function __construct(
         protected DriverInterface $driver,
@@ -21,7 +21,7 @@ class ParallelService
     /**
      * @param array<Closure> $callbacks
      *
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      */
     public function wait(
         array $callbacks,
@@ -73,14 +73,14 @@ class ParallelService
     }
 
     /**
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      */
     private function checkTimedOut(WaitGroupInterface $waitGroup, float $startTime, float $comparativeTime): void
     {
         if ($comparativeTime > 0 && (microtime(true) - $startTime) > $comparativeTime) {
             $waitGroup->break();
 
-            throw new ParallelTimeoutException();
+            throw new SParallelTimeoutException();
         }
     }
 }

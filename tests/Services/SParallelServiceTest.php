@@ -13,22 +13,22 @@ use SParallel\Contracts\DriverInterface;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
-use SParallel\Exceptions\ParallelTimeoutException;
-use SParallel\Services\ParallelService;
+use SParallel\Exceptions\SParallelTimeoutException;
+use SParallel\Services\SParallelService;
 use SParallel\Tests\Container;
 
-class ParallelServiceTest extends TestCase
+class SParallelServiceTest extends TestCase
 {
-    use ParallelServiceTestCasesTrait;
+    use SParallelServiceTestCasesTrait;
 
     /**
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function success(DriverInterface $driver): void
     {
-        $service = new ParallelService(
+        $service = new SParallelService(
             driver: $driver
         );
 
@@ -36,13 +36,13 @@ class ParallelServiceTest extends TestCase
     }
 
     /**
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function failure(DriverInterface $driver): void
     {
-        $service = new ParallelService(
+        $service = new SParallelService(
             driver: $driver
         );
 
@@ -53,7 +53,7 @@ class ParallelServiceTest extends TestCase
     #[DataProvider('driversDataProvider')]
     public function timeout(DriverInterface $driver): void
     {
-        $service = new ParallelService(
+        $service = new SParallelService(
             driver: $driver
         );
 
@@ -61,13 +61,13 @@ class ParallelServiceTest extends TestCase
     }
 
     /**
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function breakAtFirstError(DriverInterface $driver): void
     {
-        $service = new ParallelService(
+        $service = new SParallelService(
             driver: $driver
         );
 
@@ -75,7 +75,7 @@ class ParallelServiceTest extends TestCase
     }
 
     /**
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      */
     #[Test]
     #[DataProvider('driversMemoryLeakDataProvider')]
@@ -84,7 +84,7 @@ class ParallelServiceTest extends TestCase
         // TODO: hide an exception to terminal for fork driver
         // TODO: off warnings
 
-        $service = new ParallelService(
+        $service = new SParallelService(
             driver: $driver
         );
 
@@ -94,13 +94,13 @@ class ParallelServiceTest extends TestCase
     /**
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
-     * @throws ParallelTimeoutException
+     * @throws SParallelTimeoutException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function events(DriverInterface $driver): void
     {
-        $service = new ParallelService(
+        $service = new SParallelService(
             driver: $driver,
         );
 

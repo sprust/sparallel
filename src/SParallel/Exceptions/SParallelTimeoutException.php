@@ -6,6 +6,6 @@ namespace SParallel\Exceptions;
 
 use Exception;
 
-class ParallelTimeoutException extends Exception
+class SParallelTimeoutException extends Exception
 {
 }
