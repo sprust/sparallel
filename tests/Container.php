@@ -27,7 +27,11 @@ class Container implements ContainerInterface
     public function __construct()
     {
         $this->resolvers = [
-            SyncDriver::class    => static fn() => new SyncDriver(),
+            SyncDriver::class    => static fn() => new SyncDriver(
+                beforeTask: static fn() => Counter::increment(),
+                afterTask: static fn() => Counter::increment(),
+                failedTask: static fn(Throwable $exception) => Counter::increment(),
+            ),
             ProcessDriver::class => static fn() => new ProcessDriver(
                 __DIR__ . '/process-handler.php param1 param2'
             ),

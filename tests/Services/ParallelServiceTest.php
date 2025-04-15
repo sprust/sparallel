@@ -230,15 +230,14 @@ class ParallelServiceTest extends TestCase
     }
 
     /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
      * @throws ParallelTimeoutException
      */
     #[Test]
-    public function forkActions(): void
+    #[DataProvider('driversActionCallbacksDataProvider')]
+    public function actionCallbacks(DriverInterface $driver): void
     {
         $service = new ParallelService(
-            driver: self::getContainer()->get(ForkDriver::class),
+            driver: $driver,
         );
 
         Counter::reset();
@@ -320,6 +319,26 @@ class ParallelServiceTest extends TestCase
                 driver: $container->get(id: ProcessDriver::class)
             ),
             'fork'    => self::makeDriverCase(
+                driver: $container->get(id: ForkDriver::class)
+            ),
+        ];
+    }
+
+    /**
+     * @return array{driver: DriverInterface}[]
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    public static function driversActionCallbacksDataProvider(): array
+    {
+        $container = self::getContainer();
+
+        return [
+            'sync' => self::makeDriverCase(
+                driver: $container->get(id: SyncDriver::class)
+            ),
+            'fork' => self::makeDriverCase(
                 driver: $container->get(id: ForkDriver::class)
             ),
         ];

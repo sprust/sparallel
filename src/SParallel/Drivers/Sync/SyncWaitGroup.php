@@ -17,6 +17,9 @@ class SyncWaitGroup implements WaitGroupInterface
      */
     public function __construct(
         protected array $callbacks,
+        protected ?Closure $beforeTask = null,
+        protected ?Closure $afterTask = null,
+        protected ?Closure $failedTask = null,
     ) {
     }
 
@@ -25,14 +28,26 @@ class SyncWaitGroup implements WaitGroupInterface
         $results = new ResultsObject();
 
         foreach ($this->callbacks as $key => $callback) {
+            if (!is_null($this->beforeTask)) {
+                call_user_func($this->beforeTask);
+            }
+
             try {
                 $result = new ResultObject(
                     result: $callback()
                 );
             } catch (Throwable $exception) {
+                if (!is_null($this->failedTask)) {
+                    call_user_func($this->failedTask, $exception);
+                }
+
                 $result = new ResultObject(
                     exception: $exception
                 );
+            } finally {
+                if (!is_null($this->afterTask)) {
+                    call_user_func($this->afterTask);
+                }
             }
 
             $results->addResult(
