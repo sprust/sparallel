@@ -35,7 +35,7 @@ class ParallelService
         $expectedResultCount = count($callbacks);
 
         $startTime       = microtime(true);
-        $comparativeTime = $waitMicroseconds / 1_000_000;
+        $comparativeTime = (float) $waitMicroseconds / 1_000_000;
 
         while (true) {
             $results = $waitGroup->current();
