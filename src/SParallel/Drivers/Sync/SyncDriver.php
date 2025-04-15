@@ -11,6 +11,8 @@ use SParallel\Objects\Context;
 
 class SyncDriver implements DriverInterface
 {
+    public const DRIVER_NAME = 'sync';
+
     public function __construct(
         protected ?Context $context = null,
         protected ?TaskEventsBusInterface $taskEventsBus = null

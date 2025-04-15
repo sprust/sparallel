@@ -9,9 +9,9 @@ use Throwable;
 
 interface TaskEventsBusInterface
 {
-    public function starting(?Context $context): void;
+    public function starting(string $driverName, ?Context $context): void;
 
-    public function failed(?Context $context, Throwable $exception): void;
+    public function failed(string $driverName, ?Context $context, Throwable $exception): void;
 
-    public function finished(?Context $context): void;
+    public function finished(string $driverName, ?Context $context): void;
 }

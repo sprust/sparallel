@@ -29,7 +29,10 @@ class SyncWaitGroup implements WaitGroupInterface
         $results = new ResultsObject();
 
         foreach ($this->callbacks as $key => $callback) {
-            $this->taskEventsBus?->starting($this->context);
+            $this->taskEventsBus?->starting(
+                driverName: SyncDriver::DRIVER_NAME,
+                context: $this->context
+            );
 
             try {
                 $result = new ResultObject(
@@ -37,6 +40,7 @@ class SyncWaitGroup implements WaitGroupInterface
                 );
             } catch (Throwable $exception) {
                 $this->taskEventsBus?->failed(
+                    driverName: SyncDriver::DRIVER_NAME,
                     context: $this->context,
                     exception: $exception
                 );
@@ -45,7 +49,10 @@ class SyncWaitGroup implements WaitGroupInterface
                     exception: $exception
                 );
             } finally {
-                $this->taskEventsBus?->finished($this->context);
+                $this->taskEventsBus?->finished(
+                    driverName: SyncDriver::DRIVER_NAME,
+                    context: $this->context
+                );
             }
 
             $results->addResult(

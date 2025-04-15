@@ -17,6 +17,8 @@ use Throwable;
 
 class ForkDriver implements DriverInterface
 {
+    public const DRIVER_NAME = 'fork';
+
     public function __construct(
         protected ?Context $context = null,
         protected ?TaskEventsBusInterface $taskEventsBus = null
@@ -42,7 +44,10 @@ class ForkDriver implements DriverInterface
         if ($pid === 0) {
             $socketToChild->close();
 
-            $this->taskEventsBus?->starting($this->context);
+            $this->taskEventsBus?->starting(
+                driverName: static::DRIVER_NAME,
+                context: $this->context
+            );
 
             try {
                 $socketToParent->write(
@@ -54,6 +59,7 @@ class ForkDriver implements DriverInterface
                 );
             } catch (Throwable $exception) {
                 $this->taskEventsBus?->failed(
+                    driverName: static::DRIVER_NAME,
                     context: $this->context,
                     exception: $exception
                 );
@@ -68,7 +74,10 @@ class ForkDriver implements DriverInterface
             } finally {
                 $socketToParent->close();
 
-                $this->taskEventsBus?->finished($this->context);
+                $this->taskEventsBus?->finished(
+                    driverName: static::DRIVER_NAME,
+                    context: $this->context
+                );
 
                 posix_kill(getmypid(), SIGKILL);
             }

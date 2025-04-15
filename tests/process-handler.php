@@ -21,20 +21,29 @@ $context = ContextTransport::unSerialize(
     $_SERVER[ProcessDriver::SERIALIZED_CONTEXT_VARIABLE_NAME]
 );
 
+$driverName = ProcessDriver::DRIVER_NAME;
+
 $container = Container::resolve();
 
 $container->set(Context::class, static fn() => $context);
 
 $taskEventsBus = $container->get(TaskEventsBusInterface::class);
 
-$taskEventsBus->starting($context);
+$taskEventsBus->starting(
+    driverName: $driverName,
+    context: $context
+);
 
 try {
     fwrite(STDOUT, TaskResultTransport::serialize(result: $closure()));
 
     $exitCode = 0;
 } catch (Throwable $exception) {
-    $taskEventsBus->failed($context, $exception);
+    $taskEventsBus->failed(
+        driverName: $driverName,
+        context: $context,
+        exception: $exception
+    );
 
     $response = new ResultObject(
         exception: $exception,
@@ -45,6 +54,9 @@ try {
     $exitCode = 1;
 }
 
-$taskEventsBus->finished($context);
+$taskEventsBus->finished(
+    driverName: $driverName,
+    context: $context
+);
 
 exit($exitCode);

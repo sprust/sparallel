@@ -15,6 +15,8 @@ use Symfony\Component\Process\Process;
 
 class ProcessDriver implements DriverInterface
 {
+    public const DRIVER_NAME = 'process';
+
     public const SERIALIZED_CLOSURE_VARIABLE_NAME = 'SPARALLEL_SERIALIZED_CLOSURE';
     public const SERIALIZED_CONTEXT_VARIABLE_NAME = 'SPARALLEL_SERIALIZED_CONTEXT';
 
