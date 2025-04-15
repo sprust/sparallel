@@ -38,7 +38,7 @@ class TaskResultTransport
 
         return new ResultObject(
             exception: new RuntimeException(
-                message: 'Unexpected task response',
+                message: "Unexpected task response:\n$data",
             )
         );
     }

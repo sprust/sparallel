@@ -7,15 +7,21 @@ namespace SParallel\Tests;
 use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
+use SParallel\Contracts\TaskEventsBusInterface;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
+use SParallel\Objects\Context;
 use Throwable;
 
 class Container implements ContainerInterface
 {
+    private static ?Container $container = null;
+
     /**
-     * @var array<class-string, Closure(): object>
+     * @template TClass
+     *
+     * @var array<class-string<TClass>, Closure(): TClass>
      */
     private array $resolvers;
 
@@ -24,21 +30,50 @@ class Container implements ContainerInterface
      */
     private static array $cache = [];
 
-    public function __construct()
+    public static function resolve(): Container
     {
+        return self::$container ??= new Container();
+    }
+
+    private function __construct()
+    {
+        $context = new Context();
+
+        $taskEventBus = new class implements TaskEventsBusInterface {
+            public function starting(?Context $context): void
+            {
+                Counter::increment();
+            }
+
+            public function failed(?Context $context, Throwable $exception): void
+            {
+                Counter::increment();
+            }
+
+            public function finished(?Context $context): void
+            {
+                Counter::increment();
+            }
+        };
+
         $this->resolvers = [
-            SyncDriver::class    => static fn() => new SyncDriver(
-                beforeTask: static fn() => Counter::increment(),
-                afterTask: static fn() => Counter::increment(),
-                failedTask: static fn(Throwable $exception) => Counter::increment(),
+            Context::class => static fn() => $context,
+
+            TaskEventsBusInterface::class => static fn() => $taskEventBus,
+
+            SyncDriver::class => static fn() => new SyncDriver(
+                context: $context,
+                taskEventsBus: $taskEventBus
             ),
+
             ProcessDriver::class => static fn() => new ProcessDriver(
-                __DIR__ . '/process-handler.php param1 param2'
+                scriptPath: __DIR__ . '/process-handler.php param1 param2',
+                context: $context,
             ),
-            ForkDriver::class    => static fn() => new ForkDriver(
-                beforeTask: static fn() => Counter::increment(),
-                afterTask: static fn() => Counter::increment(),
-                failedTask: static fn(Throwable $exception) => Counter::increment(),
+
+            ForkDriver::class => static fn() => new ForkDriver(
+                context: $context,
+                taskEventsBus: $taskEventBus
             ),
         ];
     }
@@ -65,5 +100,18 @@ class Container implements ContainerInterface
     public function has(string $id): bool
     {
         return array_key_exists($id, $this->resolvers);
+    }
+
+    /**
+     * @template TClass
+     *
+     * @param class-string<object> $id
+     * @param Closure(): TClass    $resolver
+     */
+    public function set(string $id, Closure $resolver): void
+    {
+        $this->resolvers[$id] = $resolver;
+
+        unset(self::$cache[$id]);
     }
 }

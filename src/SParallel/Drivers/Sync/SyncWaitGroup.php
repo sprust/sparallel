@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SParallel\Drivers\Sync;
 
 use Closure;
+use SParallel\Contracts\TaskEventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
+use SParallel\Objects\Context;
 use SParallel\Objects\ResultObject;
 use SParallel\Objects\ResultsObject;
 use Throwable;
@@ -17,9 +19,8 @@ class SyncWaitGroup implements WaitGroupInterface
      */
     public function __construct(
         protected array $callbacks,
-        protected ?Closure $beforeTask = null,
-        protected ?Closure $afterTask = null,
-        protected ?Closure $failedTask = null,
+        protected ?Context $context = null,
+        protected ?TaskEventsBusInterface $taskEventsBus = null,
     ) {
     }
 
@@ -28,26 +29,23 @@ class SyncWaitGroup implements WaitGroupInterface
         $results = new ResultsObject();
 
         foreach ($this->callbacks as $key => $callback) {
-            if (!is_null($this->beforeTask)) {
-                call_user_func($this->beforeTask);
-            }
+            $this->taskEventsBus?->starting($this->context);
 
             try {
                 $result = new ResultObject(
                     result: $callback()
                 );
             } catch (Throwable $exception) {
-                if (!is_null($this->failedTask)) {
-                    call_user_func($this->failedTask, $exception);
-                }
+                $this->taskEventsBus?->failed(
+                    context: $this->context,
+                    exception: $exception
+                );
 
                 $result = new ResultObject(
                     exception: $exception
                 );
             } finally {
-                if (!is_null($this->afterTask)) {
-                    call_user_func($this->afterTask);
-                }
+                $this->taskEventsBus?->finished($this->context);
             }
 
             $results->addResult(

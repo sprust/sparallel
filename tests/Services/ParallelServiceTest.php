@@ -5,22 +5,21 @@ namespace SParallel\Tests\Services;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\TaskEventsBusInterface;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Exceptions\ParallelTimeoutException;
+use SParallel\Objects\Context;
 use SParallel\Services\ParallelService;
-use SParallel\Tests\ContainerTrait;
+use SParallel\Tests\Container;
 use SParallel\Tests\Counter;
+use Throwable;
 
 class ParallelServiceTest extends TestCase
 {
-    use ContainerTrait;
-
     /**
      * @throws ParallelTimeoutException
      */
@@ -41,7 +40,6 @@ class ParallelServiceTest extends TestCase
 
         self::assertTrue($results->isFinished());
         self::assertFalse($results->hasFailed());
-
         self::assertEquals(2, $results->count());
 
         $resultsArray = $results->getResults();
@@ -176,10 +174,7 @@ class ParallelServiceTest extends TestCase
 
         self::assertFalse($results->isFinished());
         self::assertTrue($results->hasFailed());
-
-        self::assertTrue(
-            iterator_count($results->getResults()) >= 0
-        );
+        self::assertTrue($results->count() >= 0);
     }
 
     /**
@@ -209,77 +204,96 @@ class ParallelServiceTest extends TestCase
 
         self::assertTrue($results->isFinished());
         self::assertTrue($results->hasFailed());
-
-        self::assertTrue(
-            iterator_count($results->getResults()) === 2
-        );
-
-        self::assertTrue(
-            iterator_count($results->getFailed()) === 1
-        );
+        self::assertTrue($results->count() === 2);
+        self::assertTrue(count($results->getFailed()) === 1);
     }
 
     /**
      * @throws ParallelTimeoutException
      */
     #[Test]
-    #[DataProvider('driversActionCallbacksDataProvider')]
-    public function actionCallbacks(DriverInterface $driver): void
+    #[DataProvider('driversDataProvider')]
+    public function events(DriverInterface $driver): void
     {
         $service = new ParallelService(
             driver: $driver,
         );
 
+        $counterKey = uniqid();
+
+        Container::resolve()->get(Context::class)
+            ->add(
+                $counterKey,
+                static fn() => Counter::increment()
+            );
+
         Counter::reset();
 
+        $callbacks = [
+            'first'  => static fn() => Container::resolve()
+                ->get(Context::class)
+                ->get($counterKey),
+            'second' => static fn() => Container::resolve()
+                ->get(Context::class)
+                ->get($counterKey),
+        ];
+
+        $callbacksCount = count($callbacks);
+
         $results = $service->wait(
-            callbacks: [
-                'first' => static fn() => 'first',
-            ],
+            callbacks: $callbacks,
         );
 
         self::assertTrue($results->isFinished());
         self::assertFalse($results->hasFailed());
-
-        self::assertTrue(
-            iterator_count($results->getResults()) === 1
-        );
+        self::assertTrue($results->count() === $callbacksCount);
 
         self::assertEquals(
-            2,
+            3 * $callbacksCount,
             Counter::getCount()
         );
 
         Counter::reset();
 
+        $callbacks = [
+            'first'  => static function () use ($counterKey) {
+                Container::resolve()
+                    ->get(Context::class)
+                    ->get($counterKey);
+
+                throw new RuntimeException();
+            },
+            'second' => static function () use ($counterKey) {
+                Container::resolve()
+                    ->get(Context::class)
+                    ->get($counterKey);
+
+                throw new RuntimeException();
+            },
+        ];
+
+        $callbacksCount = count($callbacks);
+
         $results = $service->wait(
-            callbacks: [
-                'first' => static fn() => throw new RuntimeException(),
-            ],
+            callbacks: $callbacks,
         );
 
         self::assertTrue($results->isFinished());
         self::assertTrue($results->hasFailed());
-
-        self::assertTrue(
-            iterator_count($results->getResults()) === 1
-        );
+        self::assertTrue($results->count() === $callbacksCount);
 
         self::assertEquals(
-            3,
+            4 * $callbacksCount,
             Counter::getCount()
         );
     }
 
     /**
      * @return array{driver: DriverInterface}[]
-     *
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     * */
+     */
     public static function driversDataProvider(): array
     {
-        $container = self::getContainer();
+        $container = Container::resolve();
 
         return [
             'sync'    => self::makeDriverCase(
@@ -296,39 +310,16 @@ class ParallelServiceTest extends TestCase
 
     /**
      * @return array{driver: DriverInterface}[]
-     *
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
      */
     public static function driversMemoryLeakDataProvider(): array
     {
-        $container = self::getContainer();
+        $container = Container::resolve();
 
         return [
             'process' => self::makeDriverCase(
                 driver: $container->get(id: ProcessDriver::class)
             ),
             'fork'    => self::makeDriverCase(
-                driver: $container->get(id: ForkDriver::class)
-            ),
-        ];
-    }
-
-    /**
-     * @return array{driver: DriverInterface}[]
-     *
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
-    public static function driversActionCallbacksDataProvider(): array
-    {
-        $container = self::getContainer();
-
-        return [
-            'sync' => self::makeDriverCase(
-                driver: $container->get(id: SyncDriver::class)
-            ),
-            'fork' => self::makeDriverCase(
                 driver: $container->get(id: ForkDriver::class)
             ),
         ];

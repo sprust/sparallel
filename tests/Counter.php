@@ -17,9 +17,7 @@ class Counter
 
     public static function increment(): void
     {
-        $count = self::getCount();
-
-        file_put_contents(self::$filePath, ++$count);
+        file_put_contents(self::$filePath, '0', FILE_APPEND);
     }
 
     public static function getCount(): int
@@ -28,15 +26,13 @@ class Counter
             return 0;
         }
 
-        $count = file_get_contents(self::$filePath);
+        $content = file_get_contents(self::$filePath);
 
-        if ($count === false || !is_numeric($count)) {
-            $count = 0;
+        if ($content === false) {
+            return 0;
         } else {
-            $count = (int) $count;
+            return strlen($content);
         }
-
-        return $count;
     }
 
     private static function isFileExists(): bool

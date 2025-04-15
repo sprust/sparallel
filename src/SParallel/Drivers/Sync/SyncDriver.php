@@ -4,20 +4,16 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Sync;
 
-use Closure;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\TaskEventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use Throwable;
+use SParallel\Objects\Context;
 
 class SyncDriver implements DriverInterface
 {
-    /**
-     * @param Closure(Throwable $exception): void|null $failedTask
-     */
     public function __construct(
-        protected ?Closure $beforeTask = null,
-        protected ?Closure $afterTask = null,
-        protected ?Closure $failedTask = null,
+        protected ?Context $context = null,
+        protected ?TaskEventsBusInterface $taskEventsBus = null
     ) {
     }
 
@@ -25,9 +21,8 @@ class SyncDriver implements DriverInterface
     {
         return new SyncWaitGroup(
             callbacks: $callbacks,
-            beforeTask: $this->beforeTask,
-            afterTask: $this->afterTask,
-            failedTask: $this->failedTask,
+            context: $this->context,
+            taskEventsBus: $this->taskEventsBus
         );
     }
 }
