@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace SParallel\Objects;
 
-use ArrayIterator;
-use Traversable;
-
 class ResultsObject
 {
     private bool $hasFailed = false;

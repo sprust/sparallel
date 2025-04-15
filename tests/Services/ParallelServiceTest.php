@@ -13,7 +13,6 @@ use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Exceptions\ParallelTimeoutException;
-use SParallel\Objects\ResultObject;
 use SParallel\Services\ParallelService;
 use SParallel\Tests\ContainerTrait;
 use SParallel\Tests\Counter;
