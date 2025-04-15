@@ -41,6 +41,7 @@ class ParallelServiceTest extends TestCase
         );
 
         self::assertTrue($results->isFinished());
+        self::assertFalse($results->hasFailed());
 
         self::assertEquals(2, $results->count());
 
@@ -83,6 +84,7 @@ class ParallelServiceTest extends TestCase
         );
 
         self::assertTrue($results->isFinished());
+        self::assertTrue($results->hasFailed());
 
         /**
          * @var array<string, ResultObject> $resultsArray
@@ -99,10 +101,6 @@ class ParallelServiceTest extends TestCase
         self::assertArrayHasKey(
             'second',
             $resultsArray
-        );
-
-        self::assertTrue(
-            $results->hasFailed()
         );
 
         self::assertEquals('first', $resultsArray['first']->result);
@@ -187,7 +185,6 @@ class ParallelServiceTest extends TestCase
         );
 
         self::assertFalse($results->isFinished());
-
         self::assertTrue($results->hasFailed());
 
         self::assertTrue(
@@ -221,7 +218,6 @@ class ParallelServiceTest extends TestCase
         );
 
         self::assertTrue($results->isFinished());
-
         self::assertTrue($results->hasFailed());
 
         self::assertTrue(
@@ -254,7 +250,6 @@ class ParallelServiceTest extends TestCase
         );
 
         self::assertTrue($results->isFinished());
-
         self::assertFalse($results->hasFailed());
 
         self::assertTrue(
@@ -263,6 +258,26 @@ class ParallelServiceTest extends TestCase
 
         self::assertEquals(
             2,
+            Counter::getCount()
+        );
+
+        Counter::reset();
+
+        $results = $service->wait(
+            callbacks: [
+                'first' => static fn() => throw new RuntimeException(),
+            ],
+        );
+
+        self::assertTrue($results->isFinished());
+        self::assertTrue($results->hasFailed());
+
+        self::assertTrue(
+            iterator_count($results->getResults()) === 1
+        );
+
+        self::assertEquals(
+            3,
             Counter::getCount()
         );
     }

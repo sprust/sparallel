@@ -10,6 +10,7 @@ use RuntimeException;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
+use Throwable;
 
 class Container implements ContainerInterface
 {
@@ -28,11 +29,12 @@ class Container implements ContainerInterface
         $this->resolvers = [
             SyncDriver::class    => static fn() => new SyncDriver(),
             ProcessDriver::class => static fn() => new ProcessDriver(
-                __DIR__ . '/process-handler.php SOME_PARAMETER'
+                __DIR__ . '/process-handler.php param1 param2'
             ),
             ForkDriver::class    => static fn() => new ForkDriver(
                 beforeTask: static fn() => Counter::increment(),
                 afterTask: static fn() => Counter::increment(),
+                failedTask: static fn(Throwable $exception) => Counter::increment(),
             ),
         ];
     }

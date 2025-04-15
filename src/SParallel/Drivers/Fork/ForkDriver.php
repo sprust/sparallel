@@ -15,9 +15,13 @@ use Throwable;
 
 class ForkDriver implements DriverInterface
 {
+    /**
+     * @param Closure(Throwable $exception): void|null $failedTask
+     */
     public function __construct(
         protected ?Closure $beforeTask = null,
         protected ?Closure $afterTask = null,
+        protected ?Closure $failedTask = null,
     ) {
     }
 
@@ -53,6 +57,10 @@ class ForkDriver implements DriverInterface
                     )
                 );
             } catch (Throwable $exception) {
+                if (!is_null($this->failedTask)) {
+                    call_user_func($this->failedTask, $exception);
+                }
+
                 $socketToParent->write(
                     Serializer::serialize(
                         new ResultObject(
