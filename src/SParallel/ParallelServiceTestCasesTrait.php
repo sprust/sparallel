@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Tests\Services;
+namespace SParallel;
 
 use Closure;
 use Psr\Container\ContainerExceptionInterface;
