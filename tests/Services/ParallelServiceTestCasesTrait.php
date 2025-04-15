@@ -12,7 +12,6 @@ use RuntimeException;
 use SParallel\Exceptions\ParallelTimeoutException;
 use SParallel\Objects\Context;
 use SParallel\Services\ParallelService;
-use SParallel\Tests\Container;
 use SParallel\Tests\Counter;
 
 trait ParallelServiceTestCasesTrait
