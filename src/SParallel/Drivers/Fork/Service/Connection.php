@@ -7,6 +7,10 @@ namespace SParallel\Drivers\Fork\Service;
 use Generator;
 use Socket;
 
+/**
+ * Borrowed from Spatie's Fork package.
+ * @see https://github.com/spatie/fork
+ */
 class Connection
 {
     protected int $timeoutSeconds;
