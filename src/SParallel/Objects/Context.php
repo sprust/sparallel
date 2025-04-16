@@ -60,6 +60,21 @@ class Context
         return $value;
     }
 
+    public function has(string $key): bool
+    {
+        return array_key_exists($key, $this->context);
+    }
+
+    public function delete(string $key): void
+    {
+        unset($this->context[$key]);
+    }
+
+    public function clear(): void
+    {
+        $this->context = [];
+    }
+
     public function __serialize(): array
     {
         return [
