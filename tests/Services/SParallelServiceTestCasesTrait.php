@@ -9,6 +9,7 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\Context;
 use SParallel\Services\SParallelService;
@@ -172,6 +173,8 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
+     * @see EventsBusInterface
+     *
      * @param Closure(): ContainerInterface $containerResolver
      *
      * @throws SParallelTimeoutException
@@ -212,7 +215,7 @@ trait SParallelServiceTestCasesTrait
         self::assertTrue($results->count() === $callbacksCount);
 
         self::assertEquals(
-            3 * $callbacksCount,
+            (3 * $callbacksCount) + 2,
             Counter::getCount()
         );
 
@@ -246,7 +249,7 @@ trait SParallelServiceTestCasesTrait
         self::assertTrue($results->count() === $callbacksCount);
 
         self::assertEquals(
-            4 * $callbacksCount,
+            (4 * $callbacksCount) + 2,
             Counter::getCount()
         );
     }

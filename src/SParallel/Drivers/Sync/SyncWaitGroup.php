@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Drivers\Sync;
 
 use Closure;
-use SParallel\Contracts\TaskEventsBusInterface;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Objects\Context;
 use SParallel\Objects\ResultObject;
@@ -20,7 +20,7 @@ class SyncWaitGroup implements WaitGroupInterface
     public function __construct(
         protected array $callbacks,
         protected ?Context $context = null,
-        protected ?TaskEventsBusInterface $taskEventsBus = null,
+        protected ?EventsBusInterface $eventsBus = null,
     ) {
     }
 
@@ -29,7 +29,7 @@ class SyncWaitGroup implements WaitGroupInterface
         $results = new ResultsObject();
 
         foreach ($this->callbacks as $key => $callback) {
-            $this->taskEventsBus?->starting(
+            $this->eventsBus?->taskStarting(
                 driverName: SyncDriver::DRIVER_NAME,
                 context: $this->context
             );
@@ -39,7 +39,7 @@ class SyncWaitGroup implements WaitGroupInterface
                     result: $callback()
                 );
             } catch (Throwable $exception) {
-                $this->taskEventsBus?->failed(
+                $this->eventsBus?->taskFailed(
                     driverName: SyncDriver::DRIVER_NAME,
                     context: $this->context,
                     exception: $exception
@@ -49,7 +49,7 @@ class SyncWaitGroup implements WaitGroupInterface
                     exception: $exception
                 );
             } finally {
-                $this->taskEventsBus?->finished(
+                $this->eventsBus?->taskFinished(
                     driverName: SyncDriver::DRIVER_NAME,
                     context: $this->context
                 );

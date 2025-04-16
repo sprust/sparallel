@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use SParallel\Contracts\TaskEventsBusInterface;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Objects\Context;
 use SParallel\Objects\ResultObject;
@@ -27,9 +27,9 @@ $container = Container::resolve();
 
 $container->set(Context::class, static fn() => $context);
 
-$taskEventsBus = $container->get(TaskEventsBusInterface::class);
+$eventsBus = $container->get(EventsBusInterface::class);
 
-$taskEventsBus->starting(
+$eventsBus->taskStarting(
     driverName: $driverName,
     context: $context
 );
@@ -39,7 +39,7 @@ try {
 
     $exitCode = 0;
 } catch (Throwable $exception) {
-    $taskEventsBus->failed(
+    $eventsBus->taskFailed(
         driverName: $driverName,
         context: $context,
         exception: $exception
@@ -54,7 +54,7 @@ try {
     $exitCode = 1;
 }
 
-$taskEventsBus->finished(
+$eventsBus->taskFinished(
     driverName: $driverName,
     context: $context
 );

@@ -7,14 +7,17 @@ namespace SParallel\Services;
 use Closure;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\ResultsObject;
+use Throwable;
 
 class SParallelService
 {
     public function __construct(
         protected DriverInterface $driver,
+        protected ?EventsBusInterface $eventsBus = null,
     ) {
     }
 
@@ -24,6 +27,40 @@ class SParallelService
      * @throws SParallelTimeoutException
      */
     public function wait(
+        array $callbacks,
+        int $waitMicroseconds = 0,
+        bool $breakAtFirstError = false
+    ): ResultsObject {
+        $this->eventsBus?->flowStarting();
+
+        try {
+            return $this->onWait(
+                callbacks: $callbacks,
+                waitMicroseconds: $waitMicroseconds,
+                breakAtFirstError: $breakAtFirstError
+            );
+        } catch (SParallelTimeoutException $exception) {
+            $this->eventsBus?->flowFailed($exception);
+
+            throw $exception;
+        } catch (Throwable $exception) {
+            $this->eventsBus?->flowFailed($exception);
+
+            throw new RuntimeException(
+                message: $exception->getMessage(),
+                previous: $exception
+            );
+        } finally {
+            $this->eventsBus?->flowFinished();
+        }
+    }
+
+    /**
+     * @param array<Closure> $callbacks
+     *
+     * @throws SParallelTimeoutException
+     */
+    private function onWait(
         array $callbacks,
         int $waitMicroseconds = 0,
         bool $breakAtFirstError = false

@@ -7,7 +7,7 @@ namespace SParallel\Tests;
 use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
-use SParallel\Contracts\TaskEventsBusInterface;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
@@ -39,18 +39,33 @@ class Container implements ContainerInterface
     {
         $context = new Context();
 
-        $taskEventBus = new class implements TaskEventsBusInterface {
-            public function starting(string $driverName, ?Context $context): void
+        $eventsBus = new class implements EventsBusInterface {
+            public function flowStarting(): void
             {
                 Counter::increment();
             }
 
-            public function failed(string $driverName, ?Context $context, Throwable $exception): void
+            public function flowFailed(Throwable $exception): void
             {
                 Counter::increment();
             }
 
-            public function finished(string $driverName, ?Context $context): void
+            public function flowFinished(): void
+            {
+                Counter::increment();
+            }
+
+            public function taskStarting(string $driverName, ?Context $context): void
+            {
+                Counter::increment();
+            }
+
+            public function taskFailed(string $driverName, ?Context $context, Throwable $exception): void
+            {
+                Counter::increment();
+            }
+
+            public function taskFinished(string $driverName, ?Context $context): void
             {
                 Counter::increment();
             }
@@ -59,11 +74,11 @@ class Container implements ContainerInterface
         $this->resolvers = [
             Context::class => static fn() => $context,
 
-            TaskEventsBusInterface::class => static fn() => $taskEventBus,
+            EventsBusInterface::class => static fn() => $eventsBus,
 
             SyncDriver::class => static fn() => new SyncDriver(
                 context: $context,
-                taskEventsBus: $taskEventBus
+                eventsBus: $eventsBus
             ),
 
             ProcessDriver::class => static fn() => new ProcessDriver(
@@ -73,7 +88,7 @@ class Container implements ContainerInterface
 
             ForkDriver::class => static fn() => new ForkDriver(
                 context: $context,
-                taskEventsBus: $taskEventBus
+                eventsBus: $eventsBus
             ),
         ];
     }

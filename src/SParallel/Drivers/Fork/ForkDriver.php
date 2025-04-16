@@ -6,7 +6,7 @@ namespace SParallel\Drivers\Fork;
 
 use Closure;
 use SParallel\Contracts\DriverInterface;
-use SParallel\Contracts\TaskEventsBusInterface;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Fork\Service\Connection;
 use SParallel\Drivers\Fork\Service\Task;
@@ -21,7 +21,7 @@ class ForkDriver implements DriverInterface
 
     public function __construct(
         protected ?Context $context = null,
-        protected ?TaskEventsBusInterface $taskEventsBus = null
+        protected ?EventsBusInterface $eventsBus = null
     ) {
     }
 
@@ -44,7 +44,7 @@ class ForkDriver implements DriverInterface
         if ($pid === 0) {
             $socketToChild->close();
 
-            $this->taskEventsBus?->starting(
+            $this->eventsBus?->taskStarting(
                 driverName: static::DRIVER_NAME,
                 context: $this->context
             );
@@ -58,7 +58,7 @@ class ForkDriver implements DriverInterface
                     )
                 );
             } catch (Throwable $exception) {
-                $this->taskEventsBus?->failed(
+                $this->eventsBus?->taskFailed(
                     driverName: static::DRIVER_NAME,
                     context: $this->context,
                     exception: $exception
@@ -74,7 +74,7 @@ class ForkDriver implements DriverInterface
             } finally {
                 $socketToParent->close();
 
-                $this->taskEventsBus?->finished(
+                $this->eventsBus?->taskFinished(
                     driverName: static::DRIVER_NAME,
                     context: $this->context
                 );
