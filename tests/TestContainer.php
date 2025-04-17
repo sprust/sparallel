@@ -42,48 +42,44 @@ class TestContainer implements ContainerInterface
 
     private function __construct()
     {
-        $serializer = new OpisSerializer();
-
-        $context           = new Context();
-        $eventsBus         = new TestEventsBus();
-        $contextTransport  = new ContextTransport(serializer: $serializer);
-        $resultTransport   = new ResultTransport(serializer: $serializer);
-        $callbackTransport = new CallbackTransport(serializer: $serializer);
-
-        $processScriptPathResolver = new ProcessScriptPathResolver();
-
         $this->resolvers = [
-            SerializerInterface::class => static fn() => $serializer,
+            SerializerInterface::class => fn() => new OpisSerializer(),
 
-            ContextTransport::class => static fn() => $contextTransport,
-
-            ResultTransport::class => static fn() => $resultTransport,
-
-            CallbackTransport::class => static fn() => $callbackTransport,
-
-            Context::class => static fn() => $context,
-
-            EventsBusInterface::class => static fn() => $eventsBus,
-
-            ProcessScriptPathResolverInterface::class => $processScriptPathResolver,
-
-            SyncDriver::class => static fn() => new SyncDriver(
-                context: $context,
-                eventsBus: $eventsBus
+            ContextTransport::class => fn() => new ContextTransport(
+                serializer: $this->get(SerializerInterface::class)
             ),
 
-            ProcessDriver::class => static fn() => new ProcessDriver(
-                callbackTransport: $callbackTransport,
-                resultTransport: $resultTransport,
-                contextTransport: $contextTransport,
-                processScriptPathResolver: $processScriptPathResolver,
-                context: $context,
+            ResultTransport::class => fn() => new ResultTransport(
+                serializer: $this->get(SerializerInterface::class)
             ),
 
-            ForkDriver::class => static fn() => new ForkDriver(
-                resultTransport: $resultTransport,
-                context: $context,
-                eventsBus: $eventsBus
+            CallbackTransport::class => fn() => new CallbackTransport(
+                serializer: $this->get(SerializerInterface::class)
+            ),
+
+            Context::class => fn() => new Context(),
+
+            EventsBusInterface::class => fn() => new TestEventsBus(),
+
+            ProcessScriptPathResolverInterface::class => fn() => new ProcessScriptPathResolver(),
+
+            SyncDriver::class => fn() => new SyncDriver(
+                context: $this->get(Context::class),
+                eventsBus: $this->get(EventsBusInterface::class),
+            ),
+
+            ProcessDriver::class => fn() => new ProcessDriver(
+                callbackTransport: $this->get(CallbackTransport::class),
+                resultTransport: $this->get(ResultTransport::class),
+                contextTransport: $this->get(ContextTransport::class),
+                processScriptPathResolver: $this->get(ProcessScriptPathResolverInterface::class),
+                context: $this->get(Context::class),
+            ),
+
+            ForkDriver::class => fn() => new ForkDriver(
+                resultTransport: $this->get(ResultTransport::class),
+                context: $this->get(Context::class),
+                eventsBus: $this->get(EventsBusInterface::class),
             ),
         ];
     }
