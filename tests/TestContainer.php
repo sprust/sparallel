@@ -8,6 +8,7 @@ use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
@@ -49,6 +50,8 @@ class TestContainer implements ContainerInterface
         $resultTransport   = new ResultTransport(serializer: $serializer);
         $callbackTransport = new CallbackTransport(serializer: $serializer);
 
+        $processScriptPathResolver = new ProcessScriptPathResolver();
+
         $this->resolvers = [
             SerializerInterface::class => static fn() => $serializer,
 
@@ -62,6 +65,8 @@ class TestContainer implements ContainerInterface
 
             EventsBusInterface::class => static fn() => $eventsBus,
 
+            ProcessScriptPathResolverInterface::class => $processScriptPathResolver,
+
             SyncDriver::class => static fn() => new SyncDriver(
                 context: $context,
                 eventsBus: $eventsBus
@@ -71,7 +76,7 @@ class TestContainer implements ContainerInterface
                 callbackTransport: $callbackTransport,
                 resultTransport: $resultTransport,
                 contextTransport: $contextTransport,
-                scriptPath: __DIR__ . '/process-handler.php' . ' param1 param2',
+                processScriptPathResolver: $processScriptPathResolver,
                 context: $context,
             ),
 

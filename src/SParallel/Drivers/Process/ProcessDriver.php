@@ -6,6 +6,7 @@ namespace SParallel\Drivers\Process;
 
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Objects\Context;
 use SParallel\Transport\ContextTransport;
@@ -21,13 +22,16 @@ class ProcessDriver implements DriverInterface
     public const SERIALIZED_CLOSURE_VARIABLE_NAME = 'SPARALLEL_SERIALIZED_CLOSURE';
     public const SERIALIZED_CONTEXT_VARIABLE_NAME = 'SPARALLEL_SERIALIZED_CONTEXT';
 
+    protected string $scriptPath;
+
     public function __construct(
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,
-        protected string $scriptPath,
+        protected ProcessScriptPathResolverInterface $processScriptPathResolver,
         protected ?Context $context = null
     ) {
+        $this->scriptPath = $this->processScriptPathResolver->get();
     }
 
     public function wait(array $callbacks): WaitGroupInterface
