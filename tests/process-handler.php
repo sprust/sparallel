@@ -21,9 +21,9 @@ $context = $container->get(ContextTransport::class)
 
 $container->set(Context::class, static fn() => $context);
 
-$driverName          = ProcessDriver::DRIVER_NAME;
-$eventsBus           = $container->get(EventsBusInterface::class);
-$taskResultTransport = $container->get(ResultTransport::class);
+$driverName      = ProcessDriver::DRIVER_NAME;
+$eventsBus       = $container->get(EventsBusInterface::class);
+$resultTransport = $container->get(ResultTransport::class);
 
 $eventsBus->taskStarting(
     driverName: $driverName,
@@ -36,7 +36,7 @@ try {
             $_SERVER[ProcessDriver::SERIALIZED_CLOSURE_VARIABLE_NAME]
         );
 
-    fwrite(STDOUT, $taskResultTransport->serialize(result: $closure()));
+    fwrite(STDOUT, $resultTransport->serialize(result: $closure()));
 
     $exitCode = 0;
 } catch (Throwable $exception) {
@@ -46,7 +46,7 @@ try {
         exception: $exception
     );
 
-    fwrite(STDERR, $taskResultTransport->serialize(exception: $exception));
+    fwrite(STDERR, $resultTransport->serialize(exception: $exception));
 
     $exitCode = 1;
 }

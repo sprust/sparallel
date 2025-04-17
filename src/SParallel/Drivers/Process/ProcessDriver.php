@@ -58,7 +58,7 @@ class ProcessDriver implements DriverInterface
         }
 
         return new ProcessWaitGroup(
-            taskResultTransport: $this->resultTransport,
+            resultTransport: $this->resultTransport,
             processes: $processes,
         );
     }

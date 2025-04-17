@@ -19,7 +19,7 @@ class ForkDriver implements DriverInterface
     public const DRIVER_NAME = 'fork';
 
     public function __construct(
-        protected ResultTransport $taskResultTransport,
+        protected ResultTransport $resultTransport,
         protected ?Context $context = null,
         protected ?EventsBusInterface $eventsBus = null,
     ) {
@@ -28,7 +28,7 @@ class ForkDriver implements DriverInterface
     public function wait(array $callbacks): WaitGroupInterface
     {
         return new ForkWaitGroup(
-            taskResultTransport: $this->taskResultTransport,
+            resultTransport: $this->resultTransport,
             tasks: array_map(
                 fn(Closure $callback) => $this->forkForTask($callback),
                 $callbacks
@@ -52,7 +52,7 @@ class ForkDriver implements DriverInterface
 
             try {
                 $socketToParent->write(
-                    $this->taskResultTransport->serialize(
+                    $this->resultTransport->serialize(
                         result: $callback(),
                     )
                 );
@@ -64,7 +64,7 @@ class ForkDriver implements DriverInterface
                 );
 
                 $socketToParent->write(
-                    $this->taskResultTransport->serialize(
+                    $this->resultTransport->serialize(
                         exception: $exception,
                     )
                 );

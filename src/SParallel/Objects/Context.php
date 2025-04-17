@@ -7,7 +7,7 @@ namespace SParallel\Objects;
 class Context
 {
     /**
-     * @var array<string, string>
+     * @var array<string, mixed>
      */
     protected array $context = [];
 

@@ -18,7 +18,7 @@ class ProcessWaitGroup implements WaitGroupInterface
      * @param array<mixed, Process> $processes
      */
     public function __construct(
-        protected ResultTransport $taskResultTransport,
+        protected ResultTransport $resultTransport,
         protected array $processes,
     ) {
         $this->results = new ResultsObject();
@@ -39,7 +39,7 @@ class ProcessWaitGroup implements WaitGroupInterface
 
             $this->results->addResult(
                 key: $key,
-                result: $this->taskResultTransport->unserialize($output),
+                result: $this->resultTransport->unserialize($output),
             );
 
             unset($this->processes[$key]);

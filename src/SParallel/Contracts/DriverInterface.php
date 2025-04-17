@@ -10,7 +10,7 @@ use SParallel\Exceptions\SParallelTimeoutException;
 interface DriverInterface
 {
     /**
-     * @param array<Closure> $callbacks
+     * @param array<mixed, Closure> $callbacks
      *
      * @throws SParallelTimeoutException
      */

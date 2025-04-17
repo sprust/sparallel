@@ -22,7 +22,7 @@ class SParallelService
     }
 
     /**
-     * @param array<Closure> $callbacks
+     * @param array<mixed, Closure> $callbacks
      *
      * @throws SParallelTimeoutException
      */
@@ -56,7 +56,7 @@ class SParallelService
     }
 
     /**
-     * @param array<Closure> $callbacks
+     * @param array<mixed, Closure> $callbacks
      *
      * @throws SParallelTimeoutException
      */

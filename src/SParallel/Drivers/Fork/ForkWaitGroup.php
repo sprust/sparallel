@@ -18,7 +18,7 @@ class ForkWaitGroup implements WaitGroupInterface
      * @param array<mixed, Task> $tasks
      */
     public function __construct(
-        protected ResultTransport $taskResultTransport,
+        protected ResultTransport $resultTransport,
         protected array $tasks,
     ) {
         $this->results = new ResultsObject();
@@ -39,7 +39,7 @@ class ForkWaitGroup implements WaitGroupInterface
 
             $this->results->addResult(
                 key: $key,
-                result: $this->taskResultTransport->unserialize($output),
+                result: $this->resultTransport->unserialize($output),
             );
 
             unset($this->tasks[$key]);

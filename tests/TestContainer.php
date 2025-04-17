@@ -76,7 +76,7 @@ class TestContainer implements ContainerInterface
             ),
 
             ForkDriver::class => static fn() => new ForkDriver(
-                taskResultTransport: $resultTransport,
+                resultTransport: $resultTransport,
                 context: $context,
                 eventsBus: $eventsBus
             ),
