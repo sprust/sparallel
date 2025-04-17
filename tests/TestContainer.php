@@ -8,10 +8,12 @@ use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
+use SParallel\Drivers\Process\Service\ProcessConnection;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Objects\Context;
 use SParallel\Transport\CallbackTransport;
@@ -63,12 +65,15 @@ class TestContainer implements ContainerInterface
 
             ProcessScriptPathResolverInterface::class => fn() => new ProcessScriptPathResolver(),
 
+            ProcessConnectionInterface::class => fn() => new ProcessConnection(),
+
             SyncDriver::class => fn() => new SyncDriver(
                 context: $this->get(Context::class),
                 eventsBus: $this->get(EventsBusInterface::class),
             ),
 
             ProcessDriver::class => fn() => new ProcessDriver(
+                connection: $this->get(ProcessConnectionInterface::class),
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 contextTransport: $this->get(ContextTransport::class),

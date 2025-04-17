@@ -6,6 +6,7 @@ namespace SParallel\Drivers\Process;
 
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Objects\Context;
@@ -25,6 +26,7 @@ class ProcessDriver implements DriverInterface
     protected string $scriptPath;
 
     public function __construct(
+        protected ProcessConnectionInterface $connection,
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,
@@ -62,6 +64,7 @@ class ProcessDriver implements DriverInterface
         }
 
         return new ProcessWaitGroup(
+            connection: $this->connection,
             resultTransport: $this->resultTransport,
             processes: $processes,
         );

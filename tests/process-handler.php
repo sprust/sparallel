@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Objects\Context;
 use SParallel\Tests\TestContainer;
@@ -24,6 +25,7 @@ $container->set(Context::class, static fn() => $context);
 $driverName      = ProcessDriver::DRIVER_NAME;
 $eventsBus       = $container->get(EventsBusInterface::class);
 $resultTransport = $container->get(ResultTransport::class);
+$connection      = $container->get(ProcessConnectionInterface::class);
 
 $eventsBus->taskStarting(
     driverName: $driverName,
@@ -36,7 +38,10 @@ try {
             $_SERVER[ProcessDriver::SERIALIZED_CLOSURE_VARIABLE_NAME]
         );
 
-    fwrite(STDOUT, $resultTransport->serialize(result: $closure()));
+    $connection->out(
+        data: $resultTransport->serialize(result: $closure()),
+        isError: false
+    );
 
     $exitCode = 0;
 } catch (Throwable $exception) {
@@ -46,7 +51,10 @@ try {
         exception: $exception
     );
 
-    fwrite(STDERR, $resultTransport->serialize(exception: $exception));
+    $connection->out(
+        data: $resultTransport->serialize(exception: $exception),
+        isError: true
+    );
 
     $exitCode = 1;
 }

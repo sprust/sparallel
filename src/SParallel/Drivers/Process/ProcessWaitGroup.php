@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
+use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Objects\ResultsObject;
 use SParallel\Transport\ResultTransport;
@@ -18,6 +19,7 @@ class ProcessWaitGroup implements WaitGroupInterface
      * @param array<mixed, Process> $processes
      */
     public function __construct(
+        protected ProcessConnectionInterface $connection,
         protected ResultTransport $resultTransport,
         protected array $processes,
     ) {
@@ -35,7 +37,7 @@ class ProcessWaitGroup implements WaitGroupInterface
                 continue;
             }
 
-            $output = $this->getOutput($process);
+            $output = $this->connection->read($process);
 
             $this->results->addResult(
                 key: $key,
@@ -65,18 +67,5 @@ class ProcessWaitGroup implements WaitGroupInterface
 
             unset($this->processes[$key]);
         }
-    }
-
-    private function getOutput(Process $process): ?string
-    {
-        if ($output = $process->getOutput()) {
-            return $output;
-        }
-
-        if ($errorOutput = $process->getErrorOutput()) {
-            return $errorOutput;
-        }
-
-        return null;
     }
 }
