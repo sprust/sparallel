@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
-use SParallel\Tests\Container;
+use SParallel\Tests\TestContainer;
 
 class FactoryTest extends TestCase
 {
@@ -22,7 +22,7 @@ class FactoryTest extends TestCase
     public function testDefault(): void
     {
         $factory = new Factory(
-            container: Container::resolve()
+            container: TestContainer::resolve()
         );
 
         self::assertEquals(
@@ -38,7 +38,7 @@ class FactoryTest extends TestCase
     public function testInConsole(): void
     {
         $factory = new Factory(
-            container: Container::resolve(),
+            container: TestContainer::resolve(),
             isRunningInConsole: true
         );
 
@@ -55,7 +55,7 @@ class FactoryTest extends TestCase
     public function testNotInConsole(): void
     {
         $factory = new Factory(
-            container: Container::resolve(),
+            container: TestContainer::resolve(),
             isRunningInConsole: false
         );
 
@@ -72,7 +72,7 @@ class FactoryTest extends TestCase
     public function testManual(): void
     {
         $factory = new Factory(
-            container: Container::resolve(),
+            container: TestContainer::resolve(),
             isRunningInConsole: false,
             driver: new SyncDriver()
         );

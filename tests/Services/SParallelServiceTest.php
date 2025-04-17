@@ -16,7 +16,7 @@ use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Services\SParallelService;
-use SParallel\Tests\Container;
+use SParallel\Tests\TestContainer;
 
 class SParallelServiceTest extends TestCase
 {
@@ -103,10 +103,10 @@ class SParallelServiceTest extends TestCase
     {
         $service = new SParallelService(
             driver: $driver,
-            eventsBus: Container::resolve()->get(EventsBusInterface::class)
+            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class)
         );
 
-        $this->onEvents($service, static fn() => Container::resolve());
+        $this->onEvents($service, static fn() => TestContainer::resolve());
     }
 
     /**
@@ -114,7 +114,7 @@ class SParallelServiceTest extends TestCase
      */
     public static function driversDataProvider(): array
     {
-        $container = Container::resolve();
+        $container = TestContainer::resolve();
 
         return [
             'sync'    => self::makeDriverCase(
@@ -134,7 +134,7 @@ class SParallelServiceTest extends TestCase
      */
     public static function driversMemoryLeakDataProvider(): array
     {
-        $container = Container::resolve();
+        $container = TestContainer::resolve();
 
         return [
             'process' => self::makeDriverCase(

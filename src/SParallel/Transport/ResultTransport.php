@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace SParallel\Transport;
 
 use RuntimeException;
+use SParallel\Contracts\SerializerInterface;
 use SParallel\Objects\ResultObject;
 use Throwable;
 
-class TaskResultTransport
+class ResultTransport
 {
-    public static function serialize(?Throwable $exception = null, mixed $result = null): string
+    public function __construct(
+        protected SerializerInterface $serializer,
+    ) {
+    }
+
+    public function serialize(?Throwable $exception = null, mixed $result = null): string
     {
-        return Serializer::serialize(
+        return $this->serializer->serialize(
             new ResultObject(
                 exception: $exception,
                 result: $result,
@@ -20,10 +26,10 @@ class TaskResultTransport
         );
     }
 
-    public static function unSerialize(?string $data): ResultObject
+    public function unserialize(?string $data): ResultObject
     {
         try {
-            $response = Serializer::unSerialize($data);
+            $response = $this->serializer->unserialize($data);
         } catch (Throwable) {
             return new ResultObject(
                 exception: new RuntimeException(

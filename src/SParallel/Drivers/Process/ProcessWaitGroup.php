@@ -6,7 +6,7 @@ namespace SParallel\Drivers\Process;
 
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Objects\ResultsObject;
-use SParallel\Transport\TaskResultTransport;
+use SParallel\Transport\ResultTransport;
 use Symfony\Component\Process\Process;
 use Throwable;
 
@@ -18,6 +18,7 @@ class ProcessWaitGroup implements WaitGroupInterface
      * @param array<mixed, Process> $processes
      */
     public function __construct(
+        protected ResultTransport $taskResultTransport,
         protected array $processes,
     ) {
         $this->results = new ResultsObject();
@@ -38,7 +39,7 @@ class ProcessWaitGroup implements WaitGroupInterface
 
             $this->results->addResult(
                 key: $key,
-                result: TaskResultTransport::unSerialize($output),
+                result: $this->taskResultTransport->unserialize($output),
             );
 
             unset($this->processes[$key]);

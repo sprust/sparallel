@@ -13,7 +13,7 @@ use SParallel\Contracts\EventsBusInterface;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\Context;
 use SParallel\Services\SParallelService;
-use SParallel\Tests\Counter;
+use SParallel\Tests\TestCounter;
 
 trait SParallelServiceTestCasesTrait
 {
@@ -173,13 +173,13 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @see EventsBusInterface
-     *
      * @param Closure(): ContainerInterface $containerResolver
      *
      * @throws SParallelTimeoutException
      * @throws NotFoundExceptionInterface
      * @throws ContainerExceptionInterface
+     * @see EventsBusInterface
+     *
      */
     protected function onEvents(SParallelService $service, Closure $containerResolver): void
     {
@@ -187,13 +187,16 @@ trait SParallelServiceTestCasesTrait
 
         $container = $containerResolver();
 
-        $container->get(Context::class)
-            ->add(
-                $counterKey,
-                static fn() => Counter::increment()
-            );
+        /** @var Context $context */
+        $context = $container->get(Context::class);
 
-        Counter::reset();
+        $context->add(
+            $counterKey,
+            static fn() => TestCounter::increment()
+        );
+
+
+        TestCounter::reset();
 
         $callbacks = [
             'first'  => static fn() => $containerResolver()
@@ -216,10 +219,10 @@ trait SParallelServiceTestCasesTrait
 
         self::assertEquals(
             (3 * $callbacksCount) + 2,
-            Counter::getCount()
+            TestCounter::getCount()
         );
 
-        Counter::reset();
+        TestCounter::reset();
 
         $callbacks = [
             'first'  => static function () use ($containerResolver, $counterKey) {
@@ -250,7 +253,7 @@ trait SParallelServiceTestCasesTrait
 
         self::assertEquals(
             (4 * $callbacksCount) + 2,
-            Counter::getCount()
+            TestCounter::getCount()
         );
     }
 }

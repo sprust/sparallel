@@ -7,7 +7,7 @@ namespace SParallel\Drivers\Fork;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Fork\Service\Task;
 use SParallel\Objects\ResultsObject;
-use SParallel\Transport\TaskResultTransport;
+use SParallel\Transport\ResultTransport;
 use Throwable;
 
 class ForkWaitGroup implements WaitGroupInterface
@@ -18,6 +18,7 @@ class ForkWaitGroup implements WaitGroupInterface
      * @param array<mixed, Task> $tasks
      */
     public function __construct(
+        protected ResultTransport $taskResultTransport,
         protected array $tasks,
     ) {
         $this->results = new ResultsObject();
@@ -38,7 +39,7 @@ class ForkWaitGroup implements WaitGroupInterface
 
             $this->results->addResult(
                 key: $key,
-                result: TaskResultTransport::unSerialize($output),
+                result: $this->taskResultTransport->unserialize($output),
             );
 
             unset($this->tasks[$key]);

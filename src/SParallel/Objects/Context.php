@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace SParallel\Objects;
 
-use SParallel\Transport\Serializer;
-use Throwable;
-
 class Context
 {
     /**
@@ -16,7 +13,7 @@ class Context
 
     public function add(string $key, mixed $value): static
     {
-        $this->context[$key] = Serializer::serialize($value);
+        $this->context[$key] = $value;
 
         return $this;
     }
@@ -41,13 +38,7 @@ class Context
             return null;
         }
 
-        $serializedValue = $this->context[$key];
-
-        try {
-            $value = Serializer::unSerialize($serializedValue);
-        } catch (Throwable) {
-            $value = null;
-        }
+        $value = $this->context[$key];
 
         if (is_null($value)) {
             return null;

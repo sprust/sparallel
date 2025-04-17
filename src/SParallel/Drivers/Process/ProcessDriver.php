@@ -9,7 +9,8 @@ use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Objects\Context;
 use SParallel\Transport\ContextTransport;
-use SParallel\Transport\Serializer;
+use SParallel\Transport\CallbackTransport;
+use SParallel\Transport\ResultTransport;
 use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
 
@@ -21,6 +22,9 @@ class ProcessDriver implements DriverInterface
     public const SERIALIZED_CONTEXT_VARIABLE_NAME = 'SPARALLEL_SERIALIZED_CONTEXT';
 
     public function __construct(
+        protected CallbackTransport $callbackTransport,
+        protected ResultTransport $resultTransport,
+        protected ContextTransport $contextTransport,
         protected string $scriptPath,
         protected ?Context $context = null
     ) {
@@ -38,13 +42,13 @@ class ProcessDriver implements DriverInterface
             $this->scriptPath,
         );
 
-        $serializedContext = ContextTransport::serialize($this->context);
+        $serializedContext = $this->contextTransport->serialize($this->context);
 
         foreach ($callbacks as $key => $callback) {
             $process = Process::fromShellCommandline(command: $command)
                 ->setTimeout(null)
                 ->setEnv([
-                    static::SERIALIZED_CLOSURE_VARIABLE_NAME => Serializer::serialize($callback),
+                    static::SERIALIZED_CLOSURE_VARIABLE_NAME => $this->callbackTransport->serialize($callback),
                     static::SERIALIZED_CONTEXT_VARIABLE_NAME => $serializedContext,
                 ]);
 
@@ -54,6 +58,7 @@ class ProcessDriver implements DriverInterface
         }
 
         return new ProcessWaitGroup(
+            taskResultTransport: $this->resultTransport,
             processes: $processes,
         );
     }

@@ -11,8 +11,7 @@ use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Fork\Service\Connection;
 use SParallel\Drivers\Fork\Service\Task;
 use SParallel\Objects\Context;
-use SParallel\Objects\ResultObject;
-use SParallel\Transport\Serializer;
+use SParallel\Transport\ResultTransport;
 use Throwable;
 
 class ForkDriver implements DriverInterface
@@ -20,14 +19,16 @@ class ForkDriver implements DriverInterface
     public const DRIVER_NAME = 'fork';
 
     public function __construct(
+        protected ResultTransport $taskResultTransport,
         protected ?Context $context = null,
-        protected ?EventsBusInterface $eventsBus = null
+        protected ?EventsBusInterface $eventsBus = null,
     ) {
     }
 
     public function wait(array $callbacks): WaitGroupInterface
     {
         return new ForkWaitGroup(
+            taskResultTransport: $this->taskResultTransport,
             tasks: array_map(
                 fn(Closure $callback) => $this->forkForTask($callback),
                 $callbacks
@@ -51,10 +52,8 @@ class ForkDriver implements DriverInterface
 
             try {
                 $socketToParent->write(
-                    Serializer::serialize(
-                        new ResultObject(
-                            result: $callback(),
-                        )
+                    $this->taskResultTransport->serialize(
+                        result: $callback(),
                     )
                 );
             } catch (Throwable $exception) {
@@ -65,10 +64,8 @@ class ForkDriver implements DriverInterface
                 );
 
                 $socketToParent->write(
-                    Serializer::serialize(
-                        new ResultObject(
-                            exception: $exception,
-                        )
+                    $this->taskResultTransport->serialize(
+                        exception: $exception,
                     )
                 );
             } finally {

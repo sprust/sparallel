@@ -8,15 +8,19 @@ use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\SerializerInterface;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Objects\Context;
-use Throwable;
+use SParallel\Transport\CallbackTransport;
+use SParallel\Transport\ContextTransport;
+use SParallel\Transport\OpisSerializer;
+use SParallel\Transport\ResultTransport;
 
-class Container implements ContainerInterface
+class TestContainer implements ContainerInterface
 {
-    private static ?Container $container = null;
+    private static ?TestContainer $container = null;
 
     /**
      * @template TClass
@@ -30,48 +34,30 @@ class Container implements ContainerInterface
      */
     private static array $cache = [];
 
-    public static function resolve(): Container
+    public static function resolve(): TestContainer
     {
-        return self::$container ??= new Container();
+        return self::$container ??= new TestContainer();
     }
 
     private function __construct()
     {
-        $context = new Context();
+        $serializer = new OpisSerializer();
 
-        $eventsBus = new class implements EventsBusInterface {
-            public function flowStarting(): void
-            {
-                Counter::increment();
-            }
-
-            public function flowFailed(Throwable $exception): void
-            {
-                Counter::increment();
-            }
-
-            public function flowFinished(): void
-            {
-                Counter::increment();
-            }
-
-            public function taskStarting(string $driverName, ?Context $context): void
-            {
-                Counter::increment();
-            }
-
-            public function taskFailed(string $driverName, ?Context $context, Throwable $exception): void
-            {
-                Counter::increment();
-            }
-
-            public function taskFinished(string $driverName, ?Context $context): void
-            {
-                Counter::increment();
-            }
-        };
+        $context           = new Context();
+        $eventsBus         = new TestEventsBus();
+        $contextTransport  = new ContextTransport(serializer: $serializer);
+        $resultTransport   = new ResultTransport(serializer: $serializer);
+        $callbackTransport = new CallbackTransport(serializer: $serializer);
 
         $this->resolvers = [
+            SerializerInterface::class => static fn() => $serializer,
+
+            ContextTransport::class => static fn() => $contextTransport,
+
+            ResultTransport::class => static fn() => $resultTransport,
+
+            CallbackTransport::class => static fn() => $callbackTransport,
+
             Context::class => static fn() => $context,
 
             EventsBusInterface::class => static fn() => $eventsBus,
@@ -82,11 +68,15 @@ class Container implements ContainerInterface
             ),
 
             ProcessDriver::class => static fn() => new ProcessDriver(
-                scriptPath: __DIR__ . '/process-handler.php param1 param2',
+                callbackTransport: $callbackTransport,
+                resultTransport: $resultTransport,
+                contextTransport: $contextTransport,
+                scriptPath: __DIR__ . '/process-handler.php' . ' param1 param2',
                 context: $context,
             ),
 
             ForkDriver::class => static fn() => new ForkDriver(
+                taskResultTransport: $resultTransport,
                 context: $context,
                 eventsBus: $eventsBus
             ),

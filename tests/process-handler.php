@@ -5,29 +5,25 @@ declare(strict_types=1);
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Objects\Context;
-use SParallel\Objects\ResultObject;
-use SParallel\Tests\Container;
+use SParallel\Tests\TestContainer;
 use SParallel\Transport\ContextTransport;
-use SParallel\Transport\Serializer;
-use SParallel\Transport\TaskResultTransport;
+use SParallel\Transport\CallbackTransport;
+use SParallel\Transport\ResultTransport;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$closure = Serializer::unSerialize(
-    $_SERVER[ProcessDriver::SERIALIZED_CLOSURE_VARIABLE_NAME]
-);
+$container = TestContainer::resolve();
 
-$context = ContextTransport::unSerialize(
-    $_SERVER[ProcessDriver::SERIALIZED_CONTEXT_VARIABLE_NAME]
-);
-
-$driverName = ProcessDriver::DRIVER_NAME;
-
-$container = Container::resolve();
+$context = $container->get(ContextTransport::class)
+    ->unserialize(
+        $_SERVER[ProcessDriver::SERIALIZED_CONTEXT_VARIABLE_NAME]
+    );
 
 $container->set(Context::class, static fn() => $context);
 
-$eventsBus = $container->get(EventsBusInterface::class);
+$driverName          = ProcessDriver::DRIVER_NAME;
+$eventsBus           = $container->get(EventsBusInterface::class);
+$taskResultTransport = $container->get(ResultTransport::class);
 
 $eventsBus->taskStarting(
     driverName: $driverName,
@@ -35,7 +31,12 @@ $eventsBus->taskStarting(
 );
 
 try {
-    fwrite(STDOUT, TaskResultTransport::serialize(result: $closure()));
+    $closure = $container->get(CallbackTransport::class)
+        ->unserialize(
+            $_SERVER[ProcessDriver::SERIALIZED_CLOSURE_VARIABLE_NAME]
+        );
+
+    fwrite(STDOUT, $taskResultTransport->serialize(result: $closure()));
 
     $exitCode = 0;
 } catch (Throwable $exception) {
@@ -45,11 +46,7 @@ try {
         exception: $exception
     );
 
-    $response = new ResultObject(
-        exception: $exception,
-    );
-
-    fwrite(STDERR, TaskResultTransport::serialize(exception: $exception));
+    fwrite(STDERR, $taskResultTransport->serialize(exception: $exception));
 
     $exitCode = 1;
 }
