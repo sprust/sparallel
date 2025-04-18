@@ -11,6 +11,9 @@ use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\SerializerInterface;
+use SParallel\Drivers\ASync\ASyncDriver;
+use SParallel\Drivers\ASync\ASyncProcess;
+use SParallel\Drivers\ASync\SocketIO;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Process\Service\ProcessConnection;
@@ -86,6 +89,26 @@ class TestContainer implements ContainerInterface
                 context: $this->get(Context::class),
                 eventsBus: $this->get(EventsBusInterface::class),
             ),
+
+            ASyncDriver::class => fn() => new ASyncDriver(
+                connection: $this->get(ProcessConnectionInterface::class),
+                callbackTransport: $this->get(CallbackTransport::class),
+                resultTransport: $this->get(ResultTransport::class),
+                contextTransport: $this->get(ContextTransport::class),
+                processScriptPathResolver: $this->get(ProcessScriptPathResolverInterface::class),
+                socketIO: $this->get(SocketIO::class),
+                context: $this->get(Context::class),
+            ),
+
+            ASyncProcess::class => fn() => new ASyncProcess(
+                container: $this,
+                contextTransport: $this->get(ContextTransport::class),
+                callbackTransport: $this->get(CallbackTransport::class),
+                resultTransport: $this->get(ResultTransport::class),
+                socketIO: $this->get(SocketIO::class),
+            ),
+
+            SocketIO::class => fn() => new SocketIO(),
         ];
     }
 
