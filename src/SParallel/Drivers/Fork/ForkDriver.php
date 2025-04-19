@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace SParallel\Drivers\Fork;
 
 use Closure;
+use Generator;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Fork\Service\Connection;
 use SParallel\Drivers\Fork\Service\Task;
+use SParallel\Drivers\Timer;
 use SParallel\Objects\Context;
 use SParallel\Transport\ResultTransport;
 use Throwable;
@@ -25,18 +26,45 @@ class ForkDriver implements DriverInterface
     ) {
     }
 
-    public function wait(array $callbacks): WaitGroupInterface
+    public function run(array &$callbacks, Timer $timer): Generator
     {
-        return new ForkWaitGroup(
-            resultTransport: $this->resultTransport,
-            tasks: array_map(
-                fn(Closure $callback) => $this->forkForTask($callback),
-                $callbacks
-            ),
-        );
+        /** @var array<mixed, Task> $tasks */
+        $tasks = [];
+
+        $callbackKeys = array_keys($callbacks);
+
+        foreach ($callbackKeys as $callbackKey) {
+            $callback = $callbacks[$callbackKey];
+
+            $tasks[$callbackKey] = $this->forkForTask($callbackKey, $callback);
+
+            unset($callbacks[$callbackKey]);
+        }
+
+        while (count($tasks) > 0) {
+            $timer->check();
+
+            $keys = array_keys($tasks);
+
+            foreach ($keys as $key) {
+                $task = $tasks[$key];
+
+                if (!$task->isFinished()) {
+                    $timer->check();
+
+                    continue;
+                }
+
+                $output = $task->output();
+
+                unset($tasks[$key]);
+
+                yield $this->resultTransport->unserialize($output);
+            }
+        }
     }
 
-    protected function forkForTask(Closure $callback): Task
+    protected function forkForTask(mixed $key, Closure $callback): Task
     {
         [$socketToParent, $socketToChild] = Connection::createPair();
 
@@ -53,6 +81,7 @@ class ForkDriver implements DriverInterface
             try {
                 $socketToParent->write(
                     $this->resultTransport->serialize(
+                        key: $key,
                         result: $callback(),
                     )
                 );
@@ -65,6 +94,7 @@ class ForkDriver implements DriverInterface
 
                 $socketToParent->write(
                     $this->resultTransport->serialize(
+                        key: $key,
                         exception: $exception,
                     )
                 );

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace SParallel\Contracts;
 
-use SParallel\Objects\ResultsObject;
+use SParallel\Objects\ResultObject;
 
 interface WaitGroupInterface
 {
-    public function current(): ResultsObject;
+    public function current(): ?ResultObject;
 
     public function break(): void;
 }

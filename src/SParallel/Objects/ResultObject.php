@@ -12,6 +12,7 @@ readonly class ResultObject
     public mixed $result;
 
     public function __construct(
+        public mixed $key,
         ?Throwable $exception = null,
         mixed $result = null
     ) {

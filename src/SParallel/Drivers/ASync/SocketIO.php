@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\ASync;
 
+use RuntimeException;
 use Socket;
 
 class SocketIO
@@ -17,6 +18,41 @@ class SocketIO
     ) {
         $this->timeoutSeconds      = (int) floor($this->timeout);
         $this->timeoutMicroseconds = (int) (($this->timeout * 1_000_000) - ($this->timeoutSeconds * 1_000_000));
+    }
+
+    public function makeSocketPath(): string
+    {
+        $socketPath = '/tmp/sparallel_socket_' . uniqid((string) microtime(true));
+
+        if (file_exists($socketPath)) {
+            unlink($socketPath);
+        }
+
+        return $socketPath;
+    }
+
+    public function createServer(string $socketPath): Socket
+    {
+        $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
+
+        socket_bind($socket, $socketPath);
+        socket_listen($socket);
+        socket_set_nonblock($socket);
+
+        return $socket;
+    }
+
+    public function createClient(string $socketPath): Socket
+    {
+        $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
+
+        if (!socket_connect($socket, $socketPath)) {
+            throw new RuntimeException(
+                'Could not connect to socket: ' . socket_strerror(socket_last_error($socket))
+            );
+        }
+
+        return $socket;
     }
 
     public function readSocket(Socket $socket): string

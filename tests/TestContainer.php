@@ -7,6 +7,7 @@ namespace SParallel\Tests;
 use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
+use SParallel\Contracts\ASyncScriptPathResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
@@ -68,6 +69,8 @@ class TestContainer implements ContainerInterface
 
             ProcessScriptPathResolverInterface::class => fn() => new ProcessScriptPathResolver(),
 
+            ASyncScriptPathResolverInterface::class => fn() => new ASyncScriptPathResolver(),
+
             ProcessConnectionInterface::class => fn() => new ProcessConnection(),
 
             SyncDriver::class => fn() => new SyncDriver(
@@ -95,7 +98,7 @@ class TestContainer implements ContainerInterface
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
-                processScriptPathResolver: $this->get(ProcessScriptPathResolverInterface::class),
+                processScriptPathResolver: $this->get(ASyncScriptPathResolverInterface::class),
                 socketIO: $this->get(SocketIO::class),
                 context: $this->get(Context::class),
             ),
@@ -106,6 +109,7 @@ class TestContainer implements ContainerInterface
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 socketIO: $this->get(SocketIO::class),
+                eventsBus: $this->get(EventsBusInterface::class),
             ),
 
             SocketIO::class => fn() => new SocketIO(),

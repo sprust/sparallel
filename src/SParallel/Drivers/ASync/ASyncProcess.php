@@ -7,7 +7,7 @@ namespace SParallel\Drivers\ASync;
 use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
-use Socket;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Objects\Context;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
@@ -21,7 +21,8 @@ class ASyncProcess
         protected ContextTransport $contextTransport,
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
-        protected SocketIO $socketIO
+        protected SocketIO $socketIO,
+        protected ?EventsBusInterface $eventsBus,
     ) {
     }
 
@@ -33,7 +34,7 @@ class ASyncProcess
             throw new RuntimeException('Socket path is not set.');
         }
 
-        $socket = $this->createClientSocket($socketPath);
+        $socket = $this->socketIO->createClient($socketPath);
 
         try {
             $response = $this->socketIO->readSocket($socket);
@@ -57,7 +58,8 @@ class ASyncProcess
             $childId = $this->fork(
                 key: $key,
                 socketPath: $socketPath,
-                callback: $callback
+                callback: $callback,
+                context: $context
             );
 
             $childProcessIds[] = $childId;
@@ -86,7 +88,7 @@ class ASyncProcess
         }
     }
 
-    private function fork(mixed $key, string $socketPath, Closure $callback): int
+    protected function fork(mixed $key, string $socketPath, Closure $callback, Context $context): int
     {
         $pid = pcntl_fork();
 
@@ -98,19 +100,35 @@ class ASyncProcess
             return $pid;
         }
 
+        $this->eventsBus?->taskStarting(
+            driverName: ASyncDriver::DRIVER_NAME,
+            context: $context
+        );
+
         try {
             $serializedResult = $this->resultTransport->serialize(
                 key: $key,
                 result: $callback()
             );
         } catch (Throwable $exception) {
+            $this->eventsBus?->taskFailed(
+                driverName: ASyncDriver::DRIVER_NAME,
+                context: $context,
+                exception: $exception
+            );
+
             $serializedResult = $this->resultTransport->serialize(
                 key: $key,
                 exception: $exception
             );
+        } finally {
+            $this->eventsBus?->taskFinished(
+                driverName: ASyncDriver::DRIVER_NAME,
+                context: $context
+            );
         }
 
-        $socket = $this->createClientSocket($socketPath);
+        $socket = $this->socketIO->createClient($socketPath);
 
         try {
             $this->socketIO->writeToSocket($socket, $serializedResult);
@@ -121,18 +139,5 @@ class ASyncProcess
         posix_kill(getmypid(), SIGKILL);
 
         return 0;
-    }
-
-    private function createClientSocket(string $socketPath): Socket
-    {
-        $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
-
-        if (!socket_connect($socket, $socketPath)) {
-            throw new RuntimeException(
-                'Could not connect to socket: ' . socket_strerror(socket_last_error($socket))
-            );
-        }
-
-        return $socket;
     }
 }

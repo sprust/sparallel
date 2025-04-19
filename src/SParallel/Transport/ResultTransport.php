@@ -16,10 +16,11 @@ class ResultTransport
     ) {
     }
 
-    public function serialize(?Throwable $exception = null, mixed $result = null): string
+    public function serialize(mixed $key, ?Throwable $exception = null, mixed $result = null): string
     {
         return $this->serializer->serialize(
             new ResultObject(
+                key: $key,
                 exception: $exception,
                 result: $result,
             )
@@ -31,10 +32,8 @@ class ResultTransport
         try {
             $response = $this->serializer->unserialize($data);
         } catch (Throwable) {
-            return new ResultObject(
-                exception: new RuntimeException(
-                    message: "Failed to unserialize task response:\n$data",
-                )
+            throw new RuntimeException(
+                message: "Failed to unserialize task response:\n$data",
             );
         }
 
@@ -42,10 +41,8 @@ class ResultTransport
             return $response;
         }
 
-        return new ResultObject(
-            exception: new RuntimeException(
-                message: "Unexpected task response:\n$data",
-            )
+        throw new RuntimeException(
+            message: "Unexpected task response:\n$data",
         );
     }
 }

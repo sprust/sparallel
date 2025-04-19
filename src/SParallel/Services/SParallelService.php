@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace SParallel\Services;
 
 use Closure;
+use Generator;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\WaitGroupInterface;
+use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
-use SParallel\Objects\ResultsObject;
+use SParallel\Objects\ResultObject;
 use Throwable;
 
 class SParallelService
@@ -24,19 +25,21 @@ class SParallelService
     /**
      * @param array<mixed, Closure> $callbacks
      *
+     * @return Generator<ResultObject>
+     *
      * @throws SParallelTimeoutException
      */
     public function wait(
         array $callbacks,
         int $waitMicroseconds = 0,
         bool $breakAtFirstError = false
-    ): ResultsObject {
+    ): Generator {
         $this->eventsBus?->flowStarting();
 
         try {
             return $this->onWait(
                 callbacks: $callbacks,
-                waitMicroseconds: $waitMicroseconds,
+                timeoutSeconds: $waitMicroseconds,
                 breakAtFirstError: $breakAtFirstError
             );
         } catch (SParallelTimeoutException $exception) {
@@ -58,65 +61,39 @@ class SParallelService
     /**
      * @param array<mixed, Closure> $callbacks
      *
+     * @return Generator<ResultObject>
+     *
      * @throws SParallelTimeoutException
      */
     private function onWait(
         array $callbacks,
-        int $waitMicroseconds = 0,
+        int $timeoutSeconds = 0,
         bool $breakAtFirstError = false
-    ): ResultsObject {
-        $waitGroup = $this->driver->wait(
-            callbacks: $callbacks
+    ): Generator {
+        $timer = new Timer(
+            timeoutSeconds: $timeoutSeconds
         );
 
-        $expectedResultCount = count($callbacks);
+        $generator = $this->driver->run(
+            callbacks: $callbacks,
+            timer: $timer
+        );
 
-        $startTime       = (float) microtime(true);
-        $comparativeTime = (float) ($waitMicroseconds / 1_000_000);
-
-        while (true) {
-            $results = $waitGroup->current();
-
-            if ($breakAtFirstError && $results->hasFailed()) {
-                $waitGroup->break();
-
+        foreach ($generator as $result) {
+            if ($breakAtFirstError && $result->error) {
                 break;
             }
 
-            $this->checkTimedOut(
-                waitGroup: $waitGroup,
-                startTime: $startTime,
-                comparativeTime: $comparativeTime
-            );
-
-            $resultsCount = $results->count();
-
-            if ($resultsCount > $expectedResultCount) {
-                throw new RuntimeException(
-                    "Expected result count of $expectedResultCount, but got " . $resultsCount
-                );
-            }
-
-            if ($resultsCount === $expectedResultCount) {
-                $results->finish();
-
-                break;
-            }
-
-            usleep(100);
+            yield $result;
         }
-
-        return $results;
     }
 
     /**
      * @throws SParallelTimeoutException
      */
-    private function checkTimedOut(WaitGroupInterface $waitGroup, float $startTime, float $comparativeTime): void
+    private function checkTimedOut(float $startTime, float $comparativeTime): void
     {
         if ($comparativeTime > 0 && (microtime(true) - $startTime) > $comparativeTime) {
-            $waitGroup->break();
-
             throw new SParallelTimeoutException();
         }
     }

@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
+use Generator;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
-use SParallel\Contracts\WaitGroupInterface;
+use SParallel\Drivers\Timer;
 use SParallel\Objects\Context;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\CallbackTransport;
@@ -36,11 +37,9 @@ class ProcessDriver implements DriverInterface
         $this->scriptPath = $this->processScriptPathResolver->get();
     }
 
-    public function wait(array $callbacks): WaitGroupInterface
+    public function run(array &$callbacks, Timer $timer): Generator
     {
         $this->checkScriptPath();
-
-        $processes = [];
 
         $command = sprintf(
             '%s %s',
@@ -50,7 +49,13 @@ class ProcessDriver implements DriverInterface
 
         $serializedContext = $this->contextTransport->serialize($this->context);
 
-        foreach ($callbacks as $key => $callback) {
+        $callbackKeys = array_keys($callbacks);
+
+        $processes = [];
+
+        foreach ($callbackKeys as $callbackKey) {
+            $callback = $callbacks[$callbackKey];
+
             $process = Process::fromShellCommandline(command: $command)
                 ->setTimeout(null)
                 ->setEnv([
@@ -60,14 +65,28 @@ class ProcessDriver implements DriverInterface
 
             $process->start();
 
-            $processes[$key] = $process;
+            $processes[$callbackKey] = $process;
+
+            unset($callbacks[$callbackKey]);
         }
 
-        return new ProcessWaitGroup(
-            connection: $this->connection,
-            resultTransport: $this->resultTransport,
-            processes: $processes,
-        );
+        while (count($processes) > 0) {
+            $keys = array_keys($processes);
+
+            foreach ($keys as $key) {
+                $process = $processes[$key];
+
+                if ($process->isRunning()) {
+                    continue;
+                }
+
+                $output = $this->connection->read($process);
+
+                unset($processes[$key]);
+
+                yield $this->resultTransport->unserialize($output);
+            }
+        }
     }
 
     private function checkScriptPath(): void
