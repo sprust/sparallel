@@ -75,7 +75,6 @@ class ASyncHandler
             );
         }
 
-        // TODO: see in fork driver
         while (count($childProcessIds) > 0) {
             $childProcessIdKeys = array_keys($childProcessIds);
 

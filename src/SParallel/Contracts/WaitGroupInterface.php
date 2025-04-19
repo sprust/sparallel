@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace SParallel\Contracts;
 
+use Generator;
+use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\ResultObject;
 
 interface WaitGroupInterface
 {
-    public function current(): ?ResultObject;
+    /**
+     * @return Generator<ResultObject>
+     * @throws SParallelTimeoutException
+     */
+    public function get(): Generator;
 
     public function break(): void;
 }

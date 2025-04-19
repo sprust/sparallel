@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\ASync;
 
-use Generator;
 use RuntimeException;
 use SParallel\Contracts\ASyncScriptPathResolverInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessConnectionInterface;
+use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Objects\Context;
-use SParallel\Objects\ResultObject;
 use SParallel\Objects\SocketServerObject;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
@@ -44,7 +43,7 @@ class ASyncDriver implements DriverInterface
         $this->scriptPath = $this->processScriptPathResolver->get();
     }
 
-    public function run(array &$callbacks, Timer $timer): Generator
+    public function run(array &$callbacks, Timer $timer): WaitGroupInterface
     {
         $serializedCallbacks = [];
 
@@ -122,47 +121,13 @@ class ASyncDriver implements DriverInterface
             break;
         }
 
-        while (count($childSocketServers) > 0) {
-            $callbackKeys = array_keys($childSocketServers);
-
-            foreach ($callbackKeys as $callbackKey) {
-                $childSocketServer = $childSocketServers[$callbackKey];
-
-                $childClient = @socket_accept($childSocketServer->socket);
-
-                if ($childClient === false) {
-                    if (!$process->isRunning()) {
-                        $this->socketService->closeSocketServer($childSocketServer);
-
-                        unset($childSocketServers[$callbackKey]);
-
-                        yield new ResultObject(
-                            key: $callbackKey,
-                            exception: new RuntimeException(
-                                message: 'Process is not running. Socket server is closed.'
-                            )
-                        );
-                    } else {
-                        $timer->check();
-
-                        usleep(1000);
-                    }
-                } else {
-                    try {
-                        $response = $this->socketService->readSocket(
-                            timer: $timer,
-                            socket: $childClient
-                        );
-                    } finally {
-                        $this->socketService->closeSocketServer($childSocketServer);
-                    }
-
-                    unset($childSocketServers[$callbackKey]);
-
-                    yield $this->resultTransport->unserialize($response);
-                }
-            }
-        }
+        return new AsyncWaitGroup(
+            process: $process,
+            childSocketServers: $childSocketServers,
+            timer: $timer,
+            socketService: $this->socketService,
+            resultTransport: $this->resultTransport,
+        );
     }
 
     protected function checkProcess(Process $process): bool

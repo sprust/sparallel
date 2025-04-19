@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace SParallel\Drivers\Fork;
 
 use Closure;
-use Generator;
-use RuntimeException;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Fork\Service\Task;
 use SParallel\Drivers\Timer;
-use SParallel\Objects\ResultObject;
 use SParallel\Services\Fork\ForkHandler;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
@@ -28,7 +26,7 @@ class ForkDriver implements DriverInterface
     ) {
     }
 
-    public function run(array &$callbacks, Timer $timer): Generator
+    public function run(array &$callbacks, Timer $timer): WaitGroupInterface
     {
         /** @var array<mixed, Task> $tasks */
         $tasks = [];
@@ -47,51 +45,13 @@ class ForkDriver implements DriverInterface
             unset($callbacks[$callbackKey]);
         }
 
-        while (count($tasks) > 0) {
-            $timer->check();
-
-            $keys = array_keys($tasks);
-
-            foreach ($keys as $key) {
-                $timer->check();
-
-                $task = $tasks[$key];
-
-                $childClient = @socket_accept($task->socketServer->socket);
-
-                if ($childClient === false) {
-                    if ($this->forkService->isFinished($task->pid)) {
-                        $this->socketService->closeSocketServer($task->socketServer);
-
-                        unset($tasks[$key]);
-
-                        yield new ResultObject(
-                            key: $key,
-                            exception: new RuntimeException(
-                                "Unexpected error occurred while waiting for child process to finish. "
-                            )
-                        );
-                    } else {
-                        $timer->check();
-
-                        usleep(1000);
-                    }
-                } else {
-                    try {
-                        $response = $this->socketService->readSocket(
-                            timer: $timer,
-                            socket: $childClient
-                        );
-                    } finally {
-                        $this->socketService->closeSocketServer($task->socketServer);
-                    }
-
-                    unset($tasks[$key]);
-
-                    yield $this->resultTransport->unserialize($response);
-                }
-            }
-        }
+        return new ForkWaitGroup(
+            tasks: $tasks,
+            timer: $timer,
+            resultTransport: $this->resultTransport,
+            socketService: $this->socketService,
+            forkService: $this->forkService,
+        );
     }
 
     protected function forkForTask(Timer $timer, mixed $key, Closure $callback): Task

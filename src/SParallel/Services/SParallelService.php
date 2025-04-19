@@ -74,13 +74,15 @@ class SParallelService
             timeoutSeconds: $timeoutSeconds
         );
 
-        $generator = $this->driver->run(
+        $waitGroup = $this->driver->run(
             callbacks: $callbacks,
             timer: $timer
         );
 
-        foreach ($generator as $result) {
+        foreach ($waitGroup->get() as $result) {
             if ($breakAtFirstError && $result->error) {
+                $waitGroup->break();
+
                 break;
             }
 
