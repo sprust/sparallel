@@ -14,12 +14,13 @@ use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Drivers\ASync\ASyncDriver;
 use SParallel\Drivers\ASync\ASyncProcess;
-use SParallel\Drivers\ASync\SocketIO;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Process\Service\ProcessConnection;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Objects\Context;
+use SParallel\Services\Fork\ForkHandler;
+use SParallel\Services\Socket\SocketIO;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\OpisSerializer;
@@ -73,6 +74,13 @@ class TestContainer implements ContainerInterface
 
             ProcessConnectionInterface::class => fn() => new ProcessConnection(),
 
+            ForkHandler::class => fn() => new ForkHandler(
+                resultTransport: $this->get(ResultTransport::class),
+                socketIO: $this->get(SocketIO::class),
+                context: $this->get(Context::class),
+                eventsBus: $this->get(EventsBusInterface::class),
+            ),
+
             SyncDriver::class => fn() => new SyncDriver(
                 context: $this->get(Context::class),
                 eventsBus: $this->get(EventsBusInterface::class),
@@ -89,6 +97,8 @@ class TestContainer implements ContainerInterface
 
             ForkDriver::class => fn() => new ForkDriver(
                 resultTransport: $this->get(ResultTransport::class),
+                forkHandler: $this->get(ForkHandler::class),
+                socketIO: $this->get(SocketIO::class),
                 context: $this->get(Context::class),
                 eventsBus: $this->get(EventsBusInterface::class),
             ),
@@ -109,6 +119,7 @@ class TestContainer implements ContainerInterface
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 socketIO: $this->get(SocketIO::class),
+                forkHandler: $this->get(ForkHandler::class),
                 eventsBus: $this->get(EventsBusInterface::class),
             ),
 

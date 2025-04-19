@@ -6,14 +6,16 @@ namespace SParallel\Drivers\Fork;
 
 use Closure;
 use Generator;
+use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Drivers\Fork\Service\Connection;
 use SParallel\Drivers\Fork\Service\Task;
 use SParallel\Drivers\Timer;
 use SParallel\Objects\Context;
+use SParallel\Objects\ResultObject;
+use SParallel\Services\Fork\ForkHandler;
+use SParallel\Services\Socket\SocketIO;
 use SParallel\Transport\ResultTransport;
-use Throwable;
 
 class ForkDriver implements DriverInterface
 {
@@ -21,6 +23,8 @@ class ForkDriver implements DriverInterface
 
     public function __construct(
         protected ResultTransport $resultTransport,
+        protected ForkHandler $forkHandler,
+        protected SocketIO $socketIO,
         protected ?Context $context = null,
         protected ?EventsBusInterface $eventsBus = null,
     ) {
@@ -36,7 +40,11 @@ class ForkDriver implements DriverInterface
         foreach ($callbackKeys as $callbackKey) {
             $callback = $callbacks[$callbackKey];
 
-            $tasks[$callbackKey] = $this->forkForTask($callbackKey, $callback);
+            $tasks[$callbackKey] = $this->forkForTask(
+                timer: $timer,
+                key: $callbackKey,
+                callback: $callback
+            );
 
             unset($callbacks[$callbackKey]);
         }
@@ -47,74 +55,63 @@ class ForkDriver implements DriverInterface
             $keys = array_keys($tasks);
 
             foreach ($keys as $key) {
+                $timer->check();
+
                 $task = $tasks[$key];
 
-                if (!$task->isFinished()) {
-                    $timer->check();
+                $childClient = @socket_accept($task->socket);
 
-                    continue;
+                if ($childClient === false) {
+                    if ($task->isFinished()) {
+                        unset($tasks[$key]);
+
+                        yield new ResultObject(
+                            key: $key,
+                            exception: new RuntimeException(
+                                "Unexpected error occurred while waiting for child process to finish. "
+                            )
+                        );
+                    } else {
+                        $timer->check();
+
+                        usleep(1000);
+                    }
+                } else {
+                    try {
+                        $response = $this->socketIO->readSocket(
+                            timer: $timer,
+                            socket: $childClient
+                        );
+                    } finally {
+                        $this->socketIO->closeSocket($childClient);
+                        $this->socketIO->closeSocket($task->socket);
+                    }
+
+                    unset($tasks[$key]);
+
+                    yield $this->resultTransport->unserialize($response);
                 }
-
-                $output = $task->output();
-
-                unset($tasks[$key]);
-
-                yield $this->resultTransport->unserialize($output);
             }
         }
     }
 
-    protected function forkForTask(mixed $key, Closure $callback): Task
+    protected function forkForTask(Timer $timer, mixed $key, Closure $callback): Task
     {
-        [$socketToParent, $socketToChild] = Connection::createPair();
+        $socketPath = $this->socketIO->makeSocketPath();
 
-        $pid = pcntl_fork();
+        $socket = $this->socketIO->createServer($socketPath);
 
-        if ($pid === 0) {
-            $socketToChild->close();
-
-            $this->eventsBus?->taskStarting(
-                driverName: static::DRIVER_NAME,
-                context: $this->context
-            );
-
-            try {
-                $socketToParent->write(
-                    $this->resultTransport->serialize(
-                        key: $key,
-                        result: $callback(),
-                    )
-                );
-            } catch (Throwable $exception) {
-                $this->eventsBus?->taskFailed(
-                    driverName: static::DRIVER_NAME,
-                    context: $this->context,
-                    exception: $exception
-                );
-
-                $socketToParent->write(
-                    $this->resultTransport->serialize(
-                        key: $key,
-                        exception: $exception,
-                    )
-                );
-            } finally {
-                $socketToParent->close();
-
-                $this->eventsBus?->taskFinished(
-                    driverName: static::DRIVER_NAME,
-                    context: $this->context
-                );
-
-                posix_kill(getmypid(), SIGKILL);
-            }
-        }
-
-        $socketToParent->close();
+        $childPid = $this->forkHandler->handle(
+            timer: $timer,
+            driverName: static::DRIVER_NAME,
+            socketPath: $socketPath,
+            key: $key,
+            callback: $callback
+        );
 
         return new Task(
-            pid: $pid,
-            connection: $socketToChild
+            pid: $childPid,
+            socket: $socket,
         );
     }
 }

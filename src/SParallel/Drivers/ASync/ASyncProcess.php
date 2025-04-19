@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\ASync;
 
-use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Drivers\Timer;
+use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\Context;
+use SParallel\Services\Fork\ForkHandler;
+use SParallel\Services\Socket\SocketIO;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
-use Throwable;
 
 class ASyncProcess
 {
@@ -22,10 +24,14 @@ class ASyncProcess
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected SocketIO $socketIO,
+        protected ForkHandler $forkHandler,
         protected ?EventsBusInterface $eventsBus,
     ) {
     }
 
+    /**
+     * @throws SParallelTimeoutException
+     */
     public function start(): void
     {
         $socketPath = $_SERVER[ASyncDriver::PARAM_SOCKET_PATH] ?? null;
@@ -34,10 +40,18 @@ class ASyncProcess
             throw new RuntimeException('Socket path is not set.');
         }
 
+        $timer = new Timer(
+            timeoutSeconds: (int) $_SERVER[ASyncDriver::PARAM_TIMER_TIMEOUT_SECONDS],
+            customStartTime: (int) $_SERVER[ASyncDriver::PARAM_TIMER_START_TIME],
+        );
+
         $socket = $this->socketIO->createClient($socketPath);
 
         try {
-            $response = $this->socketIO->readSocket($socket);
+            $response = $this->socketIO->readSocket(
+                timer: $timer,
+                socket: $socket
+            );
         } finally {
             socket_close($socket);
         }
@@ -52,19 +66,16 @@ class ASyncProcess
         $childProcessIds = [];
 
         foreach ($responseData['pl'] as $key => $serializedCallback) {
-            $socketPath = $serializedCallback['sp'];
-            $callback   = $this->callbackTransport->unserialize($serializedCallback['cb']);
-
-            $childId = $this->fork(
+            $childProcessIds[] = $this->forkHandler->handle(
+                timer: $timer,
+                driverName: ASyncDriver::DRIVER_NAME,
+                socketPath: $serializedCallback['sp'],
                 key: $key,
-                socketPath: $socketPath,
-                callback: $callback,
-                context: $context
+                callback: $this->callbackTransport->unserialize($serializedCallback['cb'])
             );
-
-            $childProcessIds[] = $childId;
         }
 
+        // TODO: see in fork driver
         while (count($childProcessIds) > 0) {
             $childProcessIdKeys = array_keys($childProcessIds);
 
@@ -86,58 +97,5 @@ class ASyncProcess
                 unset($childProcessIds[$childProcessIdKey]);
             }
         }
-    }
-
-    protected function fork(mixed $key, string $socketPath, Closure $callback, Context $context): int
-    {
-        $pid = pcntl_fork();
-
-        if ($pid === -1) {
-            throw new RuntimeException('Could not fork process.');
-        }
-
-        if ($pid !== 0) {
-            return $pid;
-        }
-
-        $this->eventsBus?->taskStarting(
-            driverName: ASyncDriver::DRIVER_NAME,
-            context: $context
-        );
-
-        try {
-            $serializedResult = $this->resultTransport->serialize(
-                key: $key,
-                result: $callback()
-            );
-        } catch (Throwable $exception) {
-            $this->eventsBus?->taskFailed(
-                driverName: ASyncDriver::DRIVER_NAME,
-                context: $context,
-                exception: $exception
-            );
-
-            $serializedResult = $this->resultTransport->serialize(
-                key: $key,
-                exception: $exception
-            );
-        } finally {
-            $this->eventsBus?->taskFinished(
-                driverName: ASyncDriver::DRIVER_NAME,
-                context: $context
-            );
-        }
-
-        $socket = $this->socketIO->createClient($socketPath);
-
-        try {
-            $this->socketIO->writeToSocket($socket, $serializedResult);
-        } finally {
-            socket_close($socket);
-        }
-
-        posix_kill(getmypid(), SIGKILL);
-
-        return 0;
     }
 }

@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Drivers\ASync;
+namespace SParallel\Services\Socket;
 
 use RuntimeException;
 use Socket;
+use SParallel\Drivers\Timer;
+use SParallel\Exceptions\SParallelTimeoutException;
 
 class SocketIO
 {
@@ -22,7 +24,12 @@ class SocketIO
 
     public function makeSocketPath(): string
     {
-        $socketPath = '/tmp/sparallel_socket_' . uniqid((string) microtime(true));
+        $socketPath = sprintf(
+            '/tmp/sparallel_socket_%d_%f_%s',
+            getmypid(),
+            microtime(true),
+            uniqid(more_entropy: true)
+        );
 
         if (file_exists($socketPath)) {
             unlink($socketPath);
@@ -55,7 +62,10 @@ class SocketIO
         return $socket;
     }
 
-    public function readSocket(Socket $socket): string
+    /**
+     * @throws SParallelTimeoutException
+     */
+    public function readSocket(Timer $timer, Socket $socket): string
     {
         socket_set_nonblock($socket);
 
@@ -65,6 +75,8 @@ class SocketIO
             $chunk = socket_read($socket, 4 - strlen($lengthHeader));
 
             if ($chunk === false || $chunk === '') {
+                $timer->check();
+
                 usleep(1000);
 
                 continue;
@@ -80,6 +92,8 @@ class SocketIO
             $chunk = socket_read($socket, min(8192, $dataLength - strlen($data)));
 
             if ($chunk === false || $chunk === '') {
+                $timer->check();
+
                 usleep(1000);
 
                 continue;
@@ -91,7 +105,10 @@ class SocketIO
         return $data;
     }
 
-    public function writeToSocket(Socket $socket, string $data): void
+    /**
+     * @throws SParallelTimeoutException
+     */
+    public function writeToSocket(Timer $timer, Socket $socket, string $data): void
     {
         socket_set_nonblock($socket);
 
@@ -104,6 +121,8 @@ class SocketIO
             $bytes = socket_write($socket, substr($lengthHeader, $sentBytes), 4 - $sentBytes);
 
             if ($bytes === false) {
+                $timer->check();
+
                 usleep(1000);
 
                 continue;
@@ -120,6 +139,8 @@ class SocketIO
             $bytes = socket_write($socket, $chunk, strlen($chunk));
 
             if ($bytes === false) {
+                $timer->check();
+
                 usleep(1000);
 
                 continue;
@@ -127,5 +148,10 @@ class SocketIO
 
             $sentBytes += $bytes;
         }
+    }
+
+    public function closeSocket(Socket $socket): void
+    {
+        socket_close($socket);
     }
 }

@@ -12,6 +12,7 @@ use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Objects\Context;
+use SParallel\Services\Socket\SocketIO;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
@@ -20,7 +21,10 @@ use Symfony\Component\Process\Process;
 
 class ASyncDriver implements DriverInterface
 {
-    public const PARAM_SOCKET_PATH = 'SPARALLEL_SOCKET_PATH';
+    public const PARAM_SOCKET_PATH           = 'SPARALLEL_SOCKET_PATH';
+    public const PARAM_TIMER_TIMEOUT_SECONDS = 'SPARALLEL_TIMER_TIMEOUT_SECONDS';
+    public const PARAM_TIMER_START_TIME      = 'SPARALLEL_TIMER_START_TIME';
+
     public const DRIVER_NAME = 'async';
 
     protected string $scriptPath;
@@ -43,8 +47,8 @@ class ASyncDriver implements DriverInterface
 
         $callbackKeys = array_keys($callbacks);
 
-        /** @var array<mixed, Socket> $childrenSockets */
-        $childrenSockets = [];
+        /** @var array<mixed, Socket> $childSockets */
+        $childSockets = [];
 
         foreach ($callbackKeys as $callbackKey) {
             $callback = $callbacks[$callbackKey];
@@ -56,7 +60,7 @@ class ASyncDriver implements DriverInterface
                 'cb' => $this->callbackTransport->serialize($callback),
             ];
 
-            $childrenSockets[$callbackKey] = $this->socketIO->createServer($childrenSocketPath);
+            $childSockets[$callbackKey] = $this->socketIO->createServer($childrenSocketPath);
 
             unset($callbacks[$callbackKey]);
         }
@@ -76,7 +80,9 @@ class ASyncDriver implements DriverInterface
         $mainProcess = Process::fromShellCommandline(command: $command)
             ->setTimeout(null)
             ->setEnv([
-                static::PARAM_SOCKET_PATH => $mainSocketPath,
+                static::PARAM_SOCKET_PATH           => $mainSocketPath,
+                static::PARAM_TIMER_TIMEOUT_SECONDS => $timer->timeoutSeconds,
+                static::PARAM_TIMER_START_TIME      => $timer->startTime,
             ]);
 
         $mainProcess->start();
@@ -86,9 +92,9 @@ class ASyncDriver implements DriverInterface
             $mainClient = @socket_accept($mainSocket);
 
             if ($mainClient === false) {
-                usleep(1000);
-
                 $timer->check();
+
+                usleep(1000);
 
                 continue;
             }
@@ -100,6 +106,7 @@ class ASyncDriver implements DriverInterface
 
             try {
                 $this->socketIO->writeToSocket(
+                    timer: $timer,
                     socket: $mainClient,
                     data: $data
                 );
@@ -110,25 +117,32 @@ class ASyncDriver implements DriverInterface
             break;
         }
 
-        while (count($childrenSockets) > 0) {
-            $callbackKeys = array_keys($childrenSockets);
+        while (count($childSockets) > 0) {
+            $callbackKeys = array_keys($childSockets);
 
             foreach ($callbackKeys as $callbackKey) {
-                $childrenSocket = $childrenSockets[$callbackKey];
+                $childSocket = $childSockets[$callbackKey];
 
-                $childClient = @socket_accept($childrenSocket);
+                $childClient = @socket_accept($childSocket);
 
                 if ($childClient === false) {
-                    usleep(1000);
-
                     $timer->check();
+
+                    usleep(1000);
 
                     continue;
                 }
 
-                $response = $this->socketIO->readSocket($childClient);
+                try {
+                    $response = $this->socketIO->readSocket(
+                        timer: $timer,
+                        socket: $childClient
+                    );
+                } finally {
+                    $this->socketIO->closeSocket($childSocket);
+                }
 
-                unset($childrenSockets[$callbackKey]);
+                unset($childSockets[$callbackKey]);
 
                 yield $this->resultTransport->unserialize($response);
             }

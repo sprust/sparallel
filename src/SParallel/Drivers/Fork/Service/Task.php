@@ -5,37 +5,16 @@ declare(strict_types=1);
 namespace SParallel\Drivers\Fork\Service;
 
 use RuntimeException;
+use Socket;
 
-class Task
+readonly class Task
 {
-    protected string $output = '';
-
-    public function __construct(protected int $pid, protected Connection $connection)
+    public function __construct(public int $pid, public Socket $socket)
     {
-    }
-
-    public function getPid(): int
-    {
-        return $this->pid;
-    }
-
-    public function output(): string
-    {
-        foreach ($this->connection->read() as $output) {
-            $this->output .= $output;
-        }
-
-        $this->connection->close();
-
-        return $this->output;
     }
 
     public function isFinished(): bool
     {
-        foreach ($this->connection->read() as $output) {
-            $this->output .= $output;
-        }
-
         $status = pcntl_waitpid($this->pid, $status, WNOHANG | WUNTRACED);
 
         if ($status === $this->pid) {

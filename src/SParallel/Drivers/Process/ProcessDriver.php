@@ -23,6 +23,8 @@ class ProcessDriver implements DriverInterface
 
     public const SERIALIZED_CLOSURE_VARIABLE_NAME = 'SPARALLEL_SERIALIZED_CLOSURE';
     public const SERIALIZED_CONTEXT_VARIABLE_NAME = 'SPARALLEL_SERIALIZED_CONTEXT';
+    public const TIMER_TIMEOUT_SECONDS            = 'SPARALLEL_TIMER_TIMEOUT_SECONDS';
+    public const TIMER_START_TIME                 = 'SPARALLEL_TIMER_START_TIME';
 
     protected string $scriptPath;
 
@@ -61,6 +63,8 @@ class ProcessDriver implements DriverInterface
                 ->setEnv([
                     static::SERIALIZED_CLOSURE_VARIABLE_NAME => $this->callbackTransport->serialize($callback),
                     static::SERIALIZED_CONTEXT_VARIABLE_NAME => $serializedContext,
+                    static::TIMER_TIMEOUT_SECONDS            => $timer->timeoutSeconds,
+                    static::TIMER_START_TIME                 => $timer->startTime,
                 ]);
 
             $process->start();
