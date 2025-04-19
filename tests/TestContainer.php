@@ -13,9 +13,10 @@ use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Drivers\ASync\ASyncDriver;
-use SParallel\Drivers\ASync\ASyncProcess;
+use SParallel\Drivers\ASync\ASyncHandler;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
+use SParallel\Drivers\Process\ProcessHandler;
 use SParallel\Drivers\Process\Service\ProcessConnection;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Objects\Context;
@@ -113,7 +114,7 @@ class TestContainer implements ContainerInterface
                 context: $this->get(Context::class),
             ),
 
-            ASyncProcess::class => fn() => new ASyncProcess(
+            ASyncHandler::class => fn() => new ASyncHandler(
                 container: $this,
                 contextTransport: $this->get(ContextTransport::class),
                 callbackTransport: $this->get(CallbackTransport::class),
@@ -124,6 +125,14 @@ class TestContainer implements ContainerInterface
             ),
 
             SocketIO::class => fn() => new SocketIO(),
+
+            ProcessHandler::class => fn() => new ProcessHandler(
+                container: $this,
+                callbackTransport: $this->get(CallbackTransport::class),
+                resultTransport: $this->get(ResultTransport::class),
+                connection: $this->get(ProcessConnectionInterface::class),
+                eventsBus: $this->get(EventsBusInterface::class),
+            ),
         ];
     }
 

@@ -21,6 +21,7 @@ class ProcessDriver implements DriverInterface
 {
     public const DRIVER_NAME = 'process';
 
+    public const TASK_KEY                         = 'SPARALLEL_TASK_KEY';
     public const SERIALIZED_CLOSURE_VARIABLE_NAME = 'SPARALLEL_SERIALIZED_CLOSURE';
     public const SERIALIZED_CONTEXT_VARIABLE_NAME = 'SPARALLEL_SERIALIZED_CONTEXT';
     public const TIMER_TIMEOUT_SECONDS            = 'SPARALLEL_TIMER_TIMEOUT_SECONDS';
@@ -61,6 +62,7 @@ class ProcessDriver implements DriverInterface
             $process = Process::fromShellCommandline(command: $command)
                 ->setTimeout(null)
                 ->setEnv([
+                    static::TASK_KEY                         => $callbackKey,
                     static::SERIALIZED_CLOSURE_VARIABLE_NAME => $this->callbackTransport->serialize($callback),
                     static::SERIALIZED_CONTEXT_VARIABLE_NAME => $serializedContext,
                     static::TIMER_TIMEOUT_SECONDS            => $timer->timeoutSeconds,

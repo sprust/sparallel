@@ -16,7 +16,7 @@ use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
 
-class ASyncProcess
+class ASyncHandler
 {
     public function __construct(
         protected ContainerInterface $container,
@@ -32,7 +32,7 @@ class ASyncProcess
     /**
      * @throws SParallelTimeoutException
      */
-    public function start(): void
+    public function handle(): void
     {
         $socketPath = $_SERVER[ASyncDriver::PARAM_SOCKET_PATH] ?? null;
 
