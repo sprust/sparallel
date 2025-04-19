@@ -20,4 +20,8 @@ interface EventsBusInterface
     public function taskFailed(string $driverName, ?Context $context, Throwable $exception): void;
 
     public function taskFinished(string $driverName, ?Context $context): void;
+
+    public function unixSocketCreated(string $socketPath): void;
+
+    public function processCreated(int $pid): void;
 }

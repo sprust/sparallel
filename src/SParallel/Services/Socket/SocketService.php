@@ -6,15 +6,18 @@ namespace SParallel\Services\Socket;
 
 use RuntimeException;
 use Socket;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
+use SParallel\Objects\SocketServerObject;
 
-class SocketIO
+class SocketService
 {
     protected int $timeoutSeconds;
     protected int $timeoutMicroseconds;
 
     public function __construct(
+        protected EventsBusInterface $eventsBus,
         protected int $bufferSize = 1024,
         protected float $timeout = 0.0001,
     ) {
@@ -35,18 +38,29 @@ class SocketIO
             unlink($socketPath);
         }
 
+        $this->eventsBus->unixSocketCreated($socketPath);
+
         return $socketPath;
     }
 
-    public function createServer(string $socketPath): Socket
+    public function createServer(string $socketPath): SocketServerObject
     {
         $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
+
+        if ($socket === false) {
+            throw new RuntimeException(
+                'Could not create socket: ' . socket_strerror(socket_last_error())
+            );
+        }
 
         socket_bind($socket, $socketPath);
         socket_listen($socket);
         socket_set_nonblock($socket);
 
-        return $socket;
+        return new SocketServerObject(
+            path: $socketPath,
+            socket: $socket
+        );
     }
 
     public function createClient(string $socketPath): Socket
@@ -148,6 +162,12 @@ class SocketIO
 
             $sentBytes += $bytes;
         }
+    }
+
+    public function closeSocketServer(SocketServerObject $socketServer): void
+    {
+        $this->closeSocket($socketServer->socket);
+        unlink($socketServer->path);
     }
 
     public function closeSocket(Socket $socket): void

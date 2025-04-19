@@ -21,7 +21,7 @@ class ProcessHandler
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected ProcessConnectionInterface $connection,
-        protected ?EventsBusInterface $eventsBus,
+        protected EventsBusInterface $eventsBus,
     ) {
     }
 

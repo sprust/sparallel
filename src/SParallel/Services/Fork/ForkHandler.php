@@ -10,7 +10,7 @@ use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\Context;
-use SParallel\Services\Socket\SocketIO;
+use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
 use Throwable;
 
@@ -18,9 +18,9 @@ readonly class ForkHandler
 {
     public function __construct(
         protected ResultTransport $resultTransport,
-        protected SocketIO $socketIO,
+        protected SocketService $socketService,
         protected Context $context,
-        protected ?EventsBusInterface $eventsBus,
+        protected EventsBusInterface $eventsBus,
     ) {
     }
 
@@ -44,6 +44,8 @@ readonly class ForkHandler
             return $pid;
         }
 
+        $this->eventsBus->processCreated(pid: $pid);
+
         $stdout = fopen('/dev/null', 'w');
 
         if ($stdout === false) {
@@ -56,7 +58,7 @@ readonly class ForkHandler
 
         $GLOBALS['STDOUT'] = $stdout;
 
-        $this->eventsBus?->taskStarting(
+        $this->eventsBus->taskStarting(
             driverName: $driverName,
             context: $this->context
         );
@@ -65,7 +67,7 @@ readonly class ForkHandler
             function () use ($driverName) {
                 $lastError = error_get_last();
 
-                $this->eventsBus?->taskFailed(
+                $this->eventsBus->taskFailed(
                     driverName: $driverName,
                     context: $this->context,
                     exception: new RuntimeException(
@@ -82,7 +84,7 @@ readonly class ForkHandler
                     )
                 );
 
-                $this->eventsBus?->taskFinished(
+                $this->eventsBus->taskFinished(
                     driverName: $driverName,
                     context: $this->context
                 );
@@ -95,7 +97,7 @@ readonly class ForkHandler
                 result: $callback()
             );
         } catch (Throwable $exception) {
-            $this->eventsBus?->taskFailed(
+            $this->eventsBus->taskFailed(
                 driverName: $driverName,
                 context: $this->context,
                 exception: $exception
@@ -106,24 +108,16 @@ readonly class ForkHandler
                 exception: $exception
             );
         } finally {
-            $this->eventsBus?->taskFinished(
+            $this->eventsBus->taskFinished(
                 driverName: $driverName,
                 context: $this->context
             );
         }
 
-        $socket = $this->socketIO->createClient($socketPath);
-
-        pcntl_async_signals(true);
-
-        pcntl_signal(SIGHUP, function () use ($socket) {
-            $this->socketIO->closeSocket($socket);
-
-            posix_kill(getmypid(), SIGKILL);
-        });
+        $socket = $this->socketService->createClient($socketPath);
 
         try {
-            $this->socketIO->writeToSocket(
+            $this->socketService->writeToSocket(
                 timer: $timer,
                 socket: $socket,
                 data: $serializedResult
@@ -131,7 +125,7 @@ readonly class ForkHandler
         } catch (SParallelTimeoutException) {
             // no action needed
         } finally {
-            $this->socketIO->closeSocket($socket);
+            $this->socketService->closeSocket($socket);
         }
 
         posix_kill(getmypid(), SIGKILL);

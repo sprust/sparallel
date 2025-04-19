@@ -6,13 +6,15 @@ namespace SParallel\Drivers\ASync;
 
 use Generator;
 use RuntimeException;
-use Socket;
 use SParallel\Contracts\ASyncScriptPathResolverInterface;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Objects\Context;
-use SParallel\Services\Socket\SocketIO;
+use SParallel\Objects\ResultObject;
+use SParallel\Objects\SocketServerObject;
+use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
@@ -30,12 +32,13 @@ class ASyncDriver implements DriverInterface
     protected string $scriptPath;
 
     public function __construct(
+        protected EventsBusInterface $eventsBus,
         protected ProcessConnectionInterface $connection,
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,
         protected ASyncScriptPathResolverInterface $processScriptPathResolver,
-        protected SocketIO $socketIO,
+        protected SocketService $socketService,
         protected ?Context $context = null,
     ) {
         $this->scriptPath = $this->processScriptPathResolver->get();
@@ -47,27 +50,27 @@ class ASyncDriver implements DriverInterface
 
         $callbackKeys = array_keys($callbacks);
 
-        /** @var array<mixed, Socket> $childSockets */
-        $childSockets = [];
+        /** @var array<mixed, SocketServerObject> $childSocketServers */
+        $childSocketServers = [];
 
         foreach ($callbackKeys as $callbackKey) {
             $callback = $callbacks[$callbackKey];
 
-            $childrenSocketPath = $this->socketIO->makeSocketPath();
+            $childrenSocketPath = $this->socketService->makeSocketPath();
 
             $serializedCallbacks[$callbackKey] = [
                 'sp' => $childrenSocketPath,
                 'cb' => $this->callbackTransport->serialize($callback),
             ];
 
-            $childSockets[$callbackKey] = $this->socketIO->createServer($childrenSocketPath);
+            $childSocketServers[$callbackKey] = $this->socketService->createServer($childrenSocketPath);
 
             unset($callbacks[$callbackKey]);
         }
 
-        $mainSocketPath = $this->socketIO->makeSocketPath();
+        $socketPath = $this->socketService->makeSocketPath();
 
-        $mainSocket = $this->socketIO->createServer($mainSocketPath);
+        $processSocketServer = $this->socketService->createServer($socketPath);
 
         $serializedContext = $this->contextTransport->serialize($this->context);
 
@@ -77,21 +80,23 @@ class ASyncDriver implements DriverInterface
             $this->scriptPath,
         );
 
-        $mainProcess = Process::fromShellCommandline(command: $command)
+        $process = Process::fromShellCommandline(command: $command)
             ->setTimeout(null)
             ->setEnv([
-                static::PARAM_SOCKET_PATH           => $mainSocketPath,
+                static::PARAM_SOCKET_PATH           => $socketPath,
                 static::PARAM_TIMER_TIMEOUT_SECONDS => $timer->timeoutSeconds,
                 static::PARAM_TIMER_START_TIME      => $timer->startTime,
             ]);
 
-        $mainProcess->start();
+        $process->start();
+
+        $this->eventsBus->processCreated(pid: $process->getPid());
 
         // wait for the main process to start
-        while ($this->checkMainProcess($mainProcess)) {
-            $mainClient = @socket_accept($mainSocket);
+        while ($this->checkProcess($process)) {
+            $processClient = @socket_accept($processSocketServer->socket);
 
-            if ($mainClient === false) {
+            if ($processClient === false) {
                 $timer->check();
 
                 usleep(1000);
@@ -105,51 +110,62 @@ class ASyncDriver implements DriverInterface
             ]);
 
             try {
-                $this->socketIO->writeToSocket(
+                $this->socketService->writeToSocket(
                     timer: $timer,
-                    socket: $mainClient,
+                    socket: $processClient,
                     data: $data
                 );
             } finally {
-                socket_close($mainClient);
+                $this->socketService->closeSocketServer($processSocketServer);
             }
 
             break;
         }
 
-        while (count($childSockets) > 0) {
-            $callbackKeys = array_keys($childSockets);
+        while (count($childSocketServers) > 0) {
+            $callbackKeys = array_keys($childSocketServers);
 
             foreach ($callbackKeys as $callbackKey) {
-                $childSocket = $childSockets[$callbackKey];
+                $childSocketServer = $childSocketServers[$callbackKey];
 
-                $childClient = @socket_accept($childSocket);
+                $childClient = @socket_accept($childSocketServer->socket);
 
                 if ($childClient === false) {
-                    $timer->check();
+                    if (!$process->isRunning()) {
+                        $this->socketService->closeSocketServer($childSocketServer);
 
-                    usleep(1000);
+                        unset($childSocketServers[$callbackKey]);
 
-                    continue;
+                        yield new ResultObject(
+                            key: $callbackKey,
+                            exception: new RuntimeException(
+                                message: 'Process is not running. Socket server is closed.'
+                            )
+                        );
+                    } else {
+                        $timer->check();
+
+                        usleep(1000);
+                    }
+                } else {
+                    try {
+                        $response = $this->socketService->readSocket(
+                            timer: $timer,
+                            socket: $childClient
+                        );
+                    } finally {
+                        $this->socketService->closeSocketServer($childSocketServer);
+                    }
+
+                    unset($childSocketServers[$callbackKey]);
+
+                    yield $this->resultTransport->unserialize($response);
                 }
-
-                try {
-                    $response = $this->socketIO->readSocket(
-                        timer: $timer,
-                        socket: $childClient
-                    );
-                } finally {
-                    $this->socketIO->closeSocket($childSocket);
-                }
-
-                unset($childSockets[$callbackKey]);
-
-                yield $this->resultTransport->unserialize($response);
             }
         }
     }
 
-    protected function checkMainProcess(Process $process): bool
+    protected function checkProcess(Process $process): bool
     {
         if ($process->isRunning()) {
             return true;
@@ -157,7 +173,7 @@ class ASyncDriver implements DriverInterface
 
         throw new RuntimeException(
             message: sprintf(
-                'Main process[%s] is not running:\n%s',
+                'Process[%s] is not running:\n%s',
                 $process->getPid(),
                 $this->readProcessOutput($process) ?: 'No output available.'
             )

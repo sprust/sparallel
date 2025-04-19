@@ -18,7 +18,7 @@ class SParallelService
 {
     public function __construct(
         protected DriverInterface $driver,
-        protected ?EventsBusInterface $eventsBus = null,
+        protected EventsBusInterface $eventsBus,
     ) {
     }
 
@@ -34,7 +34,7 @@ class SParallelService
         int $waitMicroseconds = 0,
         bool $breakAtFirstError = false
     ): Generator {
-        $this->eventsBus?->flowStarting();
+        $this->eventsBus->flowStarting();
 
         try {
             return $this->onWait(
@@ -43,18 +43,18 @@ class SParallelService
                 breakAtFirstError: $breakAtFirstError
             );
         } catch (SParallelTimeoutException $exception) {
-            $this->eventsBus?->flowFailed($exception);
+            $this->eventsBus->flowFailed($exception);
 
             throw $exception;
         } catch (Throwable $exception) {
-            $this->eventsBus?->flowFailed($exception);
+            $this->eventsBus->flowFailed($exception);
 
             throw new RuntimeException(
                 message: $exception->getMessage(),
                 previous: $exception
             );
         } finally {
-            $this->eventsBus?->flowFinished();
+            $this->eventsBus->flowFinished();
         }
     }
 
@@ -85,16 +85,6 @@ class SParallelService
             }
 
             yield $result;
-        }
-    }
-
-    /**
-     * @throws SParallelTimeoutException
-     */
-    private function checkTimedOut(float $startTime, float $comparativeTime): void
-    {
-        if ($comparativeTime > 0 && (microtime(true) - $startTime) > $comparativeTime) {
-            throw new SParallelTimeoutException();
         }
     }
 }

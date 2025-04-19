@@ -7,6 +7,7 @@ namespace SParallel\Drivers\Process;
 use Generator;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Drivers\Timer;
@@ -30,6 +31,7 @@ class ProcessDriver implements DriverInterface
     protected string $scriptPath;
 
     public function __construct(
+        protected EventsBusInterface $eventsBus,
         protected ProcessConnectionInterface $connection,
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
@@ -70,6 +72,8 @@ class ProcessDriver implements DriverInterface
                 ]);
 
             $process->start();
+
+            $this->eventsBus->processCreated(pid: $process->getPid());
 
             $processes[$callbackKey] = $process;
 

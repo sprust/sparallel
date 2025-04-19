@@ -17,8 +17,8 @@ class SyncDriver implements DriverInterface
     public const DRIVER_NAME = 'sync';
 
     public function __construct(
-        protected ?Context $context = null,
-        protected ?EventsBusInterface $eventsBus = null
+        protected Context $context,
+        protected EventsBusInterface $eventsBus
     ) {
     }
 
@@ -31,7 +31,7 @@ class SyncDriver implements DriverInterface
 
             $callback = $callbacks[$callbackKey];
 
-            $this->eventsBus?->taskStarting(
+            $this->eventsBus->taskStarting(
                 driverName: SyncDriver::DRIVER_NAME,
                 context: $this->context
             );
@@ -42,7 +42,7 @@ class SyncDriver implements DriverInterface
                     result: $callback()
                 );
             } catch (Throwable $exception) {
-                $this->eventsBus?->taskFailed(
+                $this->eventsBus->taskFailed(
                     driverName: SyncDriver::DRIVER_NAME,
                     context: $this->context,
                     exception: $exception
@@ -53,7 +53,7 @@ class SyncDriver implements DriverInterface
                     exception: $exception
                 );
             } finally {
-                $this->eventsBus?->taskFinished(
+                $this->eventsBus->taskFinished(
                     driverName: SyncDriver::DRIVER_NAME,
                     context: $this->context
                 );

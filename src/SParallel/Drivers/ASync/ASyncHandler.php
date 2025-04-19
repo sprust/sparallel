@@ -6,12 +6,12 @@ namespace SParallel\Drivers\ASync;
 
 use Psr\Container\ContainerInterface;
 use RuntimeException;
-use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\Context;
 use SParallel\Services\Fork\ForkHandler;
-use SParallel\Services\Socket\SocketIO;
+use SParallel\Services\Fork\ForkService;
+use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
@@ -23,9 +23,9 @@ class ASyncHandler
         protected ContextTransport $contextTransport,
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
-        protected SocketIO $socketIO,
+        protected SocketService $socketService,
         protected ForkHandler $forkHandler,
-        protected ?EventsBusInterface $eventsBus,
+        protected ForkService $forkService,
     ) {
     }
 
@@ -45,15 +45,15 @@ class ASyncHandler
             customStartTime: (int) $_SERVER[ASyncDriver::PARAM_TIMER_START_TIME],
         );
 
-        $socket = $this->socketIO->createClient($socketPath);
+        $socket = $this->socketService->createClient($socketPath);
 
         try {
-            $response = $this->socketIO->readSocket(
+            $response = $this->socketService->readSocket(
                 timer: $timer,
                 socket: $socket
             );
         } finally {
-            socket_close($socket);
+            $this->socketService->closeSocket($socket);
         }
 
         $responseData = json_decode($response, true);
@@ -62,11 +62,11 @@ class ASyncHandler
 
         $this->container->set(Context::class, static fn() => $context);
 
-        /** @var array<int> $childProcessIds */
+        /** @var array<mixed, int> $childProcessIds */
         $childProcessIds = [];
 
         foreach ($responseData['pl'] as $key => $serializedCallback) {
-            $childProcessIds[] = $this->forkHandler->handle(
+            $childProcessIds[$key] = $this->forkHandler->handle(
                 timer: $timer,
                 driverName: ASyncDriver::DRIVER_NAME,
                 socketPath: $serializedCallback['sp'],
@@ -80,22 +80,14 @@ class ASyncHandler
             $childProcessIdKeys = array_keys($childProcessIds);
 
             foreach ($childProcessIdKeys as $childProcessIdKey) {
-                $childProcessId = $childProcessIds[$childProcessIdKey];
+                $childProcessPid = $childProcessIds[$childProcessIdKey];
 
-                $status = pcntl_waitpid($childProcessId, $status, WNOHANG | WUNTRACED);
-
-                if ($status === $childProcessId) {
-                    continue;
+                if ($this->forkService->isFinished($childProcessPid)) {
+                    unset($childProcessIds[$childProcessIdKey]);
                 }
-
-                if ($status !== 0) {
-                    throw new RuntimeException(
-                        "Could not reliably manage task that uses process id [$childProcessId]"
-                    );
-                }
-
-                unset($childProcessIds[$childProcessIdKey]);
             }
+
+            usleep(1000);
         }
     }
 }

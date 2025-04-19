@@ -8,13 +8,12 @@ use Closure;
 use Generator;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
-use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Fork\Service\Task;
 use SParallel\Drivers\Timer;
-use SParallel\Objects\Context;
 use SParallel\Objects\ResultObject;
 use SParallel\Services\Fork\ForkHandler;
-use SParallel\Services\Socket\SocketIO;
+use SParallel\Services\Fork\ForkService;
+use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
 
 class ForkDriver implements DriverInterface
@@ -24,9 +23,8 @@ class ForkDriver implements DriverInterface
     public function __construct(
         protected ResultTransport $resultTransport,
         protected ForkHandler $forkHandler,
-        protected SocketIO $socketIO,
-        protected ?Context $context = null,
-        protected ?EventsBusInterface $eventsBus = null,
+        protected SocketService $socketService,
+        protected ForkService $forkService,
     ) {
     }
 
@@ -59,10 +57,12 @@ class ForkDriver implements DriverInterface
 
                 $task = $tasks[$key];
 
-                $childClient = @socket_accept($task->socket);
+                $childClient = @socket_accept($task->socketServer->socket);
 
                 if ($childClient === false) {
-                    if ($task->isFinished()) {
+                    if ($this->forkService->isFinished($task->pid)) {
+                        $this->socketService->closeSocketServer($task->socketServer);
+
                         unset($tasks[$key]);
 
                         yield new ResultObject(
@@ -78,13 +78,12 @@ class ForkDriver implements DriverInterface
                     }
                 } else {
                     try {
-                        $response = $this->socketIO->readSocket(
+                        $response = $this->socketService->readSocket(
                             timer: $timer,
                             socket: $childClient
                         );
                     } finally {
-                        $this->socketIO->closeSocket($childClient);
-                        $this->socketIO->closeSocket($task->socket);
+                        $this->socketService->closeSocketServer($task->socketServer);
                     }
 
                     unset($tasks[$key]);
@@ -97,9 +96,9 @@ class ForkDriver implements DriverInterface
 
     protected function forkForTask(Timer $timer, mixed $key, Closure $callback): Task
     {
-        $socketPath = $this->socketIO->makeSocketPath();
+        $socketPath = $this->socketService->makeSocketPath();
 
-        $socket = $this->socketIO->createServer($socketPath);
+        $socketServer = $this->socketService->createServer($socketPath);
 
         $childPid = $this->forkHandler->handle(
             timer: $timer,
@@ -111,7 +110,7 @@ class ForkDriver implements DriverInterface
 
         return new Task(
             pid: $childPid,
-            socket: $socket,
+            socketServer: $socketServer,
         );
     }
 }
