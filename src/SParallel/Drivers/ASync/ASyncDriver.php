@@ -12,7 +12,6 @@ use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Objects\Context;
-use SParallel\Objects\SocketServerObject;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
@@ -20,6 +19,9 @@ use SParallel\Transport\ResultTransport;
 use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
 
+/**
+ * TODO: use SOMAXCONN const for limiting connections
+ */
 class ASyncDriver implements DriverInterface
 {
     public const PARAM_SOCKET_PATH           = 'SPARALLEL_SOCKET_PATH';
@@ -49,27 +51,11 @@ class ASyncDriver implements DriverInterface
 
         $callbackKeys = array_keys($callbacks);
 
-        /** @var array<mixed, SocketServerObject> $childSocketServers */
-        $childSocketServers = [];
-
         foreach ($callbackKeys as $callbackKey) {
-            $callback = $callbacks[$callbackKey];
-
-            $childrenSocketPath = $this->socketService->makeSocketPath();
-
-            $serializedCallbacks[$callbackKey] = [
-                'sp' => $childrenSocketPath,
-                'cb' => $this->callbackTransport->serialize($callback),
-            ];
-
-            $childSocketServers[$callbackKey] = $this->socketService->createServer($childrenSocketPath);
+            $serializedCallbacks[$callbackKey] = $this->callbackTransport->serialize($callbacks[$callbackKey]);
 
             unset($callbacks[$callbackKey]);
         }
-
-        $socketPath = $this->socketService->makeSocketPath();
-
-        $processSocketServer = $this->socketService->createServer($socketPath);
 
         $serializedContext = $this->contextTransport->serialize($this->context);
 
@@ -78,6 +64,10 @@ class ASyncDriver implements DriverInterface
             (new PhpExecutableFinder())->find(),
             $this->scriptPath,
         );
+
+        $socketPath = $this->socketService->makeSocketPath();
+
+        $processSocketServer = $this->socketService->createServer($socketPath);
 
         $process = Process::fromShellCommandline(command: $command)
             ->setTimeout(null)
@@ -89,7 +79,7 @@ class ASyncDriver implements DriverInterface
 
         $process->start();
 
-        // wait for the main process to start
+        // wait for the main process to start and to put payload
         while ($this->checkProcess($process)) {
             $processClient = @socket_accept($processSocketServer->socket);
 
@@ -102,26 +92,25 @@ class ASyncDriver implements DriverInterface
             }
 
             $data = json_encode([
-                'sc' => $serializedContext,
-                'pl' => $serializedCallbacks,
+                'c'  => $serializedContext,
+                'cb' => $serializedCallbacks,
             ]);
 
-            try {
-                $this->socketService->writeToSocket(
-                    timer: $timer,
-                    socket: $processClient,
-                    data: $data
-                );
-            } finally {
-                $this->socketService->closeSocketServer($processSocketServer);
-            }
+            $this->socketService->writeToSocket(
+                timer: $timer,
+                socket: $processClient,
+                data: $data
+            );
+
+            $this->socketService->closeSocket($processClient);
 
             break;
         }
 
         return new AsyncWaitGroup(
+            taskKeys: $callbackKeys,
             process: $process,
-            childSocketServers: $childSocketServers,
+            processSocketServer: $processSocketServer,
             timer: $timer,
             eventsBus: $this->eventsBus,
             socketService: $this->socketService,

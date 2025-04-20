@@ -54,7 +54,7 @@ class SocketService
         }
 
         socket_bind($socket, $socketPath);
-        socket_listen($socket);
+        socket_listen($socket, SOMAXCONN);
         socket_set_nonblock($socket);
 
         return new SocketServerObject(

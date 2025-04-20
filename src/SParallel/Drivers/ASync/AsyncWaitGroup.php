@@ -9,20 +9,23 @@ use RuntimeException;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
+use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\ResultObject;
 use SParallel\Objects\SocketServerObject;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
 use Symfony\Component\Process\Process;
+use Throwable;
 
 class AsyncWaitGroup implements WaitGroupInterface
 {
     /**
-     * @param array<mixed, SocketServerObject> $childSocketServers
+     * @var array<int, mixed> $taskKeys
      */
     public function __construct(
+        protected array $taskKeys,
         protected Process $process,
-        protected array $childSocketServers,
+        protected SocketServerObject $processSocketServer,
         protected Timer $timer,
         protected EventsBusInterface $eventsBus,
         protected SocketService $socketService,
@@ -32,63 +35,74 @@ class AsyncWaitGroup implements WaitGroupInterface
 
     public function get(): Generator
     {
-        while (count($this->childSocketServers) > 0) {
-            $callbackKeys = array_keys($this->childSocketServers);
+        $remainTaskKeys = $this->taskKeys;
 
-            foreach ($callbackKeys as $callbackKey) {
-                $childSocketServer = $this->childSocketServers[$callbackKey];
+        $socketServer = $this->processSocketServer->socket;
 
-                $childClient = @socket_accept($childSocketServer->socket);
+        $processFinished = false;
 
-                if ($childClient === false) {
-                    if (!$this->process->isRunning()) {
-                        if ($pid = $this->process->getPid()) {
-                            $this->eventsBus->processFinished(pid: $pid);
-                        }
+        while (!$processFinished) {
+            $childClient = @socket_accept($socketServer);
 
-                        $this->socketService->closeSocketServer($childSocketServer);
+            if ($childClient === false) {
+                if (!$this->process->isRunning()) {
+                    $this->break();
 
-                        unset($this->childSocketServers[$callbackKey]);
-
-                        yield new ResultObject(
-                            key: $callbackKey,
-                            exception: new RuntimeException(
-                                message: "Process with key [$callbackKey] is not running. Socket server is closed."
-                            )
-                        );
-                    } else {
-                        $this->timer->check();
-
-                        usleep(1000);
-                    }
+                    $processFinished = true;
                 } else {
                     try {
-                        $response = $this->socketService->readSocket(
-                            timer: $this->timer,
-                            socket: $childClient
-                        );
-                    } finally {
-                        $this->socketService->closeSocketServer($childSocketServer);
+                        $this->timer->check();
+                    } catch (SParallelTimeoutException $exception) {
+                        $this->break();
+
+                        throw $exception;
                     }
 
-                    unset($this->childSocketServers[$callbackKey]);
-
-                    yield $this->resultTransport->unserialize($response);
+                    usleep(1000);
                 }
+            } else {
+                $response = $this->socketService->readSocket(
+                    timer: $this->timer,
+                    socket: $childClient
+                );
+
+                $result = $this->resultTransport->unserialize($response);
+
+                $remainTaskKeys = array_filter(
+                    $remainTaskKeys,
+                    static fn($key) => $key !== $result->key
+                );
+
+                yield $result;
             }
+        }
+
+        while (count($remainTaskKeys) > 0) {
+            $taskKey = array_shift($remainTaskKeys);
+
+            yield new ResultObject(
+                key: $taskKey,
+                exception: new RuntimeException(
+                    'Unexpected process termination.'
+                )
+            );
         }
     }
 
     public function break(): void
     {
-        $keys = array_keys($this->childSocketServers);
+        try {
+            $this->socketService->closeSocketServer($this->processSocketServer);
+        } catch (Throwable) {
+            //
+        }
 
-        foreach ($keys as $key) {
-            $serverObject = $this->childSocketServers[$key];
+        if ($this->process->isRunning()) {
+            $this->process->stop();
+        }
 
-            $this->socketService->closeSocketServer($serverObject);
-
-            unset($this->childSocketServers[$key]);
+        if ($pid = $this->process->getPid()) {
+            $this->eventsBus->processFinished(pid: $pid);
         }
     }
 

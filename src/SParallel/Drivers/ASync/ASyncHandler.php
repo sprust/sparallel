@@ -63,6 +63,8 @@ class ASyncHandler
             customStartTime: (int) $_SERVER[ASyncDriver::PARAM_TIMER_START_TIME],
         );
 
+        // read payload from caller
+
         $socket = $this->socketService->createClient($socketPath);
 
         try {
@@ -76,24 +78,26 @@ class ASyncHandler
 
         $responseData = json_decode($response, true);
 
-        $context = $this->contextTransport->unserialize($responseData['sc']);
+        $context = $this->contextTransport->unserialize($responseData['c']);
 
         $this->container->set(Context::class, static fn() => $context);
 
         /** @var array<mixed, int> $childProcessIds */
         $childProcessIds = [];
 
-        foreach ($responseData['pl'] as $key => $serializedCallback) {
+        foreach ($responseData['cb'] as $key => $serializedCallback) {
             $childProcessIds[$key] = $this->forkHandler->handle(
                 timer: $timer,
                 driverName: ASyncDriver::DRIVER_NAME,
-                socketPath: $serializedCallback['sp'],
+                socketPath: $socketPath,
                 key: $key,
-                callback: $this->callbackTransport->unserialize($serializedCallback['cb'])
+                callback: $this->callbackTransport->unserialize($serializedCallback)
             );
         }
 
         while (count($childProcessIds) > 0) {
+            $timer->check();
+
             $childProcessIdKeys = array_keys($childProcessIds);
 
             foreach ($childProcessIdKeys as $childProcessIdKey) {
