@@ -94,6 +94,7 @@ class TestContainer implements ContainerInterface
                 resultTransport: $this->get(ResultTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
                 processScriptPathResolver: $this->get(ProcessScriptPathResolverInterface::class),
+                eventsBus: $this->get(EventsBusInterface::class),
                 context: $this->get(Context::class),
             ),
 

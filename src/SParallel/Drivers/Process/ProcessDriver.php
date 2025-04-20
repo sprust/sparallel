@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
-use Generator;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
+use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Objects\Context;
 use SParallel\Transport\ContextTransport;
@@ -35,12 +36,13 @@ class ProcessDriver implements DriverInterface
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,
         protected ProcessScriptPathResolverInterface $processScriptPathResolver,
+        protected EventsBusInterface $eventsBus,
         protected Context $context,
     ) {
         $this->scriptPath = $this->processScriptPathResolver->get();
     }
 
-    public function run(array &$callbacks, Timer $timer): Generator
+    public function run(array &$callbacks, Timer $timer): WaitGroupInterface
     {
         $this->checkScriptPath();
 
@@ -76,23 +78,12 @@ class ProcessDriver implements DriverInterface
             unset($callbacks[$callbackKey]);
         }
 
-        while (count($processes) > 0) {
-            $keys = array_keys($processes);
-
-            foreach ($keys as $key) {
-                $process = $processes[$key];
-
-                if ($process->isRunning()) {
-                    continue;
-                }
-
-                $output = $this->connection->read($process);
-
-                unset($processes[$key]);
-
-                yield $this->resultTransport->unserialize($output);
-            }
-        }
+        return new ProcessWaitGroup(
+            processes: $processes,
+            connection: $this->connection,
+            resultTransport: $this->resultTransport,
+            eventsBus: $this->eventsBus
+        );
     }
 
     private function checkScriptPath(): void
