@@ -46,6 +46,30 @@ readonly class ForkHandler
 
         $this->eventsBus->processCreated(pid: $pid);
 
+        try {
+            $this->onHandle(
+                timer: $timer,
+                driverName: $driverName,
+                socketPath: $socketPath,
+                key: $key,
+                callback: $callback
+            );
+        } catch (Throwable $e) {
+            $this->eventsBus->processFinished(getmypid());
+
+            posix_kill(getmypid(), SIGKILL);
+        }
+
+        return 0;
+    }
+
+    protected function onHandle(
+        Timer $timer,
+        string $driverName,
+        string $socketPath,
+        mixed $key,
+        Closure $callback
+    ): void {
         $stdout = fopen('/dev/null', 'w');
 
         if ($stdout === false) {
@@ -61,34 +85,6 @@ readonly class ForkHandler
         $this->eventsBus->taskStarting(
             driverName: $driverName,
             context: $this->context
-        );
-
-        register_shutdown_function(
-            function () use ($driverName) {
-                $lastError = error_get_last();
-
-                $this->eventsBus->taskFailed(
-                    driverName: $driverName,
-                    context: $this->context,
-                    exception: new RuntimeException(
-                        "Task was killed by the system."
-                        . (is_null($lastError)
-                            ? ' Unknown error.'
-                            : sprintf(
-                                "\nError: \"%s\" in %s:%d",
-                                $lastError['message'],
-                                $lastError['file'],
-                                $lastError['line']
-                            )
-                        )
-                    )
-                );
-
-                $this->eventsBus->taskFinished(
-                    driverName: $driverName,
-                    context: $this->context
-                );
-            }
         );
 
         try {
@@ -127,9 +123,5 @@ readonly class ForkHandler
         } finally {
             $this->socketService->closeSocket($socket);
         }
-
-        posix_kill(getmypid(), SIGKILL);
-
-        return 0;
     }
 }

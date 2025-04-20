@@ -23,5 +23,9 @@ interface EventsBusInterface
 
     public function unixSocketCreated(string $socketPath): void;
 
+    public function unixSocketClosed(string $socketPath): void;
+
     public function processCreated(int $pid): void;
+
+    public function processFinished(int $pid): void;
 }

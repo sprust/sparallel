@@ -6,6 +6,7 @@ namespace SParallel\Drivers\ASync;
 
 use Generator;
 use RuntimeException;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Objects\ResultObject;
@@ -23,6 +24,7 @@ class AsyncWaitGroup implements WaitGroupInterface
         protected Process $process,
         protected array $childSocketServers,
         protected Timer $timer,
+        protected EventsBusInterface $eventsBus,
         protected SocketService $socketService,
         protected ResultTransport $resultTransport,
     ) {
@@ -40,6 +42,10 @@ class AsyncWaitGroup implements WaitGroupInterface
 
                 if ($childClient === false) {
                     if (!$this->process->isRunning()) {
+                        if ($pid = $this->process->getPid()) {
+                            $this->eventsBus->processFinished(pid: $pid);
+                        }
+
                         $this->socketService->closeSocketServer($childSocketServer);
 
                         unset($this->childSocketServers[$callbackKey]);

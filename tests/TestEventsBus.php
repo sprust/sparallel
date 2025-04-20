@@ -47,4 +47,14 @@ class TestEventsBus implements EventsBusInterface
     {
         //
     }
+
+    public function unixSocketClosed(string $socketPath): void
+    {
+        //
+    }
+
+    public function processFinished(int $pid): void
+    {
+        //
+    }
 }

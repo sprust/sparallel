@@ -89,8 +89,6 @@ class ASyncDriver implements DriverInterface
 
         $process->start();
 
-        $this->eventsBus->processCreated(pid: $process->getPid());
-
         // wait for the main process to start
         while ($this->checkProcess($process)) {
             $processClient = @socket_accept($processSocketServer->socket);
@@ -125,6 +123,7 @@ class ASyncDriver implements DriverInterface
             process: $process,
             childSocketServers: $childSocketServers,
             timer: $timer,
+            eventsBus: $this->eventsBus,
             socketService: $this->socketService,
             resultTransport: $this->resultTransport,
         );

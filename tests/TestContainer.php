@@ -89,7 +89,6 @@ class TestContainer implements ContainerInterface
             ),
 
             ProcessDriver::class => fn() => new ProcessDriver(
-                eventsBus: $this->get(EventsBusInterface::class),
                 connection: $this->get(ProcessConnectionInterface::class),
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
@@ -121,6 +120,7 @@ class TestContainer implements ContainerInterface
             ASyncHandler::class => fn() => new ASyncHandler(
                 container: $this,
                 contextTransport: $this->get(ContextTransport::class),
+                eventsBus: $this->get(EventsBusInterface::class),
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 socketService: $this->get(SocketService::class),

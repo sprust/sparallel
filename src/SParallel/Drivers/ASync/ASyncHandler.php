@@ -6,6 +6,7 @@ namespace SParallel\Drivers\ASync;
 
 use Psr\Container\ContainerInterface;
 use RuntimeException;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\Context;
@@ -21,6 +22,7 @@ class ASyncHandler
     public function __construct(
         protected ContainerInterface $container,
         protected ContextTransport $contextTransport,
+        protected EventsBusInterface $eventsBus,
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected SocketService $socketService,
@@ -33,6 +35,22 @@ class ASyncHandler
      * @throws SParallelTimeoutException
      */
     public function handle(): void
+    {
+        $pid = getmypid();
+
+        $this->eventsBus->processCreated(pid: $pid);
+
+        try {
+            $this->onHandle();
+        } finally {
+            $this->eventsBus->processFinished(pid: $pid);
+        }
+    }
+
+    /**
+     * @throws SParallelTimeoutException
+     */
+    protected function onHandle(): void
     {
         $socketPath = $_SERVER[ASyncDriver::PARAM_SOCKET_PATH] ?? null;
 

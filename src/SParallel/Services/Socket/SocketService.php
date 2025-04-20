@@ -167,7 +167,8 @@ class SocketService
     public function closeSocketServer(SocketServerObject $socketServer): void
     {
         $this->closeSocket($socketServer->socket);
-        unlink($socketServer->path);
+        @unlink($socketServer->path);
+        $this->eventsBus->unixSocketClosed($socketServer->path);
     }
 
     public function closeSocket(Socket $socket): void

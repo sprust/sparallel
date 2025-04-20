@@ -13,6 +13,7 @@ use SParallel\Objects\Context;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
+use Throwable;
 
 class ProcessHandler
 {
@@ -30,6 +31,23 @@ class ProcessHandler
      * @throws NotFoundExceptionInterface
      */
     public function handle(): void
+    {
+        $pid = getmypid();
+
+        $this->eventsBus->processCreated(pid: $pid);
+
+        try {
+            $this->onHandle();
+        } finally {
+            $this->eventsBus->processFinished(pid: $pid);
+        }
+    }
+
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    protected function onHandle(): void
     {
         $context = $this->container->get(ContextTransport::class)
             ->unserialize(
@@ -60,7 +78,7 @@ class ProcessHandler
                 ),
                 isError: false
             );
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             $this->eventsBus->taskFailed(
                 driverName: $driverName,
                 context: $context,
