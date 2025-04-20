@@ -7,26 +7,21 @@ namespace SParallel\Drivers\Fork;
 use Generator;
 use RuntimeException;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Fork\Service\Task;
 use SParallel\Drivers\Timer;
 use SParallel\Objects\ResultObject;
+use SParallel\Objects\SocketServerObject;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
 
-/**
- * TODO:
- * PROBLEM:
- * ForkService::isFinished return false when
- * try sleep (sleep, usleep) more than 1 sec inside callback
- */
 class ForkWaitGroup implements WaitGroupInterface
 {
     /**
-     * @param array<int, Task> $tasks
+     * @param array<mixed, int> $childProcessIds
      */
     public function __construct(
-        protected array $tasks,
+        protected SocketServerObject $socketServer,
+        protected array $childProcessIds,
         protected Timer $timer,
         protected ResultTransport $resultTransport,
         protected SocketService $socketService,
@@ -36,64 +31,80 @@ class ForkWaitGroup implements WaitGroupInterface
 
     public function get(): Generator
     {
-        while (count($this->tasks) > 0) {
-            $this->timer->check();
+        $remainTaskKeys = array_keys($this->childProcessIds);
 
-            $keys = array_keys($this->tasks);
+        $socketServer = $this->socketServer->socket;
 
-            foreach ($keys as $key) {
-                $this->timer->check();
+        $childrenFinished = false;
 
-                $task = $this->tasks[$key];
+        while (!$childrenFinished) {
+            $taskKeys = array_keys($this->childProcessIds);
 
-                $childClient = @socket_accept($task->socketServer->socket);
+            foreach ($taskKeys as $taskKey) {
+                $childProcessPid = $this->childProcessIds[$taskKey];
 
-                if ($childClient === false) {
-                    if ($this->forkService->isFinished($task->pid)) {
-                        $this->socketService->closeSocketServer($task->socketServer);
-
-                        unset($this->tasks[$key]);
-
-                        yield new ResultObject(
-                            key: $key,
-                            exception: new RuntimeException(
-                                "Unexpected error occurred while waiting for child process to finish. "
-                            )
-                        );
-                    } else {
-                        $this->timer->check();
-
-                        usleep(1000);
-                    }
-                } else {
-                    try {
-                        $response = $this->socketService->readSocket(
-                            timer: $this->timer,
-                            socket: $childClient
-                        );
-                    } finally {
-                        $this->socketService->closeSocketServer($task->socketServer);
-                    }
-
-                    unset($this->tasks[$key]);
-
-                    yield $this->resultTransport->unserialize($response);
+                if ($this->forkService->isFinished($childProcessPid)) {
+                    unset($this->childProcessIds[$taskKey]);
                 }
             }
+
+            $childClient = @socket_accept($socketServer);
+
+            if ($childClient === false) {
+                if (!count($this->childProcessIds)) {
+                    $childrenFinished = true;
+                } else {
+                    $this->timer->check();
+
+                    usleep(1000);
+                }
+            } else {
+                $response = $this->socketService->readSocket(
+                    timer: $this->timer,
+                    socket: $childClient
+                );
+
+                $result = $this->resultTransport->unserialize($response);
+
+                $remainTaskKeys = array_filter(
+                    $remainTaskKeys,
+                    static fn($key) => $key !== $result->key
+                );
+
+                yield $result;
+            }
         }
+
+        while (count($remainTaskKeys) > 0) {
+            $taskKey = array_shift($remainTaskKeys);
+
+            yield new ResultObject(
+                key: $taskKey,
+                exception: new RuntimeException(
+                    'Unexpected process termination.'
+                )
+            );
+        }
+
+        $this->break();
     }
 
     public function break(): void
     {
-        $keys = array_keys($this->tasks);
+        $keys = array_keys($this->childProcessIds);
 
         foreach ($keys as $key) {
-            $task = $this->tasks[$key];
+            $pid = $this->childProcessIds[$key];
 
-            $this->socketService->closeSocketServer($task->socketServer);
+            if (!$this->forkService->isFinished($pid)) {
+                posix_kill($pid, SIGKILL);
+            }
 
-            unset($this->tasks[$key]);
+            unset($this->childProcessIds[$key]);
         }
+
+        // should be closed in finally block
+        $this->socketService->closeSocketServer($this->socketServer);
     }
 
     public function __destruct()

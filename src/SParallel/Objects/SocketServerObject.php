@@ -6,11 +6,23 @@ namespace SParallel\Objects;
 
 use Socket;
 
-readonly class SocketServerObject
+class SocketServerObject
 {
+    protected bool $isClosed = false;
+
     public function __construct(
-        public string $path,
-        public Socket $socket
+        public readonly string $path,
+        public readonly Socket $socket
     ) {
+    }
+
+    public function close(): void
+    {
+        $this->isClosed = true;
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->isClosed;
     }
 }
