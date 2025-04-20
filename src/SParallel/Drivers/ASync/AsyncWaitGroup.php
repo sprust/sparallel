@@ -53,7 +53,7 @@ class AsyncWaitGroup implements WaitGroupInterface
                         yield new ResultObject(
                             key: $callbackKey,
                             exception: new RuntimeException(
-                                message: 'Process is not running. Socket server is closed.'
+                                message: "Process with key [$callbackKey] is not running. Socket server is closed."
                             )
                         );
                     } else {
