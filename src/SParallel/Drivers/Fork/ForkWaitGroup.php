@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Drivers\Fork;
 
 use Generator;
+use RuntimeException;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Fork\Service\Task;
 use SParallel\Drivers\Timer;
@@ -13,6 +14,12 @@ use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
 
+/**
+ * TODO:
+ * PROBLEM:
+ * ForkService::isFinished return false when
+ * try sleep (sleep, usleep) more than 1 sec inside callback
+ */
 class ForkWaitGroup implements WaitGroupInterface
 {
     /**
@@ -49,7 +56,7 @@ class ForkWaitGroup implements WaitGroupInterface
 
                         yield new ResultObject(
                             key: $key,
-                            exception: new \RuntimeException(
+                            exception: new RuntimeException(
                                 "Unexpected error occurred while waiting for child process to finish. "
                             )
                         );
