@@ -6,12 +6,12 @@ namespace SParallel\Contracts;
 
 use Generator;
 use SParallel\Exceptions\SParallelTimeoutException;
-use SParallel\Objects\ResultObject;
+use SParallel\Objects\TaskResult;
 
 interface WaitGroupInterface
 {
     /**
-     * @return Generator<ResultObject>
+     * @return Generator<TaskResult>
      * @throws SParallelTimeoutException
      */
     public function get(): Generator;

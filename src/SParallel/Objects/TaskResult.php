@@ -6,9 +6,9 @@ namespace SParallel\Objects;
 
 use Throwable;
 
-readonly class ResultObject
+readonly class TaskResult
 {
-    public ?ResultErrorObject $error;
+    public ?TaskResultError $error;
     public mixed $result;
 
     public function __construct(
@@ -16,7 +16,7 @@ readonly class ResultObject
         ?Throwable $exception = null,
         mixed $result = null
     ) {
-        $this->error  = $exception ? new ResultErrorObject($exception) : null;
+        $this->error  = $exception ? new TaskResultError($exception) : null;
         $this->result = $result;
     }
 }

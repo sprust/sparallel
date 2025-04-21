@@ -6,12 +6,12 @@ namespace SParallel\Objects;
 
 use Throwable;
 
-readonly class ResultErrorObject
+readonly class TaskResultError
 {
     public string $exceptionClass;
     public string $message;
     public string $traceAsString;
-    public ?ResultErrorObject $previous;
+    public ?TaskResultError $previous;
 
     public function __construct(Throwable $exception)
     {
@@ -20,6 +20,6 @@ readonly class ResultErrorObject
         $this->exceptionClass = $exception::class;
         $this->message        = $exception->getMessage();
         $this->traceAsString  = $exception->getTraceAsString();
-        $this->previous       = $previous ? new ResultErrorObject($previous) : null;
+        $this->previous       = $previous ? new TaskResultError($previous) : null;
     }
 }

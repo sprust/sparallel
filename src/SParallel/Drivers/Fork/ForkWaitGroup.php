@@ -8,7 +8,7 @@ use Generator;
 use RuntimeException;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
-use SParallel\Objects\ResultObject;
+use SParallel\Objects\TaskResult;
 use SParallel\Objects\SocketServerObject;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
@@ -78,10 +78,10 @@ class ForkWaitGroup implements WaitGroupInterface
         while (count($remainTaskKeys) > 0) {
             $taskKey = array_shift($remainTaskKeys);
 
-            yield new ResultObject(
+            yield new TaskResult(
                 key: $taskKey,
                 exception: new RuntimeException(
-                    'Unexpected process termination.'
+                    "Unexpected process termination of task [$taskKey]"
                 )
             );
         }

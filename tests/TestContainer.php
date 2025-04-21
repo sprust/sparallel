@@ -9,7 +9,6 @@ use Psr\Container\ContainerInterface;
 use RuntimeException;
 use SParallel\Contracts\ASyncScriptPathResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Drivers\ASync\ASyncDriver;
@@ -17,7 +16,6 @@ use SParallel\Drivers\ASync\ASyncHandler;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Process\ProcessHandler;
-use SParallel\Drivers\Process\Service\ProcessConnection;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Objects\Context;
 use SParallel\Services\Fork\ForkHandler;
@@ -26,6 +24,7 @@ use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\OpisSerializer;
+use SParallel\Transport\ProcessMessagesTransport;
 use SParallel\Transport\ResultTransport;
 
 class TestContainer implements ContainerInterface
@@ -66,6 +65,10 @@ class TestContainer implements ContainerInterface
                 serializer: $this->get(SerializerInterface::class)
             ),
 
+            ProcessMessagesTransport::class => fn() => new ProcessMessagesTransport(
+                serializer: $this->get(SerializerInterface::class)
+            ),
+
             Context::class => fn() => new Context(),
 
             EventsBusInterface::class => fn() => new TestEventsBus(),
@@ -73,8 +76,6 @@ class TestContainer implements ContainerInterface
             ProcessScriptPathResolverInterface::class => fn() => new ProcessScriptPathResolver(),
 
             ASyncScriptPathResolverInterface::class => fn() => new ASyncScriptPathResolver(),
-
-            ProcessConnectionInterface::class => fn() => new ProcessConnection(),
 
             ForkHandler::class => fn() => new ForkHandler(
                 resultTransport: $this->get(ResultTransport::class),
@@ -89,12 +90,13 @@ class TestContainer implements ContainerInterface
             ),
 
             ProcessDriver::class => fn() => new ProcessDriver(
-                connection: $this->get(ProcessConnectionInterface::class),
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
+                socketService: $this->get(SocketService::class),
                 processScriptPathResolver: $this->get(ProcessScriptPathResolverInterface::class),
                 eventsBus: $this->get(EventsBusInterface::class),
+                messageTransport: $this->get(ProcessMessagesTransport::class),
                 context: $this->get(Context::class),
             ),
 
@@ -109,7 +111,6 @@ class TestContainer implements ContainerInterface
 
             ASyncDriver::class => fn() => new ASyncDriver(
                 eventsBus: $this->get(EventsBusInterface::class),
-                connection: $this->get(ProcessConnectionInterface::class),
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
@@ -135,9 +136,11 @@ class TestContainer implements ContainerInterface
 
             ProcessHandler::class => fn() => new ProcessHandler(
                 container: $this,
+                socketService: $this->get(SocketService::class),
+                messagesTransport: $this->get(ProcessMessagesTransport::class),
                 callbackTransport: $this->get(CallbackTransport::class),
+                contextTransport: $this->get(ContextTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
-                connection: $this->get(ProcessConnectionInterface::class),
                 eventsBus: $this->get(EventsBusInterface::class),
             ),
         ];

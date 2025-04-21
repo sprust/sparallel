@@ -8,7 +8,6 @@ use RuntimeException;
 use SParallel\Contracts\ASyncScriptPathResolverInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\ProcessConnectionInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Objects\Context;
@@ -34,7 +33,6 @@ class ASyncDriver implements DriverInterface
 
     public function __construct(
         protected EventsBusInterface $eventsBus,
-        protected ProcessConnectionInterface $connection,
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,

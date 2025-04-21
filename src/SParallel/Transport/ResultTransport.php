@@ -6,7 +6,7 @@ namespace SParallel\Transport;
 
 use RuntimeException;
 use SParallel\Contracts\SerializerInterface;
-use SParallel\Objects\ResultObject;
+use SParallel\Objects\TaskResult;
 use Throwable;
 
 class ResultTransport
@@ -19,7 +19,7 @@ class ResultTransport
     public function serialize(mixed $key, ?Throwable $exception = null, mixed $result = null): string
     {
         return $this->serializer->serialize(
-            new ResultObject(
+            new TaskResult(
                 key: $key,
                 exception: $exception,
                 result: $result,
@@ -27,7 +27,7 @@ class ResultTransport
         );
     }
 
-    public function unserialize(?string $data): ResultObject
+    public function unserialize(?string $data): TaskResult
     {
         try {
             $response = $this->serializer->unserialize($data);
@@ -37,7 +37,7 @@ class ResultTransport
             );
         }
 
-        if ($response instanceof ResultObject) {
+        if ($response instanceof TaskResult) {
             return $response;
         }
 

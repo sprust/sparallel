@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
-use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
-use Psr\Container\NotFoundExceptionInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\ProcessConnectionInterface;
+use SParallel\Drivers\Timer;
+use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\Context;
+use SParallel\Objects\ProcessChildMessage;
+use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
+use SParallel\Transport\ProcessMessagesTransport;
 use SParallel\Transport\ResultTransport;
 use Throwable;
 
@@ -19,16 +21,17 @@ class ProcessHandler
 {
     public function __construct(
         protected ContainerInterface $container,
+        protected SocketService $socketService,
+        protected ProcessMessagesTransport $messagesTransport,
         protected CallbackTransport $callbackTransport,
+        protected ContextTransport $contextTransport,
         protected ResultTransport $resultTransport,
-        protected ProcessConnectionInterface $connection,
         protected EventsBusInterface $eventsBus,
     ) {
     }
 
     /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
+     * @throws SParallelTimeoutException
      */
     public function handle(): void
     {
@@ -44,15 +47,42 @@ class ProcessHandler
     }
 
     /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
+     * @throws SParallelTimeoutException
      */
     protected function onHandle(): void
     {
-        $context = $this->container->get(ContextTransport::class)
-            ->unserialize(
-                $_SERVER[ProcessDriver::SERIALIZED_CONTEXT_VARIABLE_NAME]
-            );
+        $taskKey    = $_SERVER[ProcessDriver::PARAM_TASK_KEY];
+        $socketPath = $_SERVER[ProcessDriver::PARAM_SOCKET_PATH];
+
+        $timer = new Timer(
+            timeoutSeconds: (int) $_SERVER[ProcessDriver::PARAM_TIMER_TIMEOUT_SECONDS],
+            customStartTime: (int) $_SERVER[ProcessDriver::PARAM_TIMER_START_TIME]
+        );
+
+        $socket = $this->socketService->createClient($socketPath);
+
+        $this->socketService->writeToSocket(
+            timer: $timer,
+            socket: $socket,
+            data: $this->messagesTransport->serializeChild(
+                new ProcessChildMessage(
+                    taskKey: $taskKey,
+                    operation: 'get',
+                    payload: '',
+                )
+            )
+        );
+
+        $response = $this->socketService->readSocket(
+            timer: $timer,
+            socket: $socket
+        );
+
+        $this->socketService->closeSocket($socket);
+
+        $message = $this->messagesTransport->unserializeParent($response);
+
+        $context = $this->contextTransport->unserialize($message->serializedContext);
 
         $this->container->set(Context::class, static fn() => $context);
 
@@ -63,20 +93,28 @@ class ProcessHandler
             context: $context
         );
 
-        $taskKey = $_SERVER[ProcessDriver::TASK_KEY];
-
         try {
-            $closure = $this->callbackTransport
-                ->unserialize(
-                    $_SERVER[ProcessDriver::SERIALIZED_CLOSURE_VARIABLE_NAME]
-                );
+            $closure = $this->callbackTransport->unserialize(
+                $message->serializedCallback
+            );
 
-            $this->connection->out(
-                data: $this->resultTransport->serialize(
-                    key: $taskKey,
-                    result: $closure()
-                ),
-                isError: false
+            $result = $closure();
+
+            $socket = $this->socketService->createClient($socketPath);
+
+            $this->socketService->writeToSocket(
+                timer: $timer,
+                socket: $socket,
+                data: $this->messagesTransport->serializeChild(
+                    new ProcessChildMessage(
+                        taskKey: $taskKey,
+                        operation: 'resp',
+                        payload: $this->resultTransport->serialize(
+                            key: $taskKey,
+                            result: $result
+                        ),
+                    )
+                )
             );
         } catch (Throwable $exception) {
             $this->eventsBus->taskFailed(
@@ -85,13 +123,24 @@ class ProcessHandler
                 exception: $exception
             );
 
-            $this->connection->out(
-                data: $this->resultTransport->serialize(
-                    key: $taskKey,
-                    exception: $exception
-                ),
-                isError: true
+            $socket = $this->socketService->createClient($socketPath);
+
+            $this->socketService->writeToSocket(
+                timer: $timer,
+                socket: $socket,
+                data: $this->messagesTransport->serializeChild(
+                    new ProcessChildMessage(
+                        taskKey: $taskKey,
+                        operation: 'resp',
+                        payload: $this->resultTransport->serialize(
+                            key: $taskKey,
+                            exception: $exception
+                        ),
+                    )
+                )
             );
+        } finally {
+            $this->socketService->closeSocket($socket);
         }
 
         $this->eventsBus->taskFinished(

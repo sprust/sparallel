@@ -9,7 +9,7 @@ use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Objects\Context;
-use SParallel\Objects\ResultObject;
+use SParallel\Objects\TaskResult;
 use Throwable;
 
 class SyncWaitGroup implements WaitGroupInterface
@@ -40,7 +40,7 @@ class SyncWaitGroup implements WaitGroupInterface
             );
 
             try {
-                $result = new ResultObject(
+                $result = new TaskResult(
                     key: $callbackKey,
                     result: $callback()
                 );
@@ -51,7 +51,7 @@ class SyncWaitGroup implements WaitGroupInterface
                     exception: $exception
                 );
 
-                $result = new ResultObject(
+                $result = new TaskResult(
                     key: $callbackKey,
                     exception: $exception
                 );

@@ -11,7 +11,7 @@ use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
-use SParallel\Objects\ResultObject;
+use SParallel\Objects\TaskResult;
 use Throwable;
 
 class SParallelService
@@ -25,7 +25,7 @@ class SParallelService
     /**
      * @param array<mixed, Closure> $callbacks
      *
-     * @return Generator<ResultObject>
+     * @return Generator<TaskResult>
      *
      * @throws SParallelTimeoutException
      */
@@ -61,7 +61,7 @@ class SParallelService
     /**
      * @param array<mixed, Closure> $callbacks
      *
-     * @return Generator<ResultObject>
+     * @return Generator<TaskResult>
      *
      * @throws SParallelTimeoutException
      */

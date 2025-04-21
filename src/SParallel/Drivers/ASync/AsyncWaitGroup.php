@@ -10,7 +10,7 @@ use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
-use SParallel\Objects\ResultObject;
+use SParallel\Objects\TaskResult;
 use SParallel\Objects\SocketServerObject;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
@@ -80,10 +80,10 @@ class AsyncWaitGroup implements WaitGroupInterface
         while (count($remainTaskKeys) > 0) {
             $taskKey = array_shift($remainTaskKeys);
 
-            yield new ResultObject(
+            yield new TaskResult(
                 key: $taskKey,
                 exception: new RuntimeException(
-                    'Unexpected process termination.'
+                    "Unexpected process termination of task [$taskKey]"
                 )
             );
         }
