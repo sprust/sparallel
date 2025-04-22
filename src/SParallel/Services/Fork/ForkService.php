@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Services\Fork;
 
-use RuntimeException;
+use SParallel\Exceptions\ForkInvalidStatusException;
 
 readonly class ForkService
 {
@@ -17,9 +17,7 @@ readonly class ForkService
         }
 
         if ($status !== 0) {
-            throw new RuntimeException(
-                "Could not reliably manage task that uses process id [$pid]"
-            );
+            throw new ForkInvalidStatusException($pid);
         }
 
         return false;

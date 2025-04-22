@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace SParallel\Drivers\Process;
 
 use Generator;
-use RuntimeException;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
+use SParallel\Exceptions\UnexpectedTaskException;
+use SParallel\Exceptions\UnexpectedTaskOperationException;
+use SParallel\Exceptions\UnexpectedTaskTerminationException;
 use SParallel\Objects\Context;
 use SParallel\Objects\ProcessParentMessage;
 use SParallel\Objects\ProcessTask;
 use SParallel\Objects\SocketServerObject;
 use SParallel\Objects\TaskResult;
+use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
@@ -38,6 +41,7 @@ class ProcessWaitGroup implements WaitGroupInterface
         protected ResultTransport $resultTransport,
         protected EventsBusInterface $eventsBus,
         protected ProcessMessagesTransport $messageTransport,
+        protected ProcessService $processService
     ) {
     }
 
@@ -79,12 +83,7 @@ class ProcessWaitGroup implements WaitGroupInterface
                 $processTask = $this->processTasks[$message->taskKey] ?? null;
 
                 if (!$processTask) {
-                    throw new RuntimeException(
-                        sprintf(
-                            'Task key "%s" not found in processTask list',
-                            $message->taskKey
-                        )
-                    );
+                    throw new UnexpectedTaskException($message->taskKey);
                 }
 
                 if ($message->operation === 'get') {
@@ -116,12 +115,9 @@ class ProcessWaitGroup implements WaitGroupInterface
 
                     yield $result;
                 } else {
-                    throw new RuntimeException(
-                        sprintf(
-                            'Unknown operation "%s" for task key "%s"',
-                            $message->operation,
-                            $message->taskKey
-                        )
+                    throw new UnexpectedTaskOperationException(
+                        taskKey: $message->taskKey,
+                        operation: $message->operation,
                     );
                 }
             }
@@ -134,14 +130,15 @@ class ProcessWaitGroup implements WaitGroupInterface
                 break;
             }
 
-            $output = $this->readProcessOutput($processTask->process);
+            $output = $this->processService->getOutput($processTask->process);
 
             $this->stopProcess($processTask->process);
 
             yield new TaskResult(
                 key: $processTask->key,
-                exception: new RuntimeException(
-                    $output ?: "Unexpected process termination of task [$processTask->key]"
+                exception: new UnexpectedTaskTerminationException(
+                    taskKey: $processTask->key,
+                    description: $output ?: null
                 )
             );
         }
@@ -180,27 +177,6 @@ class ProcessWaitGroup implements WaitGroupInterface
         if ($pid = $process->getPid()) {
             $this->eventsBus->processFinished($pid);
         }
-    }
-
-    protected function readProcessOutput(Process $process): ?string
-    {
-        if (!$process->isStarted()) {
-            return null;
-        }
-
-        if ($output = $process->getOutput()) {
-            $process->clearOutput();
-
-            return trim($output);
-        }
-
-        if ($errorOutput = $process->getErrorOutput()) {
-            $process->clearErrorOutput();
-
-            return trim($errorOutput);
-        }
-
-        return null;
     }
 
     public function __destruct()

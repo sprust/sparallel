@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace SParallel\Services\Fork;
 
 use Closure;
-use RuntimeException;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
+use SParallel\Exceptions\CouldNotForkProcessException;
+use SParallel\Exceptions\CouldNotOpenDevNullException;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\Context;
 use SParallel\Services\Socket\SocketService;
@@ -31,13 +32,13 @@ readonly class ForkHandler
         Timer $timer,
         string $driverName,
         string $socketPath,
-        mixed $key,
+        mixed $taskKey,
         Closure $callback
     ): int {
         $pid = pcntl_fork();
 
         if ($pid === -1) {
-            throw new RuntimeException('Could not fork process.');
+            throw new CouldNotForkProcessException($taskKey);
         }
 
         if ($pid !== 0) {
@@ -51,7 +52,7 @@ readonly class ForkHandler
                 timer: $timer,
                 driverName: $driverName,
                 socketPath: $socketPath,
-                key: $key,
+                key: $taskKey,
                 callback: $callback
             );
         } catch (Throwable) {
@@ -73,9 +74,7 @@ readonly class ForkHandler
         $stdout = fopen('/dev/null', 'w');
 
         if ($stdout === false) {
-            throw new RuntimeException(
-                'Could not open /dev/null for writing.'
-            );
+            throw new CouldNotOpenDevNullException();
         }
 
         fclose(STDOUT);

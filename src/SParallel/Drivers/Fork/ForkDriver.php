@@ -42,7 +42,7 @@ class ForkDriver implements DriverInterface
                 timer: $timer,
                 driverName: static::DRIVER_NAME,
                 socketPath: $socketPath,
-                key: $key,
+                taskKey: $key,
                 callback: $callback
             );
 

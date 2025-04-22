@@ -20,6 +20,7 @@ use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Objects\Context;
 use SParallel\Services\Fork\ForkHandler;
 use SParallel\Services\Fork\ForkService;
+use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
@@ -73,6 +74,8 @@ class TestContainer implements ContainerInterface
 
             EventsBusInterface::class => fn() => new TestEventsBus(),
 
+            ProcessService::class => fn() => new ProcessService(),
+
             ProcessScriptPathResolverInterface::class => fn() => new ProcessScriptPathResolver(),
 
             ASyncScriptPathResolverInterface::class => fn() => new ASyncScriptPathResolver(),
@@ -97,6 +100,7 @@ class TestContainer implements ContainerInterface
                 processScriptPathResolver: $this->get(ProcessScriptPathResolverInterface::class),
                 eventsBus: $this->get(EventsBusInterface::class),
                 messageTransport: $this->get(ProcessMessagesTransport::class),
+                processService: $this->get(ProcessService::class),
                 context: $this->get(Context::class),
             ),
 
@@ -116,6 +120,7 @@ class TestContainer implements ContainerInterface
                 contextTransport: $this->get(ContextTransport::class),
                 processScriptPathResolver: $this->get(ASyncScriptPathResolverInterface::class),
                 socketService: $this->get(SocketService::class),
+                processService: $this->get(ProcessService::class),
                 context: $this->get(Context::class),
             ),
 

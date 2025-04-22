@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace SParallel\Services\Socket;
 
-use RuntimeException;
 use Socket;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
+use SParallel\Exceptions\CouldNotConnectToSocketException;
+use SParallel\Exceptions\CouldNotCreateSocketServerException;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\SocketServerObject;
 
@@ -48,9 +49,7 @@ class SocketService
         $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
 
         if ($socket === false) {
-            throw new RuntimeException(
-                'Could not create socket: ' . socket_strerror(socket_last_error())
-            );
+            throw new CouldNotCreateSocketServerException($socketPath);
         }
 
         socket_bind($socket, $socketPath);
@@ -68,9 +67,7 @@ class SocketService
         $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
 
         if (!socket_connect($socket, $socketPath)) {
-            throw new RuntimeException(
-                'Could not connect to socket: ' . socket_strerror(socket_last_error($socket))
-            );
+            throw new CouldNotConnectToSocketException($socket);
         }
 
         return $socket;

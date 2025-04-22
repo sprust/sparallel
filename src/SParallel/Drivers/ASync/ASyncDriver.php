@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\ASync;
 
-use RuntimeException;
 use SParallel\Contracts\ASyncScriptPathResolverInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
+use SParallel\Exceptions\ProcessIsNotRunningException;
+use SParallel\Exceptions\ProcessScriptNotExistsException;
 use SParallel\Objects\Context;
+use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
@@ -38,13 +40,16 @@ class ASyncDriver implements DriverInterface
         protected ContextTransport $contextTransport,
         protected ASyncScriptPathResolverInterface $processScriptPathResolver,
         protected SocketService $socketService,
-        protected ?Context $context = null,
+        protected ProcessService $processService,
+        protected Context $context,
     ) {
         $this->scriptPath = $this->processScriptPathResolver->get();
     }
 
     public function run(array &$callbacks, Timer $timer): WaitGroupInterface
     {
+        $this->checkScriptPath();
+
         $serializedCallbacks = [];
 
         $callbackKeys = array_keys($callbacks);
@@ -122,33 +127,18 @@ class ASyncDriver implements DriverInterface
             return true;
         }
 
-        throw new RuntimeException(
-            message: sprintf(
-                'Process[%s] is not running:\n%s',
-                $process->getPid(),
-                $this->readProcessOutput($process) ?: 'No output available.'
-            )
+        throw new ProcessIsNotRunningException(
+            pid: $process->getPid(),
+            description: $this->processService->getOutput($process)
         );
     }
 
-    protected function readProcessOutput(Process $process): ?string
+    private function checkScriptPath(): void
     {
-        if (!$process->isStarted()) {
-            return null;
+        $scriptPath = explode(' ', $this->scriptPath)[0];
+
+        if (!file_exists($scriptPath)) {
+            throw new ProcessScriptNotExistsException($scriptPath);
         }
-
-        if ($output = $process->getOutput()) {
-            $process->clearOutput();
-
-            return $output;
-        }
-
-        if ($errorOutput = $process->getErrorOutput()) {
-            $process->clearErrorOutput();
-
-            return $errorOutput;
-        }
-
-        return null;
     }
 }

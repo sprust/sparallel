@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SParallel\Transport;
 
-use RuntimeException;
 use SParallel\Contracts\SerializerInterface;
+use SParallel\Exceptions\UnserializeException;
 use SParallel\Objects\TaskResult;
 use Throwable;
 
@@ -27,22 +27,17 @@ class ResultTransport
         );
     }
 
-    public function unserialize(?string $data): TaskResult
+    public function unserialize(string $data): TaskResult
     {
-        try {
-            $response = $this->serializer->unserialize($data);
-        } catch (Throwable) {
-            throw new RuntimeException(
-                message: "Failed to unserialize task response:\n$data",
-            );
-        }
+        $response = $this->serializer->unserialize($data);
 
         if ($response instanceof TaskResult) {
             return $response;
         }
 
-        throw new RuntimeException(
-            message: "Unexpected task response:\n$data",
+        throw new UnserializeException(
+            expected: TaskResult::class,
+            got: $response
         );
     }
 }

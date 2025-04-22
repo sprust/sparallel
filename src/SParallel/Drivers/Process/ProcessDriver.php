@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
-use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
+use SParallel\Exceptions\ProcessScriptNotExistsException;
 use SParallel\Objects\Context;
 use SParallel\Objects\ProcessTask;
+use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
@@ -39,6 +40,7 @@ class ProcessDriver implements DriverInterface
         protected ProcessScriptPathResolverInterface $processScriptPathResolver,
         protected EventsBusInterface $eventsBus,
         protected ProcessMessagesTransport $messageTransport,
+        protected ProcessService $processService,
         protected Context $context,
     ) {
         $this->scriptPath = $this->processScriptPathResolver->get();
@@ -96,7 +98,8 @@ class ProcessDriver implements DriverInterface
             callbackTransport: $this->callbackTransport,
             resultTransport: $this->resultTransport,
             eventsBus: $this->eventsBus,
-            messageTransport: $this->messageTransport
+            messageTransport: $this->messageTransport,
+            processService: $this->processService
         );
     }
 
@@ -105,12 +108,7 @@ class ProcessDriver implements DriverInterface
         $scriptPath = explode(' ', $this->scriptPath)[0];
 
         if (!file_exists($scriptPath)) {
-            throw new RuntimeException(
-                message: sprintf(
-                    'Script path [%s] does not exist.',
-                    $scriptPath,
-                )
-            );
+            throw new ProcessScriptNotExistsException($scriptPath);
         }
     }
 }

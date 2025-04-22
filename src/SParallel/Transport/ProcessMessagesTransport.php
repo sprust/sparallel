@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SParallel\Transport;
 
-use RuntimeException;
 use SParallel\Contracts\SerializerInterface;
+use SParallel\Exceptions\UnserializeException;
 use SParallel\Objects\ProcessChildMessage;
 use SParallel\Objects\ProcessParentMessage;
 
@@ -22,16 +22,15 @@ class ProcessMessagesTransport
 
     public function unserializeParent(string $data): ProcessParentMessage
     {
-        $context = $this->serializer->unserialize($data);
+        $message = $this->serializer->unserialize($data);
 
-        if ($context instanceof ProcessParentMessage) {
-            return $context;
+        if ($message instanceof ProcessParentMessage) {
+            return $message;
         }
 
-        $class = ProcessParentMessage::class;
-
-        throw new RuntimeException(
-            "Failed to unserialize $class, got: " . gettype($context) . '.'
+        throw new UnserializeException(
+            expected: ProcessParentMessage::class,
+            got: $message
         );
     }
 
@@ -42,16 +41,15 @@ class ProcessMessagesTransport
 
     public function unserializeChild(string $data): ProcessChildMessage
     {
-        $context = $this->serializer->unserialize($data);
+        $message = $this->serializer->unserialize($data);
 
-        if ($context instanceof ProcessChildMessage) {
-            return $context;
+        if ($message instanceof ProcessChildMessage) {
+            return $message;
         }
 
-        $class = ProcessChildMessage::class;
-
-        throw new RuntimeException(
-            "Failed to unserialize $class, got: " . gettype($context) . '.'
+        throw new UnserializeException(
+            expected: ProcessChildMessage::class,
+            got: $message
         );
     }
 }

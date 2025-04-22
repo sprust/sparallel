@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace SParallel\Drivers\ASync;
 
 use Generator;
-use RuntimeException;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
+use SParallel\Exceptions\UnexpectedTaskTerminationException;
 use SParallel\Objects\TaskResult;
 use SParallel\Objects\SocketServerObject;
 use SParallel\Services\Socket\SocketService;
@@ -82,9 +82,7 @@ class AsyncWaitGroup implements WaitGroupInterface
 
             yield new TaskResult(
                 key: $taskKey,
-                exception: new RuntimeException(
-                    "Unexpected process termination of task [$taskKey]"
-                )
+                exception: new UnexpectedTaskTerminationException($taskKey)
             );
         }
     }
