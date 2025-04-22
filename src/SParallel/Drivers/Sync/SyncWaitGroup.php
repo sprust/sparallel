@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Sync;
 
+use Closure;
 use Generator;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
@@ -15,7 +16,7 @@ use Throwable;
 class SyncWaitGroup implements WaitGroupInterface
 {
     /**
-     * @param array<mixed, callable> $callbacks
+     * @param array<mixed, Closure> $callbacks
      */
     public function __construct(
         protected array &$callbacks,

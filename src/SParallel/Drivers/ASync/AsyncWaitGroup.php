@@ -20,7 +20,7 @@ use Throwable;
 class AsyncWaitGroup implements WaitGroupInterface
 {
     /**
-     * @var array<int, mixed> $taskKeys
+     * @param  array<int, mixed> $taskKeys
      */
     public function __construct(
         protected array $taskKeys,

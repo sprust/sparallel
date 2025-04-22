@@ -12,6 +12,7 @@ interface WaitGroupInterface
 {
     /**
      * @return Generator<TaskResult>
+     *
      * @throws SParallelTimeoutException
      */
     public function get(): Generator;
