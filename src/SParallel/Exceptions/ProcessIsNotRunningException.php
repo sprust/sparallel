@@ -14,7 +14,7 @@ class ProcessIsNotRunningException extends RuntimeException
             sprintf(
                 'Process[%s] is not running: %s',
                 $this->pid,
-                $this->description ?: 'No description provided'
+                trim($this->description ?: 'No description provided')
             )
         );
     }

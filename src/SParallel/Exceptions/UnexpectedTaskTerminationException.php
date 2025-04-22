@@ -14,7 +14,7 @@ class UnexpectedTaskTerminationException extends RuntimeException
     ) {
         parent::__construct(
             "Unexpected process termination of task [$taskKey]"
-            . ($this->description ? ": $description" : ".")
+            . ($this->description ? (": " . trim($this->description)) : ".")
         );
     }
 }
