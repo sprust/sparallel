@@ -156,6 +156,27 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws SParallelTimeoutException
      */
+    protected function onBigPayload(SParallelService $service): void
+    {
+        $parameters = str_repeat(uniqid(more_entropy: true), 500000);
+
+        $results = $service->wait(
+            callbacks: [
+                'first'  => static fn() => $parameters,
+                'second' => static fn() => $parameters,
+                'third'  => static fn() => $parameters,
+            ],
+            timeoutSeconds: 2,
+        );
+
+        self::assertTrue($results->isFinished());
+        self::assertFalse($results->hasFailed());
+        self::assertEquals(3, $results->count());
+    }
+
+    /**
+     * @throws SParallelTimeoutException
+     */
     protected function onMemoryLeak(SParallelService $service): void
     {
         $results = $service->wait(

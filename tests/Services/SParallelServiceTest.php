@@ -84,6 +84,21 @@ class SParallelServiceTest extends TestCase
      * @throws SParallelTimeoutException
      */
     #[Test]
+    #[DataProvider('driversDataProvider')]
+    public function bigPayload(DriverInterface $driver): void
+    {
+        $service = new SParallelService(
+            driver: $driver,
+            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        );
+
+        $this->onBigPayload($service);
+    }
+
+    /**
+     * @throws SParallelTimeoutException
+     */
+    #[Test]
     #[DataProvider('driversMemoryLeakDataProvider')]
     public function memoryLeak(DriverInterface $driver): void
     {
