@@ -19,7 +19,7 @@ class CallbackTransport
         return $this->serializer->serialize($callback);
     }
 
-    public function unserialize(string $data): ?Closure
+    public function unserialize(string $data): Closure
     {
         $serialized = $this->serializer->unserialize($data);
 

@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
-use Psr\Container\ContainerInterface;
+use SParallel\Contracts\ContextSetterInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\InvalidValueException;
 use SParallel\Exceptions\SParallelTimeoutException;
-use SParallel\Objects\Context;
 use SParallel\Objects\ProcessChildMessage;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
@@ -21,7 +20,7 @@ use Throwable;
 class ProcessHandler
 {
     public function __construct(
-        protected ContainerInterface $container,
+        protected ContextSetterInterface $contextSetter,
         protected SocketService $socketService,
         protected ProcessMessagesTransport $messagesTransport,
         protected CallbackTransport $callbackTransport,
@@ -111,7 +110,7 @@ class ProcessHandler
 
         $context = $this->contextTransport->unserialize($message->serializedContext);
 
-        $this->container->set(Context::class, static fn() => $context);
+        $this->contextSetter->set($context);
 
         $driverName = ProcessDriver::DRIVER_NAME;
 

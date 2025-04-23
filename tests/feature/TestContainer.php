@@ -7,6 +7,7 @@ namespace SParallel\Tests;
 use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
+use SParallel\Contracts\ContextSetterInterface;
 use SParallel\Contracts\HybridScriptPathResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
@@ -72,6 +73,8 @@ class TestContainer implements ContainerInterface
 
             Context::class => fn() => new Context(),
 
+            ContextSetterInterface::class => fn() => new ContextSetter(),
+
             EventsBusInterface::class => fn() => new TestEventsBus(),
 
             ProcessService::class => fn() => new ProcessService(),
@@ -125,7 +128,7 @@ class TestContainer implements ContainerInterface
             ),
 
             HybridProcessHandler::class => fn() => new HybridProcessHandler(
-                container: $this,
+                contextSetter: $this->get(ContextSetterInterface::class),
                 contextTransport: $this->get(ContextTransport::class),
                 eventsBus: $this->get(EventsBusInterface::class),
                 callbackTransport: $this->get(CallbackTransport::class),
@@ -140,7 +143,7 @@ class TestContainer implements ContainerInterface
             ),
 
             ProcessHandler::class => fn() => new ProcessHandler(
-                container: $this,
+                contextSetter: $this->get(ContextSetterInterface::class),
                 socketService: $this->get(SocketService::class),
                 messagesTransport: $this->get(ProcessMessagesTransport::class),
                 callbackTransport: $this->get(CallbackTransport::class),

@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Hybrid;
 
-use Psr\Container\ContainerInterface;
+use SParallel\Contracts\ContextSetterInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\InvalidValueException;
 use SParallel\Exceptions\SParallelTimeoutException;
-use SParallel\Objects\Context;
 use SParallel\Services\Fork\ForkHandler;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
@@ -20,7 +19,7 @@ use SParallel\Transport\ResultTransport;
 class HybridProcessHandler
 {
     public function __construct(
-        protected ContainerInterface $container,
+        protected ContextSetterInterface $contextSetter,
         protected ContextTransport $contextTransport,
         protected EventsBusInterface $eventsBus,
         protected CallbackTransport $callbackTransport,
@@ -96,7 +95,7 @@ class HybridProcessHandler
 
         $context = $this->contextTransport->unserialize($responseData['c']);
 
-        $this->container->set(Context::class, static fn() => $context);
+        $this->contextSetter->set($context);
 
         /** @var array<mixed, int> $childProcessIds */
         $childProcessIds = [];
