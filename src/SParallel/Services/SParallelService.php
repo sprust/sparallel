@@ -29,7 +29,7 @@ class SParallelService
      * @throws SParallelTimeoutException
      */
     public function wait(
-        array $callbacks,
+        array &$callbacks,
         int $timeoutSeconds,
         bool $breakAtFirstError = false
     ): TaskResults {
@@ -64,7 +64,7 @@ class SParallelService
      * @throws SParallelTimeoutException
      */
     public function run(
-        array $callbacks,
+        array &$callbacks,
         int $timeoutSeconds,
         bool $breakAtFirstError = false
     ): Generator {
@@ -100,7 +100,7 @@ class SParallelService
      * @throws SParallelTimeoutException
      */
     private function onRun(
-        array $callbacks,
+        array &$callbacks,
         int $timeoutSeconds = 0,
         bool $breakAtFirstError = false
     ): Generator {

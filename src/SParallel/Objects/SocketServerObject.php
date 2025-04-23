@@ -25,4 +25,9 @@ class SocketServerObject
     {
         return $this->isClosed;
     }
+
+    public function __destruct()
+    {
+        @unlink($this->path);
+    }
 }

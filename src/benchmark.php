@@ -13,6 +13,9 @@ use SParallel\Tests\TestContainer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+/**
+ * @var array<mixed, Closure> $callbacks
+ */
 $callbacks = [
     ...makeCaseUnique(5),
     ...makeCaseBigResponse(5),
@@ -53,8 +56,8 @@ foreach ($driverClasses as $driverClass) {
     $counter = 0;
 
     $generator = $service->run(
-        callbacks: $callbacks,
-        timeoutSeconds: 10
+        callbacks: $clonedCallbacks,
+        timeoutSeconds: 3
     );
 
     foreach ($generator as $result) {
@@ -96,7 +99,7 @@ foreach ($metrics as $driverClass => $metric) {
 exit(0);
 
 /**
- * @return array<string, Closure>
+ * @return array<mixed, Closure>
  */
 function makeCaseUnique(int $count): array
 {
@@ -110,7 +113,7 @@ function makeCaseUnique(int $count): array
 }
 
 /**
- * @return array<string, Closure>
+ * @return array<mixed, Closure>
  */
 function makeCaseBigResponse(int $count): array
 {
@@ -127,7 +130,7 @@ function makeCaseBigResponse(int $count): array
 }
 
 /**
- * @return array<string, Closure>
+ * @return array<mixed, Closure>
  */
 function makeCaseMemoryLimit(int $count): array
 {
@@ -144,7 +147,7 @@ function makeCaseMemoryLimit(int $count): array
 }
 
 /**
- * @return array<string, Closure>
+ * @return array<mixed, Closure>
  */
 function makeCaseSleep(int $count, int $sec): array
 {
@@ -162,7 +165,7 @@ function makeCaseSleep(int $count, int $sec): array
 }
 
 /**
- * @return array<string, Closure>
+ * @return array<mixed, Closure>
  */
 function makeCaseThrow(int $count): array
 {
