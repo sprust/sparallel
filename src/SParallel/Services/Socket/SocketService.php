@@ -12,13 +12,14 @@ use SParallel\Exceptions\CouldNotCreateSocketServerException;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\SocketServerObject;
 
-class SocketService
+readonly class SocketService
 {
     protected int $timeoutSeconds;
     protected int $timeoutMicroseconds;
 
     public function __construct(
         protected EventsBusInterface $eventsBus,
+        protected string $socketPathDirectory = '/tmp',
         protected int $bufferSize = 1024,
         protected float $timeout = 0.0001,
     ) {
@@ -29,7 +30,7 @@ class SocketService
     public function makeSocketPath(): string
     {
         $socketPath = sprintf(
-            '/tmp/sparallel_socket_%d_%f_%s',
+            rtrim($this->socketPathDirectory, '/') . '/sparallel_socket_%d_%f_%s',
             getmypid(),
             microtime(true),
             uniqid(more_entropy: true)
