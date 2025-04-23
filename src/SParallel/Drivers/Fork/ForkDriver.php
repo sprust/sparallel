@@ -33,20 +33,20 @@ class ForkDriver implements DriverInterface
 
         $socketServer = $this->socketService->createServer($socketPath);
 
-        $keys = array_keys($callbacks);
+        $taskKeys = array_keys($callbacks);
 
-        foreach ($keys as $key) {
-            $callback = $callbacks[$key];
+        foreach ($taskKeys as $taskKey) {
+            $callback = $callbacks[$taskKey];
 
-            $childProcessIds[$key] = $this->forkHandler->handle(
+            $childProcessIds[$taskKey] = $this->forkHandler->handle(
                 timer: $timer,
                 driverName: static::DRIVER_NAME,
                 socketPath: $socketPath,
-                taskKey: $key,
+                taskKey: $taskKey,
                 callback: $callback
             );
 
-            unset($callbacks[$key]);
+            unset($callbacks[$taskKey]);
         }
 
         return new ForkWaitGroup(

@@ -52,7 +52,7 @@ readonly class ForkHandler
                 timer: $timer,
                 driverName: $driverName,
                 socketPath: $socketPath,
-                key: $taskKey,
+                taskKey: $taskKey,
                 callback: $callback
             );
         } finally {
@@ -68,7 +68,7 @@ readonly class ForkHandler
         Timer $timer,
         string $driverName,
         string $socketPath,
-        mixed $key,
+        mixed $taskKey,
         Closure $callback
     ): void {
         $stdout = fopen('/dev/null', 'w');
@@ -88,7 +88,7 @@ readonly class ForkHandler
 
         try {
             $serializedResult = $this->resultTransport->serialize(
-                key: $key,
+                taskKey: $taskKey,
                 result: $callback()
             );
         } catch (Throwable $exception) {
@@ -99,7 +99,7 @@ readonly class ForkHandler
             );
 
             $serializedResult = $this->resultTransport->serialize(
-                key: $key,
+                taskKey: $taskKey,
                 exception: $exception
             );
         } finally {

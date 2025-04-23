@@ -9,7 +9,7 @@ use Symfony\Component\Process\Process;
 class ProcessTask
 {
     public function __construct(
-        public mixed $key,
+        public mixed $taskKey,
         public string $serializedCallback,
         public Process $process,
     ) {

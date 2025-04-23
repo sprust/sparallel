@@ -16,11 +16,11 @@ class ResultTransport
     ) {
     }
 
-    public function serialize(mixed $key, ?Throwable $exception = null, mixed $result = null): string
+    public function serialize(mixed $taskKey, ?Throwable $exception = null, mixed $result = null): string
     {
         return $this->serializer->serialize(
             new TaskResult(
-                key: $key,
+                taskKey: $taskKey,
                 exception: $exception,
                 result: $result,
             )

@@ -135,9 +135,9 @@ class ProcessWaitGroup implements WaitGroupInterface
             $this->stopProcess($processTask->process);
 
             yield new TaskResult(
-                key: $processTask->key,
+                taskKey: $processTask->taskKey,
                 exception: new UnexpectedTaskTerminationException(
-                    taskKey: $processTask->key,
+                    taskKey: $processTask->taskKey,
                     description: $output ?: null
                 )
             );

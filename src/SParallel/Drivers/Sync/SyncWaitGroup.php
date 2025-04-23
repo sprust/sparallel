@@ -42,7 +42,7 @@ class SyncWaitGroup implements WaitGroupInterface
 
             try {
                 $result = new TaskResult(
-                    key: $callbackKey,
+                    taskKey: $callbackKey,
                     result: $callback()
                 );
             } catch (Throwable $exception) {
@@ -53,7 +53,7 @@ class SyncWaitGroup implements WaitGroupInterface
                 );
 
                 $result = new TaskResult(
-                    key: $callbackKey,
+                    taskKey: $callbackKey,
                     exception: $exception
                 );
             } finally {
@@ -71,10 +71,10 @@ class SyncWaitGroup implements WaitGroupInterface
 
     public function break(): void
     {
-        $keys = array_keys($this->callbacks);
+        $taskKeys = array_keys($this->callbacks);
 
-        foreach ($keys as $key) {
-            unset($this->callbacks[$key]);
+        foreach ($taskKeys as $taskKey) {
+            unset($this->callbacks[$taskKey]);
         }
     }
 }

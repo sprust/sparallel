@@ -101,12 +101,12 @@ class HybridProcessHandler
         /** @var array<mixed, int> $childProcessIds */
         $childProcessIds = [];
 
-        foreach ($responseData['cb'] as $key => $serializedCallback) {
-            $childProcessIds[$key] = $this->forkHandler->handle(
+        foreach ($responseData['cb'] as $taskKey => $serializedCallback) {
+            $childProcessIds[$taskKey] = $this->forkHandler->handle(
                 timer: $timer,
                 driverName: HybridDriver::DRIVER_NAME,
                 socketPath: $socketPath,
-                taskKey: $key,
+                taskKey: $taskKey,
                 callback: $this->callbackTransport->unserialize($serializedCallback)
             );
         }

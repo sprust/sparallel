@@ -1,2 +1,3 @@
-storage/counter
+storage/!.gitkeep
+storage/*
 counter-trace-log

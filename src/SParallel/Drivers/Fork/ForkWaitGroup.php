@@ -68,7 +68,7 @@ class ForkWaitGroup implements WaitGroupInterface
 
                 $remainTaskKeys = array_filter(
                     $remainTaskKeys,
-                    static fn($key) => $key !== $result->key
+                    static fn($taskKey) => $taskKey !== $result->taskKey
                 );
 
                 yield $result;
@@ -79,7 +79,7 @@ class ForkWaitGroup implements WaitGroupInterface
             $taskKey = array_shift($remainTaskKeys);
 
             yield new TaskResult(
-                key: $taskKey,
+                taskKey: $taskKey,
                 exception: new UnexpectedTaskTerminationException(
                     taskKey: $taskKey
                 )
@@ -91,16 +91,16 @@ class ForkWaitGroup implements WaitGroupInterface
 
     public function break(): void
     {
-        $keys = array_keys($this->childProcessIds);
+        $taskKeys = array_keys($this->childProcessIds);
 
-        foreach ($keys as $key) {
-            $pid = $this->childProcessIds[$key];
+        foreach ($taskKeys as $taskKey) {
+            $pid = $this->childProcessIds[$taskKey];
 
             if (!$this->forkService->isFinished($pid)) {
                 posix_kill($pid, SIGKILL);
             }
 
-            unset($this->childProcessIds[$key]);
+            unset($this->childProcessIds[$taskKey]);
         }
 
         // should be closed in finally block

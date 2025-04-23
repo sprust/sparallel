@@ -70,7 +70,7 @@ class HybridWaitGroup implements WaitGroupInterface
 
                 $remainTaskKeys = array_filter(
                     $remainTaskKeys,
-                    static fn($key) => $key !== $result->key
+                    static fn($taskKey) => $taskKey !== $result->taskKey
                 );
 
                 yield $result;
@@ -81,7 +81,7 @@ class HybridWaitGroup implements WaitGroupInterface
             $taskKey = array_shift($remainTaskKeys);
 
             yield new TaskResult(
-                key: $taskKey,
+                taskKey: $taskKey,
                 exception: new UnexpectedTaskTerminationException($taskKey)
             );
         }

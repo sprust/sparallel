@@ -20,10 +20,10 @@ class TaskResults
 
     public function addResult(TaskResult $result): void
     {
-        $this->results[$result->key] = $result;
+        $this->results[$result->taskKey] = $result;
 
         if (!is_null($result->error)) {
-            $this->failed[$result->key] = $result;
+            $this->failed[$result->taskKey] = $result;
 
             $this->hasFailed = true;
         }

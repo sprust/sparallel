@@ -220,7 +220,6 @@ trait SParallelServiceTestCasesTrait
             static fn() => TestCounter::increment()
         );
 
-
         TestCounter::reset();
 
         $callbacks = [
