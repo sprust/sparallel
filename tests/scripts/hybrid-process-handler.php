@@ -5,7 +5,7 @@ declare(strict_types=1);
 use SParallel\Drivers\Hybrid\HybridProcessHandler;
 use SParallel\Tests\TestContainer;
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 try {
     TestContainer::resolve()->get(HybridProcessHandler::class)->handle();
