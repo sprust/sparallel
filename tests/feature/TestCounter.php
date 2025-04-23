@@ -8,8 +8,8 @@ class TestCounter
 {
     public static bool $logTrace = false;
 
-    public static string $filePath = __DIR__ . '/counter';
-    private static string $traceLogFilePath = __DIR__ . '/counter-trace-log';
+    public static string $filePath = __DIR__ . '/../storage/counter';
+    private static string $traceLogFilePath = __DIR__ . '/../storage/counter-trace-log';
 
     public static function reset(): void
     {

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace SParallel\Tests\Drivers;
 
+use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use SParallel\Drivers\Factory;
-use PHPUnit\Framework\TestCase;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Hybrid\HybridDriver;
 use SParallel\Drivers\Process\ProcessDriver;
