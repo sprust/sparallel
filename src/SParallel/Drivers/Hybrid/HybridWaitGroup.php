@@ -37,12 +37,10 @@ class HybridWaitGroup implements WaitGroupInterface
     {
         $remainTaskKeys = $this->taskKeys;
 
-        $socketServer = $this->socketServer->socket;
-
         $processFinished = false;
 
         while (!$processFinished) {
-            $childClient = @socket_accept($socketServer);
+            $childClient = @socket_accept($this->socketServer->socket);
 
             if ($childClient === false) {
                 if (!$this->process->isRunning()) {
