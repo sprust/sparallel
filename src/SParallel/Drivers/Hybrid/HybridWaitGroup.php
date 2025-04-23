@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Drivers\ASync;
+namespace SParallel\Drivers\Hybrid;
 
 use Generator;
 use SParallel\Contracts\EventsBusInterface;
@@ -17,7 +17,7 @@ use SParallel\Transport\ResultTransport;
 use Symfony\Component\Process\Process;
 use Throwable;
 
-class AsyncWaitGroup implements WaitGroupInterface
+class HybridWaitGroup implements WaitGroupInterface
 {
     /**
      * @param  array<int, mixed> $taskKeys

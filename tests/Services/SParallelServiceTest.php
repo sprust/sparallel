@@ -11,7 +11,7 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Drivers\ASync\ASyncDriver;
+use SParallel\Drivers\Hybrid\HybridDriver;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
@@ -102,9 +102,6 @@ class SParallelServiceTest extends TestCase
     #[DataProvider('driversMemoryLeakDataProvider')]
     public function memoryLeak(DriverInterface $driver): void
     {
-        // TODO: hide an exception to terminal for fork driver
-        // TODO: off warnings
-
         $service = new SParallelService(
             driver: $driver,
             eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
@@ -147,8 +144,8 @@ class SParallelServiceTest extends TestCase
             'fork'    => self::makeDriverCase(
                 driver: $container->get(id: ForkDriver::class)
             ),
-            'async'   => self::makeDriverCase(
-                driver: $container->get(id: ASyncDriver::class)
+            'hybrid'  => self::makeDriverCase(
+                driver: $container->get(id: HybridDriver::class)
             ),
         ];
     }
@@ -167,8 +164,8 @@ class SParallelServiceTest extends TestCase
             'fork'    => self::makeDriverCase(
                 driver: $container->get(id: ForkDriver::class)
             ),
-            'async'   => self::makeDriverCase(
-                driver: $container->get(id: ASyncDriver::class)
+            'hybrid'  => self::makeDriverCase(
+                driver: $container->get(id: HybridDriver::class)
             ),
         ];
     }

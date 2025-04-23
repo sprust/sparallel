@@ -2,7 +2,7 @@
 
 namespace SParallel\Contracts;
 
-interface ASyncScriptPathResolverInterface
+interface HybridScriptPathResolverInterface
 {
     public function get(): string;
 }

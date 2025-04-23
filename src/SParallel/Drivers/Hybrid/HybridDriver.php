@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Drivers\ASync;
+namespace SParallel\Drivers\Hybrid;
 
-use SParallel\Contracts\ASyncScriptPathResolverInterface;
+use SParallel\Contracts\HybridScriptPathResolverInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
@@ -21,15 +21,17 @@ use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
 
 /**
- * TODO: use SOMAXCONN const for limiting connections
+ * One process and its forks
  */
-class ASyncDriver implements DriverInterface
+class HybridDriver implements DriverInterface
 {
+    // TODO: use SOMAXCONN const for limiting connections
+
+    public const DRIVER_NAME = 'hybrid';
+
     public const PARAM_SOCKET_PATH           = 'SPARALLEL_SOCKET_PATH';
     public const PARAM_TIMER_TIMEOUT_SECONDS = 'SPARALLEL_TIMER_TIMEOUT_SECONDS';
     public const PARAM_TIMER_START_TIME      = 'SPARALLEL_TIMER_START_TIME';
-
-    public const DRIVER_NAME = 'async';
 
     protected string $scriptPath;
 
@@ -38,7 +40,7 @@ class ASyncDriver implements DriverInterface
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,
-        protected ASyncScriptPathResolverInterface $processScriptPathResolver,
+        protected HybridScriptPathResolverInterface $processScriptPathResolver,
         protected SocketService $socketService,
         protected ProcessService $processService,
         protected Context $context,
@@ -110,7 +112,7 @@ class ASyncDriver implements DriverInterface
             break;
         }
 
-        return new AsyncWaitGroup(
+        return new HybridWaitGroup(
             taskKeys: $callbackKeys,
             process: $process,
             processSocketServer: $processSocketServer,

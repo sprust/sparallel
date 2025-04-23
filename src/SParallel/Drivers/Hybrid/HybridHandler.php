@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Drivers\ASync;
+namespace SParallel\Drivers\Hybrid;
 
 use Psr\Container\ContainerInterface;
 use SParallel\Contracts\EventsBusInterface;
@@ -17,7 +17,7 @@ use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
 
-class ASyncHandler
+class HybridHandler
 {
     public function __construct(
         protected ContainerInterface $container,
@@ -52,9 +52,9 @@ class ASyncHandler
      */
     protected function onHandle(): void
     {
-        $socketPath     = $_SERVER[ASyncDriver::PARAM_SOCKET_PATH] ?? null;
-        $timeoutSeconds = $_SERVER[ASyncDriver::PARAM_TIMER_TIMEOUT_SECONDS] ?? null;
-        $startTime      = $_SERVER[ASyncDriver::PARAM_TIMER_START_TIME] ?? null;
+        $socketPath     = $_SERVER[HybridDriver::PARAM_SOCKET_PATH] ?? null;
+        $timeoutSeconds = $_SERVER[HybridDriver::PARAM_TIMER_TIMEOUT_SECONDS] ?? null;
+        $startTime      = $_SERVER[HybridDriver::PARAM_TIMER_START_TIME] ?? null;
 
         if (!$socketPath || !is_string($socketPath)) {
             throw new InvalidValueException(
@@ -104,7 +104,7 @@ class ASyncHandler
         foreach ($responseData['cb'] as $key => $serializedCallback) {
             $childProcessIds[$key] = $this->forkHandler->handle(
                 timer: $timer,
-                driverName: ASyncDriver::DRIVER_NAME,
+                driverName: HybridDriver::DRIVER_NAME,
                 socketPath: $socketPath,
                 taskKey: $key,
                 callback: $this->callbackTransport->unserialize($serializedCallback)

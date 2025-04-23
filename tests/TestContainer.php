@@ -7,12 +7,12 @@ namespace SParallel\Tests;
 use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
-use SParallel\Contracts\ASyncScriptPathResolverInterface;
+use SParallel\Contracts\HybridScriptPathResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\SerializerInterface;
-use SParallel\Drivers\ASync\ASyncDriver;
-use SParallel\Drivers\ASync\ASyncHandler;
+use SParallel\Drivers\Hybrid\HybridDriver;
+use SParallel\Drivers\Hybrid\HybridHandler;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Process\ProcessHandler;
@@ -78,7 +78,7 @@ class TestContainer implements ContainerInterface
 
             ProcessScriptPathResolverInterface::class => fn() => new ProcessScriptPathResolver(),
 
-            ASyncScriptPathResolverInterface::class => fn() => new ASyncScriptPathResolver(),
+            HybridScriptPathResolverInterface::class => fn() => new HybridScriptPathResolver(),
 
             ForkHandler::class => fn() => new ForkHandler(
                 resultTransport: $this->get(ResultTransport::class),
@@ -113,18 +113,18 @@ class TestContainer implements ContainerInterface
 
             ForkService::class => fn() => new ForkService(),
 
-            ASyncDriver::class => fn() => new ASyncDriver(
+            HybridDriver::class => fn() => new HybridDriver(
                 eventsBus: $this->get(EventsBusInterface::class),
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
-                processScriptPathResolver: $this->get(ASyncScriptPathResolverInterface::class),
+                processScriptPathResolver: $this->get(HybridScriptPathResolverInterface::class),
                 socketService: $this->get(SocketService::class),
                 processService: $this->get(ProcessService::class),
                 context: $this->get(Context::class),
             ),
 
-            ASyncHandler::class => fn() => new ASyncHandler(
+            HybridHandler::class => fn() => new HybridHandler(
                 container: $this,
                 contextTransport: $this->get(ContextTransport::class),
                 eventsBus: $this->get(EventsBusInterface::class),
