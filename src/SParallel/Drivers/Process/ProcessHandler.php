@@ -7,6 +7,7 @@ namespace SParallel\Drivers\Process;
 use Psr\Container\ContainerInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
+use SParallel\Exceptions\InvalidValueException;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\Context;
 use SParallel\Objects\ProcessChildMessage;
@@ -51,8 +52,34 @@ class ProcessHandler
      */
     protected function onHandle(): void
     {
-        $taskKey    = $_SERVER[ProcessDriver::PARAM_TASK_KEY];
-        $socketPath = $_SERVER[ProcessDriver::PARAM_SOCKET_PATH];
+        $taskKey        = $_SERVER[ProcessDriver::PARAM_TASK_KEY] ?? null;
+        $socketPath     = $_SERVER[ProcessDriver::PARAM_SOCKET_PATH] ?? null;
+        $timeoutSeconds = $_SERVER[ProcessDriver::PARAM_TIMER_TIMEOUT_SECONDS] ?? null;
+        $startTime      = $_SERVER[ProcessDriver::PARAM_TIMER_START_TIME] ?? null;
+
+        if (is_null($taskKey)) {
+            throw new InvalidValueException(
+                'Task key is not set.'
+            );
+        }
+
+        if (!$socketPath || !is_string($socketPath)) {
+            throw new InvalidValueException(
+                'Socket path is not set or is not a string.'
+            );
+        }
+
+        if (!$timeoutSeconds || !is_numeric($timeoutSeconds) || $timeoutSeconds < 1) {
+            throw new InvalidValueException(
+                'Timeout seconds is not set or is not numeric.'
+            );
+        }
+
+        if (!$startTime || !is_numeric($startTime) || $startTime < 0) {
+            throw new InvalidValueException(
+                'Start time is not set or is not numeric.'
+            );
+        }
 
         $timer = new Timer(
             timeoutSeconds: (int) $_SERVER[ProcessDriver::PARAM_TIMER_TIMEOUT_SECONDS],

@@ -17,7 +17,7 @@ use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
 
-class HybridHandler
+class HybridProcessHandler
 {
     public function __construct(
         protected ContainerInterface $container,

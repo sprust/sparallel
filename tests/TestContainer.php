@@ -12,7 +12,7 @@ use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Drivers\Hybrid\HybridDriver;
-use SParallel\Drivers\Hybrid\HybridHandler;
+use SParallel\Drivers\Hybrid\HybridProcessHandler;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Process\ProcessHandler;
@@ -124,7 +124,7 @@ class TestContainer implements ContainerInterface
                 context: $this->get(Context::class),
             ),
 
-            HybridHandler::class => fn() => new HybridHandler(
+            HybridProcessHandler::class => fn() => new HybridProcessHandler(
                 container: $this,
                 contextTransport: $this->get(ContextTransport::class),
                 eventsBus: $this->get(EventsBusInterface::class),

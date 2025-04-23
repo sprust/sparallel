@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use SParallel\Drivers\Hybrid\HybridHandler;
+use SParallel\Drivers\Hybrid\HybridProcessHandler;
 use SParallel\Tests\TestContainer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
 try {
-    TestContainer::resolve()->get(HybridHandler::class)->handle();
+    TestContainer::resolve()->get(HybridProcessHandler::class)->handle();
 } catch (Throwable $exception) {
     echo $exception->getMessage() . PHP_EOL;
 
