@@ -11,6 +11,7 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Drivers\ASync\ASyncDriver;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
@@ -131,6 +132,9 @@ class SParallelServiceTest extends TestCase
             'fork'    => self::makeDriverCase(
                 driver: $container->get(id: ForkDriver::class)
             ),
+            'async'   => self::makeDriverCase(
+                driver: $container->get(id: ASyncDriver::class)
+            ),
         ];
     }
 
@@ -147,6 +151,9 @@ class SParallelServiceTest extends TestCase
             ),
             'fork'    => self::makeDriverCase(
                 driver: $container->get(id: ForkDriver::class)
+            ),
+            'async'   => self::makeDriverCase(
+                driver: $container->get(id: ASyncDriver::class)
             ),
         ];
     }
