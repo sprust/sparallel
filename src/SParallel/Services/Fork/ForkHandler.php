@@ -109,18 +109,16 @@ readonly class ForkHandler
             );
         }
 
-        $socket = $this->socketService->createClient($socketPath);
+        $socketClient = $this->socketService->createClient($socketPath);
 
         try {
             $this->socketService->writeToSocket(
                 timer: $timer,
-                socket: $socket,
+                socket: $socketClient->socket,
                 data: $serializedResult
             );
         } catch (SParallelTimeoutException) {
             // no action needed
-        } finally {
-            $this->socketService->closeSocket($socket);
         }
     }
 }

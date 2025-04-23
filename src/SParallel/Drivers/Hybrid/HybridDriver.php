@@ -72,7 +72,7 @@ class HybridDriver implements DriverInterface
 
         $socketPath = $this->socketService->makeSocketPath();
 
-        $processSocketServer = $this->socketService->createServer($socketPath);
+        $socketServer = $this->socketService->createServer($socketPath);
 
         $process = Process::fromShellCommandline(command: $command)
             ->setTimeout(null)
@@ -86,7 +86,7 @@ class HybridDriver implements DriverInterface
 
         // wait for the main process to start and to put payload
         while ($this->checkProcess($process)) {
-            $processClient = @socket_accept($processSocketServer->socket);
+            $processClient = @socket_accept($socketServer->socket);
 
             if ($processClient === false) {
                 $timer->check();
@@ -113,7 +113,7 @@ class HybridDriver implements DriverInterface
         return new HybridWaitGroup(
             taskKeys: $callbackKeys,
             process: $process,
-            processSocketServer: $processSocketServer,
+            socketServer: $socketServer,
             timer: $timer,
             eventsBus: $this->eventsBus,
             socketService: $this->socketService,

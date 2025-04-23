@@ -11,7 +11,7 @@ use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Exceptions\UnexpectedTaskTerminationException;
 use SParallel\Objects\TaskResult;
-use SParallel\Objects\SocketServerObject;
+use SParallel\Objects\SocketServer;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
 use Symfony\Component\Process\Process;
@@ -25,7 +25,7 @@ class HybridWaitGroup implements WaitGroupInterface
     public function __construct(
         protected array $taskKeys,
         protected Process $process,
-        protected SocketServerObject $processSocketServer,
+        protected SocketServer $socketServer,
         protected Timer $timer,
         protected EventsBusInterface $eventsBus,
         protected SocketService $socketService,
@@ -37,7 +37,7 @@ class HybridWaitGroup implements WaitGroupInterface
     {
         $remainTaskKeys = $this->taskKeys;
 
-        $socketServer = $this->processSocketServer->socket;
+        $socketServer = $this->socketServer->socket;
 
         $processFinished = false;
 

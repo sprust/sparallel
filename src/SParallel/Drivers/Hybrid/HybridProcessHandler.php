@@ -80,16 +80,12 @@ class HybridProcessHandler
 
         // read payload from caller
 
-        $socket = $this->socketService->createClient($socketPath);
+        $socketClient = $this->socketService->createClient($socketPath);
 
-        try {
-            $response = $this->socketService->readSocket(
-                timer: $timer,
-                socket: $socket
-            );
-        } finally {
-            $this->socketService->closeSocket($socket);
-        }
+        $response = $this->socketService->readSocket(
+            timer: $timer,
+            socket: $socketClient->socket
+        );
 
         $responseData = json_decode($response, true);
 

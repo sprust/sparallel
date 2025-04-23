@@ -14,7 +14,7 @@ use SParallel\Exceptions\UnexpectedTaskTerminationException;
 use SParallel\Objects\Context;
 use SParallel\Objects\ProcessParentMessage;
 use SParallel\Objects\ProcessTask;
-use SParallel\Objects\SocketServerObject;
+use SParallel\Objects\SocketServer;
 use SParallel\Objects\TaskResult;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
@@ -31,7 +31,7 @@ class ProcessWaitGroup implements WaitGroupInterface
      * @param array<mixed, ProcessTask> $processTasks
      */
     public function __construct(
-        protected SocketServerObject $socketServer,
+        protected SocketServer $socketServer,
         protected array $processTasks,
         protected Timer $timer,
         protected Context $context,

@@ -9,7 +9,8 @@ use SParallel\Drivers\Timer;
 use SParallel\Exceptions\CouldNotConnectToSocketException;
 use SParallel\Exceptions\CouldNotCreateSocketServerException;
 use SParallel\Exceptions\SParallelTimeoutException;
-use SParallel\Objects\SocketServerObject;
+use SParallel\Objects\SocketClient;
+use SParallel\Objects\SocketServer;
 
 readonly class SocketService
 {
@@ -41,7 +42,7 @@ readonly class SocketService
         return $socketPath;
     }
 
-    public function createServer(string $socketPath): SocketServerObject
+    public function createServer(string $socketPath): SocketServer
     {
         $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
 
@@ -53,13 +54,13 @@ readonly class SocketService
         socket_listen($socket, SOMAXCONN);
         socket_set_nonblock($socket);
 
-        return new SocketServerObject(
+        return new SocketServer(
             path: $socketPath,
             socket: $socket
         );
     }
 
-    public function createClient(string $socketPath): Socket
+    public function createClient(string $socketPath): SocketClient
     {
         $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
 
@@ -67,7 +68,9 @@ readonly class SocketService
             throw new CouldNotConnectToSocketException($socket);
         }
 
-        return $socket;
+        return new SocketClient(
+            socket: $socket
+        );
     }
 
     /**
@@ -156,10 +159,5 @@ readonly class SocketService
 
             $sentBytes += $bytes;
         }
-    }
-
-    public function closeSocket(Socket $socket): void
-    {
-        socket_close($socket);
     }
 }

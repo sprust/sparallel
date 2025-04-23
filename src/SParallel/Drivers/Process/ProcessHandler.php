@@ -85,11 +85,11 @@ class ProcessHandler
             customStartTime: (int) $startTime
         );
 
-        $socket = $this->socketService->createClient($socketPath);
+        $socketClient = $this->socketService->createClient($socketPath);
 
         $this->socketService->writeToSocket(
             timer: $timer,
-            socket: $socket,
+            socket: $socketClient->socket,
             data: $this->messagesTransport->serializeChild(
                 new ProcessChildMessage(
                     taskKey: $taskKey,
@@ -101,10 +101,10 @@ class ProcessHandler
 
         $response = $this->socketService->readSocket(
             timer: $timer,
-            socket: $socket
+            socket: $socketClient->socket
         );
 
-        $this->socketService->closeSocket($socket);
+        unset($socketClient);
 
         $message = $this->messagesTransport->unserializeParent($response);
 
@@ -126,11 +126,11 @@ class ProcessHandler
 
             $result = $closure();
 
-            $socket = $this->socketService->createClient($socketPath);
+            $socketClient = $this->socketService->createClient($socketPath);
 
             $this->socketService->writeToSocket(
                 timer: $timer,
-                socket: $socket,
+                socket: $socketClient->socket,
                 data: $this->messagesTransport->serializeChild(
                     new ProcessChildMessage(
                         taskKey: $taskKey,
@@ -149,11 +149,11 @@ class ProcessHandler
                 exception: $exception
             );
 
-            $socket = $this->socketService->createClient($socketPath);
+            $socketClient = $this->socketService->createClient($socketPath);
 
             $this->socketService->writeToSocket(
                 timer: $timer,
-                socket: $socket,
+                socket: $socketClient->socket,
                 data: $this->messagesTransport->serializeChild(
                     new ProcessChildMessage(
                         taskKey: $taskKey,
@@ -165,9 +165,9 @@ class ProcessHandler
                     )
                 )
             );
-        } finally {
-            $this->socketService->closeSocket($socket);
         }
+
+        unset($socketClient);
 
         $this->eventsBus->taskFinished(
             driverName: $driverName,

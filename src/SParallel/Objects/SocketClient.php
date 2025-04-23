@@ -6,10 +6,9 @@ namespace SParallel\Objects;
 
 use Socket;
 
-readonly class SocketServerObject
+readonly class SocketClient
 {
     public function __construct(
-        public string $path,
         public Socket $socket
     ) {
     }
@@ -17,6 +16,5 @@ readonly class SocketServerObject
     public function __destruct()
     {
         socket_close($this->socket);
-        @unlink($this->path);
     }
 }

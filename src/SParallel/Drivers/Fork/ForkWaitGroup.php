@@ -9,7 +9,7 @@ use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\UnexpectedTaskTerminationException;
 use SParallel\Objects\TaskResult;
-use SParallel\Objects\SocketServerObject;
+use SParallel\Objects\SocketServer;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
@@ -20,7 +20,7 @@ class ForkWaitGroup implements WaitGroupInterface
      * @param array<mixed, int> $childProcessIds
      */
     public function __construct(
-        protected SocketServerObject $socketServer,
+        protected SocketServer $socketServer,
         protected array $childProcessIds,
         protected Timer $timer,
         protected ResultTransport $resultTransport,
