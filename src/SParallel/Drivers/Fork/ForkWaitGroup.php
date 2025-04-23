@@ -4,66 +4,108 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Fork;
 
+use Generator;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Fork\Service\Task;
-use SParallel\Objects\ResultsObject;
+use SParallel\Drivers\Timer;
+use SParallel\Exceptions\UnexpectedTaskTerminationException;
+use SParallel\Objects\TaskResult;
+use SParallel\Objects\SocketServer;
+use SParallel\Services\Fork\ForkService;
+use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
-use Throwable;
 
 class ForkWaitGroup implements WaitGroupInterface
 {
-    protected ResultsObject $results;
-
     /**
-     * @param array<mixed, Task> $tasks
+     * @param array<mixed, int> $childProcessIds
      */
     public function __construct(
+        protected SocketServer $socketServer,
+        protected array $childProcessIds,
+        protected Timer $timer,
         protected ResultTransport $resultTransport,
-        protected array $tasks,
+        protected SocketService $socketService,
+        protected ForkService $forkService,
     ) {
-        $this->results = new ResultsObject();
     }
 
-    public function current(): ResultsObject
+    public function get(): Generator
     {
-        $keys = array_keys($this->tasks);
+        $remainTaskKeys = array_keys($this->childProcessIds);
 
-        foreach ($keys as $key) {
-            $task = $this->tasks[$key];
+        $socketServer = $this->socketServer->socket;
 
-            if (!$task->isFinished()) {
-                continue;
+        $childrenFinished = false;
+
+        while (!$childrenFinished) {
+            $taskKeys = array_keys($this->childProcessIds);
+
+            foreach ($taskKeys as $taskKey) {
+                $childProcessPid = $this->childProcessIds[$taskKey];
+
+                if ($this->forkService->isFinished($childProcessPid)) {
+                    unset($this->childProcessIds[$taskKey]);
+                }
             }
 
-            $output = $task->output();
+            $childClient = @socket_accept($socketServer);
 
-            $this->results->addResult(
-                key: $key,
-                result: $this->resultTransport->unserialize($output),
-            );
+            if ($childClient === false) {
+                if (!count($this->childProcessIds)) {
+                    $childrenFinished = true;
+                } else {
+                    $this->timer->check();
 
-            unset($this->tasks[$key]);
+                    usleep(1000);
+                }
+            } else {
+                $response = $this->socketService->readSocket(
+                    timer: $this->timer,
+                    socket: $childClient
+                );
+
+                $result = $this->resultTransport->unserialize($response);
+
+                $remainTaskKeys = array_filter(
+                    $remainTaskKeys,
+                    static fn($taskKey) => $taskKey !== $result->taskKey
+                );
+
+                yield $result;
+            }
         }
 
-        return $this->results;
+        while (count($remainTaskKeys) > 0) {
+            $taskKey = array_shift($remainTaskKeys);
+
+            yield new TaskResult(
+                taskKey: $taskKey,
+                exception: new UnexpectedTaskTerminationException(
+                    taskKey: $taskKey
+                )
+            );
+        }
+
+        $this->break();
     }
 
     public function break(): void
     {
-        $keys = array_keys($this->tasks);
+        $taskKeys = array_keys($this->childProcessIds);
 
-        foreach ($keys as $key) {
-            $task = $this->tasks[$key];
+        foreach ($taskKeys as $taskKey) {
+            $pid = $this->childProcessIds[$taskKey];
 
-            if (!$task->isFinished()) {
-                try {
-                    posix_kill($task->getPid(), SIGKILL);
-                } catch (Throwable) {
-                    //
-                }
+            if (!$this->forkService->isFinished($pid)) {
+                posix_kill($pid, SIGKILL);
             }
 
-            unset($this->tasks[$key]);
+            unset($this->childProcessIds[$taskKey]);
         }
+    }
+
+    public function __destruct()
+    {
+        $this->break();
     }
 }

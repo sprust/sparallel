@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Fork;
 
-use Closure;
 use SParallel\Contracts\DriverInterface;
-use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Fork\Service\Connection;
-use SParallel\Drivers\Fork\Service\Task;
-use SParallel\Objects\Context;
+use SParallel\Drivers\Timer;
+use SParallel\Services\Fork\ForkHandler;
+use SParallel\Services\Fork\ForkService;
+use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
-use Throwable;
 
 class ForkDriver implements DriverInterface
 {
@@ -20,71 +18,44 @@ class ForkDriver implements DriverInterface
 
     public function __construct(
         protected ResultTransport $resultTransport,
-        protected ?Context $context = null,
-        protected ?EventsBusInterface $eventsBus = null,
+        protected ForkHandler $forkHandler,
+        protected SocketService $socketService,
+        protected ForkService $forkService,
     ) {
     }
 
-    public function wait(array $callbacks): WaitGroupInterface
+    public function run(array &$callbacks, Timer $timer): WaitGroupInterface
     {
-        return new ForkWaitGroup(
-            resultTransport: $this->resultTransport,
-            tasks: array_map(
-                fn(Closure $callback) => $this->forkForTask($callback),
-                $callbacks
-            ),
-        );
-    }
+        /** @var array<mixed, int> $childProcessIds */
+        $childProcessIds = [];
 
-    protected function forkForTask(Closure $callback): Task
-    {
-        [$socketToParent, $socketToChild] = Connection::createPair();
+        $socketPath = $this->socketService->makeSocketPath();
 
-        $pid = pcntl_fork();
+        $socketServer = $this->socketService->createServer($socketPath);
 
-        if ($pid === 0) {
-            $socketToChild->close();
+        $taskKeys = array_keys($callbacks);
 
-            $this->eventsBus?->taskStarting(
+        foreach ($taskKeys as $taskKey) {
+            $callback = $callbacks[$taskKey];
+
+            $childProcessIds[$taskKey] = $this->forkHandler->handle(
+                timer: $timer,
                 driverName: static::DRIVER_NAME,
-                context: $this->context
+                socketPath: $socketPath,
+                taskKey: $taskKey,
+                callback: $callback
             );
 
-            try {
-                $socketToParent->write(
-                    $this->resultTransport->serialize(
-                        result: $callback(),
-                    )
-                );
-            } catch (Throwable $exception) {
-                $this->eventsBus?->taskFailed(
-                    driverName: static::DRIVER_NAME,
-                    context: $this->context,
-                    exception: $exception
-                );
-
-                $socketToParent->write(
-                    $this->resultTransport->serialize(
-                        exception: $exception,
-                    )
-                );
-            } finally {
-                $socketToParent->close();
-
-                $this->eventsBus?->taskFinished(
-                    driverName: static::DRIVER_NAME,
-                    context: $this->context
-                );
-
-                posix_kill(getmypid(), SIGKILL);
-            }
+            unset($callbacks[$taskKey]);
         }
 
-        $socketToParent->close();
-
-        return new Task(
-            pid: $pid,
-            connection: $socketToChild
+        return new ForkWaitGroup(
+            socketServer: $socketServer,
+            childProcessIds: $childProcessIds,
+            timer: $timer,
+            resultTransport: $this->resultTransport,
+            socketService: $this->socketService,
+            forkService: $this->forkService,
         );
     }
 }

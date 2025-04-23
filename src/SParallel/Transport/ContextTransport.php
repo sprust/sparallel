@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Transport;
 
 use SParallel\Contracts\SerializerInterface;
+use SParallel\Exceptions\UnserializeException;
 use SParallel\Objects\Context;
 
 class ContextTransport
@@ -18,18 +19,17 @@ class ContextTransport
         return $this->serializer->serialize($context);
     }
 
-    public function unserialize(?string $data): ?Context
+    public function unserialize(string $data): Context
     {
-        if (is_null($data)) {
-            return null;
-        }
-
         $context = $this->serializer->unserialize($data);
 
         if ($context instanceof Context) {
             return $context;
         }
 
-        return null;
+        throw new UnserializeException(
+            expected: Context::class,
+            got: $context
+        );
     }
 }

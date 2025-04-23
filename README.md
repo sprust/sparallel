@@ -1,4 +1,4 @@
-# Parallel PHP
+# Parallel PHP via processes (another)
 
 ## example ##
 
@@ -8,32 +8,24 @@ try {
         container: \SParallel\Tests\Container::resolve()
     );
     
-    /** @var \SParallel\Objects\ResultsObject $results */
-    $results = (new \SParallel\Services\SParallelService($driverFactory->detect()))->wait(
+    $results = (new \SParallel\Services\SParallelService($driverFactory->detect()))->run(
         callbacks: [
             'first'  => static fn() => 'first',
             'second' => static fn() => 'second',
         ],
-        waitMicroseconds: 2_000_000, // 2 seconds
+        timeoutSeconds: 2,
     );
 } catch (\SParallel\Exceptions\SParallelTimeoutException) {
     throw new RuntimeException('Timeout');
 }
 
-if ($results->hasFailed()) {
-    foreach ($results->getFailed() as $key => $failedResult) {
-        echo sprintf(
-            'Failed task: %s\n%s\n',
-            $key, $failedResult->error?->message ?? 'unknown error'
-        );
-    }
-}
-
-foreach ($results->getResults() as $result) {
-    if ($failedResult->error) {
+foreach ($results as $taskKey => $result) {
+    if ($result->error) {
+        echo "$taskKey: ERROR: " . ($result->error?->message ?: 'unknown error') . "\n";
+        
         continue;
     }
 
-    echo $result->result . "\n";
+    echo "$taskKey: SUCCESS: " . $result->result . "\n";
 }
 ```

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Contracts;
 
 use Closure;
+use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
 
 interface DriverInterface
@@ -14,5 +15,5 @@ interface DriverInterface
      *
      * @throws SParallelTimeoutException
      */
-    public function wait(array $callbacks): WaitGroupInterface;
+    public function run(array &$callbacks, Timer $timer): WaitGroupInterface;
 }

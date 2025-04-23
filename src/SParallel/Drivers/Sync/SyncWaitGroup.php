@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace SParallel\Drivers\Sync;
 
 use Closure;
+use Generator;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
+use SParallel\Drivers\Timer;
 use SParallel\Objects\Context;
-use SParallel\Objects\ResultObject;
-use SParallel\Objects\ResultsObject;
+use SParallel\Objects\TaskResult;
 use Throwable;
 
 class SyncWaitGroup implements WaitGroupInterface
@@ -18,54 +19,62 @@ class SyncWaitGroup implements WaitGroupInterface
      * @param array<mixed, Closure> $callbacks
      */
     public function __construct(
-        protected array $callbacks,
-        protected ?Context $context = null,
-        protected ?EventsBusInterface $eventsBus = null,
+        protected array &$callbacks,
+        protected Timer $timer,
+        protected Context $context,
+        protected EventsBusInterface $eventsBus
     ) {
     }
 
-    public function current(): ResultsObject
+    public function get(): Generator
     {
-        $results = new ResultsObject();
+        $callbackKeys = array_keys($this->callbacks);
 
-        foreach ($this->callbacks as $key => $callback) {
-            $this->eventsBus?->taskStarting(
+        foreach ($callbackKeys as $callbackKey) {
+            $this->timer->check();
+
+            $callback = $this->callbacks[$callbackKey];
+
+            $this->eventsBus->taskStarting(
                 driverName: SyncDriver::DRIVER_NAME,
                 context: $this->context
             );
 
             try {
-                $result = new ResultObject(
+                $result = new TaskResult(
+                    taskKey: $callbackKey,
                     result: $callback()
                 );
             } catch (Throwable $exception) {
-                $this->eventsBus?->taskFailed(
+                $this->eventsBus->taskFailed(
                     driverName: SyncDriver::DRIVER_NAME,
                     context: $this->context,
                     exception: $exception
                 );
 
-                $result = new ResultObject(
+                $result = new TaskResult(
+                    taskKey: $callbackKey,
                     exception: $exception
                 );
             } finally {
-                $this->eventsBus?->taskFinished(
+                $this->eventsBus->taskFinished(
                     driverName: SyncDriver::DRIVER_NAME,
                     context: $this->context
                 );
             }
 
-            $results->addResult(
-                key: $key,
-                result: $result
-            );
-        }
+            unset($this->callbacks[$callbackKey]);
 
-        return $results;
+            yield $result;
+        }
     }
 
     public function break(): void
     {
-        // no-op
+        $taskKeys = array_keys($this->callbacks);
+
+        foreach ($taskKeys as $taskKey) {
+            unset($this->callbacks[$taskKey]);
+        }
     }
 }

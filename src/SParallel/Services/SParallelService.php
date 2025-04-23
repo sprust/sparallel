@@ -5,19 +5,21 @@ declare(strict_types=1);
 namespace SParallel\Services;
 
 use Closure;
+use Generator;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\WaitGroupInterface;
+use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
-use SParallel\Objects\ResultsObject;
+use SParallel\Objects\TaskResult;
+use SParallel\Objects\TaskResults;
 use Throwable;
 
 class SParallelService
 {
     public function __construct(
         protected DriverInterface $driver,
-        protected ?EventsBusInterface $eventsBus = null,
+        protected EventsBusInterface $eventsBus,
     ) {
     }
 
@@ -27,97 +29,110 @@ class SParallelService
      * @throws SParallelTimeoutException
      */
     public function wait(
-        array $callbacks,
-        int $waitMicroseconds = 0,
+        array &$callbacks,
+        int $timeoutSeconds,
         bool $breakAtFirstError = false
-    ): ResultsObject {
-        $this->eventsBus?->flowStarting();
+    ): TaskResults {
+        $tasksCount = count($callbacks);
 
-        try {
-            return $this->onWait(
-                callbacks: $callbacks,
-                waitMicroseconds: $waitMicroseconds,
-                breakAtFirstError: $breakAtFirstError
-            );
-        } catch (SParallelTimeoutException $exception) {
-            $this->eventsBus?->flowFailed($exception);
+        $results = new TaskResults();
 
-            throw $exception;
-        } catch (Throwable $exception) {
-            $this->eventsBus?->flowFailed($exception);
-
-            throw new RuntimeException(
-                message: $exception->getMessage(),
-                previous: $exception
-            );
-        } finally {
-            $this->eventsBus?->flowFinished();
-        }
-    }
-
-    /**
-     * @param array<mixed, Closure> $callbacks
-     *
-     * @throws SParallelTimeoutException
-     */
-    private function onWait(
-        array $callbacks,
-        int $waitMicroseconds = 0,
-        bool $breakAtFirstError = false
-    ): ResultsObject {
-        $waitGroup = $this->driver->wait(
-            callbacks: $callbacks
+        $generator = $this->run(
+            callbacks: $callbacks,
+            timeoutSeconds: $timeoutSeconds,
+            breakAtFirstError: $breakAtFirstError
         );
 
-        $expectedResultCount = count($callbacks);
+        foreach ($generator as $result) {
+            /** @var TaskResult $result */
 
-        $startTime       = (float) microtime(true);
-        $comparativeTime = (float) ($waitMicroseconds / 1_000_000);
-
-        while (true) {
-            $results = $waitGroup->current();
-
-            if ($breakAtFirstError && $results->hasFailed()) {
-                $waitGroup->break();
-
-                break;
-            }
-
-            $this->checkTimedOut(
-                waitGroup: $waitGroup,
-                startTime: $startTime,
-                comparativeTime: $comparativeTime
+            $results->addResult(
+                result: $result
             );
+        }
 
-            $resultsCount = $results->count();
-
-            if ($resultsCount > $expectedResultCount) {
-                throw new RuntimeException(
-                    "Expected result count of $expectedResultCount, but got " . $resultsCount
-                );
-            }
-
-            if ($resultsCount === $expectedResultCount) {
-                $results->finish();
-
-                break;
-            }
-
-            usleep(100);
+        if ($results->count() === $tasksCount) {
+            $results->finish();
         }
 
         return $results;
     }
 
     /**
+     * @param array<mixed, Closure> $callbacks
+     *
+     * @return Generator<TaskResult>
+     *
      * @throws SParallelTimeoutException
      */
-    private function checkTimedOut(WaitGroupInterface $waitGroup, float $startTime, float $comparativeTime): void
-    {
-        if ($comparativeTime > 0 && (microtime(true) - $startTime) > $comparativeTime) {
-            $waitGroup->break();
+    public function run(
+        array &$callbacks,
+        int $timeoutSeconds,
+        bool $breakAtFirstError = false
+    ): Generator {
+        $this->eventsBus->flowStarting();
 
-            throw new SParallelTimeoutException();
+        try {
+            return $this->onRun(
+                callbacks: $callbacks,
+                timeoutSeconds: $timeoutSeconds,
+                breakAtFirstError: $breakAtFirstError
+            );
+        } catch (SParallelTimeoutException $exception) {
+            $this->eventsBus->flowFailed($exception);
+
+            throw $exception;
+        } catch (Throwable $exception) {
+            $this->eventsBus->flowFailed($exception);
+
+            throw new RuntimeException(
+                message: $exception->getMessage(),
+                previous: $exception
+            );
+        } finally {
+            $this->eventsBus->flowFinished();
+        }
+    }
+
+    /**
+     * @param array<mixed, Closure> $callbacks
+     *
+     * @return Generator<TaskResult>
+     *
+     * @throws SParallelTimeoutException
+     */
+    private function onRun(
+        array &$callbacks,
+        int $timeoutSeconds = 0,
+        bool $breakAtFirstError = false
+    ): Generator {
+        $timer = new Timer(
+            timeoutSeconds: $timeoutSeconds
+        );
+
+        $waitGroup = $this->driver->run(
+            callbacks: $callbacks,
+            timer: $timer
+        );
+
+        $brokeResult = null;
+
+        foreach ($waitGroup->get() as $result) {
+            $timer->check();
+
+            if ($breakAtFirstError && $result->error) {
+                $waitGroup->break();
+
+                $brokeResult = $result;
+
+                break;
+            }
+
+            yield $result;
+        }
+
+        if ($brokeResult) {
+            yield $brokeResult;
         }
     }
 }

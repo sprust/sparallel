@@ -13,12 +13,8 @@ class OpisSerializer implements SerializerInterface
         return \Opis\Closure\serialize($data);
     }
 
-    public function unserialize(?string $data): mixed
+    public function unserialize(string $data): mixed
     {
-        if (is_null($data)) {
-            return null;
-        }
-
         return \Opis\Closure\unserialize($data);
     }
 }

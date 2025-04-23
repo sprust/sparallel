@@ -14,6 +14,7 @@ composer:
 
 test:
 	"$(PHP_CLI)" ./vendor/bin/phpunit \
+		-d memory_limit=512M \
 		--colors=auto \
 		--testdox \
   		--display-incomplete \
@@ -32,3 +33,6 @@ phpstan:
 check:
 	make phpstan
 	make test
+
+benchmark:
+	"$(PHP_CLI)" php src/benchmark.php
