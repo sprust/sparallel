@@ -9,6 +9,7 @@ use Psr\Container\NotFoundExceptionInterface;
 use SParallel\Drivers\Factory;
 use PHPUnit\Framework\TestCase;
 use SParallel\Drivers\Fork\ForkDriver;
+use SParallel\Drivers\Hybrid\HybridDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Tests\TestContainer;
@@ -79,6 +80,24 @@ class FactoryTest extends TestCase
 
         self::assertEquals(
             SyncDriver::class,
+            $factory->detect()::class,
+        );
+    }
+
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    public function testHybrid(): void
+    {
+        $factory = new Factory(
+            container: TestContainer::resolve(),
+            isRunningInConsole: false,
+            useHybridDriverInsteadProcess: true
+        );
+
+        self::assertEquals(
+            HybridDriver::class,
             $factory->detect()::class,
         );
     }
