@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 ini_set('memory_limit', '1G');
 
-use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Hybrid\HybridDriver;
@@ -26,7 +25,7 @@ shuffle($callbacks);
 
 $callbacksCount = count($callbacks);
 
-/** @var array<class-string<DriverInterface>> $driverClasses */
+/** @var array<class-string<\SParallel\Contracts\DriverInterface>> $driverClasses */
 $driverClasses = [
     ForkDriver::class,
     ProcessDriver::class,
@@ -96,6 +95,9 @@ foreach ($metrics as $driverClass => $metric) {
 
 exit(0);
 
+/**
+ * @return array<string, Closure>
+ */
 function makeCaseUnique(int $count): array
 {
     $result = [];
@@ -107,6 +109,9 @@ function makeCaseUnique(int $count): array
     return $result;
 }
 
+/**
+ * @return array<string, Closure>
+ */
 function makeCaseBigResponse(int $count): array
 {
     $result = [];
@@ -121,6 +126,9 @@ function makeCaseBigResponse(int $count): array
     return $result;
 }
 
+/**
+ * @return array<string, Closure>
+ */
 function makeCaseMemoryLimit(int $count): array
 {
     $result = [];
@@ -135,6 +143,9 @@ function makeCaseMemoryLimit(int $count): array
     return $result;
 }
 
+/**
+ * @return array<string, Closure>
+ */
 function makeCaseSleep(int $count, int $sec): array
 {
     $result = [];
@@ -150,6 +161,9 @@ function makeCaseSleep(int $count, int $sec): array
     return $result;
 }
 
+/**
+ * @return array<string, Closure>
+ */
 function makeCaseThrow(int $count): array
 {
     $result = [];
