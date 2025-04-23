@@ -113,11 +113,15 @@ class SParallelService
             timer: $timer
         );
 
+        $brokeResult = null;
+
         foreach ($waitGroup->get() as $result) {
             $timer->check();
 
             if ($breakAtFirstError && $result->error) {
                 $waitGroup->break();
+
+                $brokeResult = $result;
 
                 break;
             }
@@ -125,8 +129,8 @@ class SParallelService
             yield $result;
         }
 
-        if (isset($result)) {
-            yield $result;
+        if ($brokeResult) {
+            yield $brokeResult;
         }
     }
 }

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+ini_set('memory_limit', '1G');
+
 use SParallel\Drivers\Process\ProcessHandler;
 use SParallel\Tests\TestContainer;
 

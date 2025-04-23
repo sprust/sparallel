@@ -33,3 +33,6 @@ phpstan:
 check:
 	make phpstan
 	make test
+
+benchmark:
+	"$(PHP_CLI)" php src/benchmark.php
