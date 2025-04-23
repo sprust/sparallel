@@ -82,8 +82,8 @@ class ProcessHandler
         }
 
         $timer = new Timer(
-            timeoutSeconds: (int) $_SERVER[ProcessDriver::PARAM_TIMER_TIMEOUT_SECONDS],
-            customStartTime: (int) $_SERVER[ProcessDriver::PARAM_TIMER_START_TIME]
+            timeoutSeconds: (int) $timeoutSeconds,
+            customStartTime: (int) $startTime
         );
 
         $socket = $this->socketService->createClient($socketPath);
