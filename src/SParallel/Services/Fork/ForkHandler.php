@@ -71,15 +71,16 @@ readonly class ForkHandler
         mixed $taskKey,
         Closure $callback
     ): void {
-        $stdout = fopen('/dev/null', 'w');
-
-        if ($stdout === false) {
-            throw new CouldNotOpenDevNullException();
-        }
-
-        fclose(STDOUT);
-
-        $GLOBALS['STDOUT'] = $stdout;
+        // TODO: crushing sometimes
+        //$stdout = fopen('/dev/null', 'w');
+        //
+        //if ($stdout === false) {
+        //    throw new CouldNotOpenDevNullException();
+        //}
+        //
+        //fclose(STDOUT);
+        //
+        //$GLOBALS['STDOUT'] = $stdout;
 
         $this->eventsBus->taskStarting(
             driverName: $driverName,
