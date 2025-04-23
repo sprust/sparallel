@@ -89,12 +89,6 @@ class HybridWaitGroup implements WaitGroupInterface
 
     public function break(): void
     {
-        try {
-            $this->socketService->closeSocketServer($this->processSocketServer);
-        } catch (Throwable) {
-            //
-        }
-
         if ($this->process->isRunning()) {
             $this->process->stop();
         }

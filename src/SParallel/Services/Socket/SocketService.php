@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SParallel\Services\Socket;
 
 use Socket;
-use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\CouldNotConnectToSocketException;
 use SParallel\Exceptions\CouldNotCreateSocketServerException;
@@ -18,7 +17,6 @@ readonly class SocketService
     protected int $timeoutMicroseconds;
 
     public function __construct(
-        protected EventsBusInterface $eventsBus,
         protected string $socketPathDirectory = '/tmp',
         protected int $bufferSize = 1024,
         protected float $timeout = 0.0001,
@@ -39,8 +37,6 @@ readonly class SocketService
         if (file_exists($socketPath)) {
             unlink($socketPath);
         }
-
-        $this->eventsBus->unixSocketCreated($socketPath);
 
         return $socketPath;
     }
@@ -160,19 +156,6 @@ readonly class SocketService
 
             $sentBytes += $bytes;
         }
-    }
-
-    public function closeSocketServer(SocketServerObject $socketServer): void
-    {
-        if ($socketServer->isClosed()) {
-            return;
-        }
-
-        $this->closeSocket($socketServer->socket);
-        @unlink($socketServer->path);
-        $this->eventsBus->unixSocketClosed($socketServer->path);
-
-        $socketServer->close();
     }
 
     public function closeSocket(Socket $socket): void

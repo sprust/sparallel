@@ -107,8 +107,6 @@ class HybridDriver implements DriverInterface
                 data: $data
             );
 
-            $this->socketService->closeSocket($processClient);
-
             break;
         }
 

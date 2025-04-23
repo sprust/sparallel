@@ -38,17 +38,7 @@ class TestEventsBus implements EventsBusInterface
         TestCounter::increment();
     }
 
-    public function unixSocketCreated(string $socketPath): void
-    {
-        //
-    }
-
     public function processCreated(int $pid): void
-    {
-        //
-    }
-
-    public function unixSocketClosed(string $socketPath): void
     {
         //
     }

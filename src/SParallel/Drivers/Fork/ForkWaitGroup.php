@@ -102,9 +102,6 @@ class ForkWaitGroup implements WaitGroupInterface
 
             unset($this->childProcessIds[$taskKey]);
         }
-
-        // should be closed in finally block
-        $this->socketService->closeSocketServer($this->socketServer);
     }
 
     public function __destruct()

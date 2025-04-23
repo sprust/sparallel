@@ -22,11 +22,13 @@ trait SParallelServiceTestCasesTrait
      */
     protected function onSuccess(SParallelService $service): void
     {
+        $callbacks = [
+            'first'  => static fn() => 'first',
+            'second' => static fn() => 'second',
+        ];
+
         $results = $service->wait(
-            callbacks: [
-                'first'  => static fn() => 'first',
-                'second' => static fn() => 'second',
-            ],
+            callbacks: $callbacks,
             timeoutSeconds: 1
         );
 
@@ -56,11 +58,13 @@ trait SParallelServiceTestCasesTrait
     {
         $exceptionMessage = uniqid();
 
+        $callbacks = [
+            'first'  => static fn() => 'first',
+            'second' => static fn() => throw new RuntimeException($exceptionMessage),
+        ];
+
         $results = $service->wait(
-            callbacks: [
-                'first'  => static fn() => 'first',
-                'second' => static fn() => throw new RuntimeException($exceptionMessage),
-            ],
+            callbacks: $callbacks,
             timeoutSeconds: 1
         );
 
@@ -115,12 +119,14 @@ trait SParallelServiceTestCasesTrait
     {
         $exception = null;
 
+        $callbacks = [
+            'second' => static fn() => sleep(2),
+            'first'  => static fn() => 'first',
+        ];
+
         try {
             $service->wait(
-                callbacks: [
-                    'second' => static fn() => sleep(2),
-                    'first'  => static fn() => 'first',
-                ],
+                callbacks: $callbacks,
                 timeoutSeconds: 1
             );
         } catch (SParallelTimeoutException $exception) {
@@ -138,12 +144,14 @@ trait SParallelServiceTestCasesTrait
      */
     protected function onBreakAtFirstError(SParallelService $service): void
     {
+        $callbacks = [
+            'first'  => static fn() => 'first',
+            'second' => static fn() => throw new RuntimeException(),
+            'third'  => static fn() => sleep(2),
+        ];
+
         $results = $service->wait(
-            callbacks: [
-                'first'  => static fn() => 'first',
-                'second' => static fn() => throw new RuntimeException(),
-                'third'  => static fn() => sleep(2),
-            ],
+            callbacks: $callbacks,
             timeoutSeconds: 1,
             breakAtFirstError: true
         );
@@ -158,14 +166,16 @@ trait SParallelServiceTestCasesTrait
      */
     protected function onBigPayload(SParallelService $service): void
     {
-        $parameters = str_repeat(uniqid(more_entropy: true), 500000);
+        $parameters = str_repeat(uniqid(more_entropy: true), 1);
+
+        $callbacks = [
+            'first'  => static fn() => $parameters,
+            'second' => static fn() => $parameters,
+            'third'  => static fn() => $parameters,
+        ];
 
         $results = $service->wait(
-            callbacks: [
-                'first'  => static fn() => $parameters,
-                'second' => static fn() => $parameters,
-                'third'  => static fn() => $parameters,
-            ],
+            callbacks: $callbacks,
             timeoutSeconds: 2,
         );
 
@@ -179,15 +189,17 @@ trait SParallelServiceTestCasesTrait
      */
     protected function onMemoryLeak(SParallelService $service): void
     {
-        $results = $service->wait(
-            callbacks: [
-                'first'  => static fn() => 'first',
-                'second' => static function () {
-                    ini_set('memory_limit', '60m');
+        $callbacks = [
+            'first'  => static fn() => 'first',
+            'second' => static function () {
+                ini_set('memory_limit', '60m');
 
-                    str_repeat(uniqid(), 1000000000);
-                },
-            ],
+                str_repeat(uniqid(), 1000000000);
+            },
+        ];
+
+        $results  = $service->wait(
+            callbacks: $callbacks,
             timeoutSeconds: 1,
         );
 

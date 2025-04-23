@@ -139,7 +139,6 @@ class TestContainer implements ContainerInterface
             ),
 
             SocketService::class => fn() => new SocketService(
-                eventsBus: $this->get(EventsBusInterface::class),
                 socketPathDirectory: __DIR__ . '/../storage/',
             ),
 

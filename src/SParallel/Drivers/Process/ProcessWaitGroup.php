@@ -155,8 +155,6 @@ class ProcessWaitGroup implements WaitGroupInterface
 
             $this->stopProcess($processTask->process);
         }
-
-        $this->socketService->closeSocketServer($this->socketServer);
     }
 
     protected function shiftProcessTask(): ?ProcessTask

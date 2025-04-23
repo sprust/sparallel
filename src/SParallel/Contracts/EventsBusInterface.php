@@ -21,10 +21,6 @@ interface EventsBusInterface
 
     public function taskFinished(string $driverName, ?Context $context): void;
 
-    public function unixSocketCreated(string $socketPath): void;
-
-    public function unixSocketClosed(string $socketPath): void;
-
     public function processCreated(int $pid): void;
 
     public function processFinished(int $pid): void;

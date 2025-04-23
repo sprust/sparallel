@@ -33,6 +33,8 @@ class SParallelService
         int $timeoutSeconds,
         bool $breakAtFirstError = false
     ): TaskResults {
+        $tasksCount = count($callbacks);
+
         $results = new TaskResults();
 
         $generator = $this->run(
@@ -49,7 +51,7 @@ class SParallelService
             );
         }
 
-        if ($results->count() === count($callbacks)) {
+        if ($results->count() === $tasksCount) {
             $results->finish();
         }
 
