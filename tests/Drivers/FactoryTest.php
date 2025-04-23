@@ -74,7 +74,7 @@ class FactoryTest extends TestCase
         $factory = new Factory(
             container: TestContainer::resolve(),
             isRunningInConsole: false,
-            driver: new SyncDriver()
+            driver: TestContainer::resolve()->get(SyncDriver::class)
         );
 
         self::assertEquals(

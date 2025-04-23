@@ -9,12 +9,12 @@ try {
     );
     
     /** @var \SParallel\Objects\ResultsObject $results */
-    $results = (new \SParallel\Services\SParallelService($driverFactory->detect()))->wait(
+    $results = (new \SParallel\Services\SParallelService($driverFactory->detect()))->run(
         callbacks: [
             'first'  => static fn() => 'first',
             'second' => static fn() => 'second',
         ],
-        waitMicroseconds: 2_000_000, // 2 seconds
+        timeoutSeconds: 2_000_000, // 2 seconds
     );
 } catch (\SParallel\Exceptions\SParallelTimeoutException) {
     throw new RuntimeException('Timeout');

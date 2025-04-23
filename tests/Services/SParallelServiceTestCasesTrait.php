@@ -26,7 +26,8 @@ trait SParallelServiceTestCasesTrait
             callbacks: [
                 'first'  => static fn() => 'first',
                 'second' => static fn() => 'second',
-            ]
+            ],
+            timeoutSeconds: 1
         );
 
         self::assertTrue($results->isFinished());
@@ -59,7 +60,8 @@ trait SParallelServiceTestCasesTrait
             callbacks: [
                 'first'  => static fn() => 'first',
                 'second' => static fn() => throw new RuntimeException($exceptionMessage),
-            ]
+            ],
+            timeoutSeconds: 1
         );
 
         self::assertTrue($results->isFinished());
@@ -116,10 +118,10 @@ trait SParallelServiceTestCasesTrait
         try {
             $service->wait(
                 callbacks: [
+                    'second' => static fn() => sleep(2),
                     'first'  => static fn() => 'first',
-                    'second' => static fn() => usleep(200),
                 ],
-                waitMicroseconds: 1
+                timeoutSeconds: 1
             );
         } catch (SParallelTimeoutException $exception) {
             //
@@ -139,9 +141,10 @@ trait SParallelServiceTestCasesTrait
         $results = $service->wait(
             callbacks: [
                 'first'  => static fn() => 'first',
-                'second' => static fn() => usleep(200) || throw new RuntimeException(),
-                'third'  => static fn() => 'third',
+                'second' => static fn() => throw new RuntimeException(),
+                'third'  => static fn() => sleep(2),
             ],
+            timeoutSeconds: 1,
             breakAtFirstError: true
         );
 
@@ -164,6 +167,7 @@ trait SParallelServiceTestCasesTrait
                     str_repeat(uniqid(), 1000000000);
                 },
             ],
+            timeoutSeconds: 1,
         );
 
         self::assertTrue($results->isFinished());
@@ -211,6 +215,7 @@ trait SParallelServiceTestCasesTrait
 
         $results = $service->wait(
             callbacks: $callbacks,
+            timeoutSeconds: 1,
         );
 
         self::assertTrue($results->isFinished());
@@ -245,6 +250,7 @@ trait SParallelServiceTestCasesTrait
 
         $results = $service->wait(
             callbacks: $callbacks,
+            timeoutSeconds: 1,
         );
 
         self::assertTrue($results->isFinished());

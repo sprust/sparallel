@@ -55,7 +55,7 @@ readonly class ForkHandler
                 key: $taskKey,
                 callback: $callback
             );
-        } catch (Throwable) {
+        } finally {
             $this->eventsBus->processFinished(getmypid());
 
             posix_kill(getmypid(), SIGKILL);

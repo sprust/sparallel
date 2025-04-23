@@ -12,6 +12,7 @@ use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\TaskResult;
+use SParallel\Objects\TaskResults;
 use Throwable;
 
 class SParallelService
@@ -25,21 +26,54 @@ class SParallelService
     /**
      * @param array<mixed, Closure> $callbacks
      *
-     * @return Generator<TaskResult>
-     *
      * @throws SParallelTimeoutException
      */
     public function wait(
         array $callbacks,
-        int $waitMicroseconds = 0,
+        int $timeoutSeconds,
+        bool $breakAtFirstError = false
+    ): TaskResults {
+        $results = new TaskResults();
+
+        $generator = $this->run(
+            callbacks: $callbacks,
+            timeoutSeconds: $timeoutSeconds,
+            breakAtFirstError: $breakAtFirstError
+        );
+
+        foreach ($generator as $result) {
+            /** @var TaskResult $result */
+
+            $results->addResult(
+                result: $result
+            );
+        }
+
+        if ($results->count() === count($callbacks)) {
+            $results->finish();
+        }
+
+        return $results;
+    }
+
+    /**
+     * @param array<mixed, Closure> $callbacks
+     *
+     * @return Generator<TaskResult>
+     *
+     * @throws SParallelTimeoutException
+     */
+    public function run(
+        array $callbacks,
+        int $timeoutSeconds,
         bool $breakAtFirstError = false
     ): Generator {
         $this->eventsBus->flowStarting();
 
         try {
-            return $this->onWait(
+            return $this->onRun(
                 callbacks: $callbacks,
-                timeoutSeconds: $waitMicroseconds,
+                timeoutSeconds: $timeoutSeconds,
                 breakAtFirstError: $breakAtFirstError
             );
         } catch (SParallelTimeoutException $exception) {
@@ -65,7 +99,7 @@ class SParallelService
      *
      * @throws SParallelTimeoutException
      */
-    private function onWait(
+    private function onRun(
         array $callbacks,
         int $timeoutSeconds = 0,
         bool $breakAtFirstError = false
@@ -80,12 +114,18 @@ class SParallelService
         );
 
         foreach ($waitGroup->get() as $result) {
+            $timer->check();
+
             if ($breakAtFirstError && $result->error) {
                 $waitGroup->break();
 
                 break;
             }
 
+            yield $result;
+        }
+
+        if (isset($result)) {
             yield $result;
         }
     }

@@ -30,7 +30,8 @@ class SParallelServiceTest extends TestCase
     public function success(DriverInterface $driver): void
     {
         $service = new SParallelService(
-            driver: $driver
+            driver: $driver,
+            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
         );
 
         $this->onSuccess($service);
@@ -44,7 +45,8 @@ class SParallelServiceTest extends TestCase
     public function failure(DriverInterface $driver): void
     {
         $service = new SParallelService(
-            driver: $driver
+            driver: $driver,
+            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
         );
 
         $this->onFailure($service);
@@ -55,7 +57,8 @@ class SParallelServiceTest extends TestCase
     public function timeout(DriverInterface $driver): void
     {
         $service = new SParallelService(
-            driver: $driver
+            driver: $driver,
+            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
         );
 
         $this->onTimeout($service);
@@ -69,7 +72,8 @@ class SParallelServiceTest extends TestCase
     public function breakAtFirstError(DriverInterface $driver): void
     {
         $service = new SParallelService(
-            driver: $driver
+            driver: $driver,
+            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
         );
 
         $this->onBreakAtFirstError($service);
@@ -86,7 +90,8 @@ class SParallelServiceTest extends TestCase
         // TODO: off warnings
 
         $service = new SParallelService(
-            driver: $driver
+            driver: $driver,
+            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
         );
 
         $this->onMemoryLeak($service);
