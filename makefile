@@ -35,4 +35,4 @@ check:
 	make test
 
 benchmark:
-	"$(PHP_CLI)" php src/benchmark.php
+	"$(PHP_CLI)" php tests/benchmark.php
