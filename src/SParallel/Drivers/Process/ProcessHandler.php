@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
+use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\ContextSetterInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
@@ -27,6 +28,7 @@ class ProcessHandler
         protected ProcessMessagesTransport $messagesTransport,
         protected CallbackTransport $callbackTransport,
         protected ContextTransport $contextTransport,
+        protected CallbackCallerInterface $callbackCaller,
         protected CancelerTransport $cancelerTransport,
         protected ResultTransport $resultTransport,
         protected EventsBusInterface $eventsBus,
@@ -112,7 +114,10 @@ class ProcessHandler
                 $message->serializedCallback
             );
 
-            $result = $callback();
+            $result = $this->callbackCaller->call(
+                callback: $callback,
+                canceler: $canceler
+            );
 
             $socketClient = $this->socketService->createClient($socketPath);
 

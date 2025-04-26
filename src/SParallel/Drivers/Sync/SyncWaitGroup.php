@@ -6,6 +6,7 @@ namespace SParallel\Drivers\Sync;
 
 use Closure;
 use Generator;
+use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Objects\TaskResult;
@@ -22,7 +23,8 @@ class SyncWaitGroup implements WaitGroupInterface
         protected array &$callbacks,
         protected Canceler $canceler,
         protected Context $context,
-        protected EventsBusInterface $eventsBus
+        protected EventsBusInterface $eventsBus,
+        protected CallbackCallerInterface $callbackCaller
     ) {
     }
 
@@ -43,7 +45,10 @@ class SyncWaitGroup implements WaitGroupInterface
             try {
                 $result = new TaskResult(
                     taskKey: $callbackKey,
-                    result: $callback()
+                    result: $this->callbackCaller->call(
+                        callback: $callback,
+                        canceler: $this->canceler
+                    )
                 );
             } catch (Throwable $exception) {
                 $this->eventsBus->taskFailed(

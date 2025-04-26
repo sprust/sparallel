@@ -7,6 +7,7 @@ namespace SParallel\Tests;
 use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
+use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\ContextSetterInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\HybridScriptPathResolverInterface;
@@ -18,6 +19,7 @@ use SParallel\Drivers\Hybrid\HybridProcessHandler;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Process\ProcessHandler;
 use SParallel\Drivers\Sync\SyncDriver;
+use SParallel\Services\Callback\CallbackCaller;
 use SParallel\Services\Context;
 use SParallel\Services\Fork\ForkHandler;
 use SParallel\Services\Fork\ForkService;
@@ -78,6 +80,10 @@ class TestContainer implements ContainerInterface
 
             Context::class => fn() => new Context(),
 
+            CallbackCallerInterface::class => fn() => new CallbackCaller(
+                container: $this
+            ),
+
             ContextSetterInterface::class => fn() => new ContextSetter(),
 
             EventsBusInterface::class => fn() => new TestEventsBus(),
@@ -92,12 +98,14 @@ class TestContainer implements ContainerInterface
                 resultTransport: $this->get(ResultTransport::class),
                 socketService: $this->get(SocketService::class),
                 context: $this->get(Context::class),
+                callbackCaller: $this->get(CallbackCallerInterface::class),
                 eventsBus: $this->get(EventsBusInterface::class),
             ),
 
             SyncDriver::class => fn() => new SyncDriver(
                 context: $this->get(Context::class),
                 eventsBus: $this->get(EventsBusInterface::class),
+                callbackCaller: $this->get(CallbackCallerInterface::class)
             ),
 
             ProcessDriver::class => fn() => new ProcessDriver(
@@ -156,6 +164,7 @@ class TestContainer implements ContainerInterface
                 messagesTransport: $this->get(ProcessMessagesTransport::class),
                 callbackTransport: $this->get(CallbackTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
+                callbackCaller: $this->get(CallbackCallerInterface::class),
                 cancelerTransport: $this->get(CancelerTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 eventsBus: $this->get(EventsBusInterface::class),

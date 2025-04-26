@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Sync;
 
+use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
@@ -16,7 +17,8 @@ class SyncDriver implements DriverInterface
 
     public function __construct(
         protected Context $context,
-        protected EventsBusInterface $eventsBus
+        protected EventsBusInterface $eventsBus,
+        protected CallbackCallerInterface $callbackCaller,
     ) {
     }
 
@@ -26,7 +28,8 @@ class SyncDriver implements DriverInterface
             callbacks: $callbacks,
             canceler: $canceler,
             context: $this->context,
-            eventsBus: $this->eventsBus
+            eventsBus: $this->eventsBus,
+            callbackCaller: $this->callbackCaller
         );
     }
 }

@@ -30,9 +30,10 @@ phpstan:
 	"$(PHP_CLI)" ./vendor/bin/phpstan analyse \
 		--memory-limit=1G
 
+benchmark:
+	"$(PHP_CLI)" php tests/benchmark.php
+
 check:
 	make phpstan
 	make test
-
-benchmark:
-	"$(PHP_CLI)" php tests/benchmark.php
+	make benchmark

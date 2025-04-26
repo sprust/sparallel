@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Services\Fork;
 
 use Closure;
+use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Exceptions\CancelerException;
 use SParallel\Exceptions\CouldNotForkProcessException;
@@ -20,6 +21,7 @@ readonly class ForkHandler
         protected ResultTransport $resultTransport,
         protected SocketService $socketService,
         protected Context $context,
+        protected CallbackCallerInterface $callbackCaller,
         protected EventsBusInterface $eventsBus,
     ) {
     }
@@ -89,7 +91,10 @@ readonly class ForkHandler
         try {
             $serializedResult = $this->resultTransport->serialize(
                 taskKey: $taskKey,
-                result: $callback()
+                result: $this->callbackCaller->call(
+                    callback: $callback,
+                    canceler: $canceler
+                )
             );
         } catch (Throwable $exception) {
             $this->eventsBus->taskFailed(

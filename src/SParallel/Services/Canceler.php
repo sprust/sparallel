@@ -39,7 +39,7 @@ class Canceler
         }
     }
 
-    public function canceled(): bool
+    public function isRotten(): bool
     {
         try {
             $this->check();
