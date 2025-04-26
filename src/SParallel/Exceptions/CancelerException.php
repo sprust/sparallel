@@ -16,11 +16,12 @@ class CancelerException extends Exception
     ) {
         parent::__construct(
             sprintf(
-                'Task cancelled by [%s] with exception [%s: %s]',
+                'Cancelled by [%s] with exception [%s: %s]',
                 $canceler::class,
                 $exception::class,
                 $exception->getMessage()
-            )
+            ),
+            previous: $this->exception
         );
     }
 }

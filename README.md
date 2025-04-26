@@ -15,8 +15,8 @@ try {
         ],
         timeoutSeconds: 2,
     );
-} catch (\SParallel\Exceptions\SParallelTimeoutException) {
-    throw new RuntimeException('Timeout');
+} catch (\SParallel\Exceptions\CancelerException $exception) {
+    throw new RuntimeException($exception->getMessage());
 }
 
 foreach ($results as $taskKey => $result) {
