@@ -10,7 +10,7 @@ use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
-use SParallel\Exceptions\SParallelTimeoutException;
+use SParallel\Exceptions\CancelerException;
 use SParallel\Objects\TaskResult;
 use SParallel\Objects\TaskResults;
 use Throwable;
@@ -26,12 +26,13 @@ class SParallelService
     /**
      * @param array<mixed, Closure> $callbacks
      *
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     public function wait(
         array &$callbacks,
         int $timeoutSeconds,
-        bool $breakAtFirstError = false
+        bool $breakAtFirstError = false,
+        ?Canceler $canceler = null
     ): TaskResults {
         $tasksCount = count($callbacks);
 
@@ -40,7 +41,8 @@ class SParallelService
         $generator = $this->run(
             callbacks: $callbacks,
             timeoutSeconds: $timeoutSeconds,
-            breakAtFirstError: $breakAtFirstError
+            breakAtFirstError: $breakAtFirstError,
+            canceler: $canceler
         );
 
         foreach ($generator as $result) {
@@ -63,12 +65,13 @@ class SParallelService
      *
      * @return Generator<TaskResult>
      *
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     public function run(
         array &$callbacks,
         int $timeoutSeconds,
-        bool $breakAtFirstError = false
+        bool $breakAtFirstError = false,
+        ?Canceler $canceler = null
     ): Generator {
         $this->eventsBus->flowStarting();
 
@@ -76,9 +79,10 @@ class SParallelService
             return $this->onRun(
                 callbacks: $callbacks,
                 timeoutSeconds: $timeoutSeconds,
-                breakAtFirstError: $breakAtFirstError
+                breakAtFirstError: $breakAtFirstError,
+                canceler: $canceler
             );
-        } catch (SParallelTimeoutException $exception) {
+        } catch (CancelerException $exception) {
             $this->eventsBus->flowFailed($exception);
 
             throw $exception;
@@ -99,26 +103,33 @@ class SParallelService
      *
      * @return Generator<TaskResult>
      *
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     private function onRun(
         array &$callbacks,
         int $timeoutSeconds = 0,
-        bool $breakAtFirstError = false
+        bool $breakAtFirstError = false,
+        ?Canceler $canceler = null
     ): Generator {
-        $timer = new Timer(
-            timeoutSeconds: $timeoutSeconds
+        if (is_null($canceler)) {
+            $canceler = new Canceler();
+        }
+
+        $canceler->add(
+            new Timer(
+                timeoutSeconds: $timeoutSeconds
+            )
         );
 
         $waitGroup = $this->driver->run(
             callbacks: $callbacks,
-            timer: $timer
+            canceler: $canceler
         );
 
         $brokeResult = null;
 
         foreach ($waitGroup->get() as $result) {
-            $timer->check();
+            $canceler->check();
 
             if ($breakAtFirstError && $result->error) {
                 $waitGroup->break();

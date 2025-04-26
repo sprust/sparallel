@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Objects;
+namespace SParallel\Services;
 
 class Context
 {

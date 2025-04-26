@@ -6,11 +6,10 @@ namespace SParallel\Services\Fork;
 
 use Closure;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Drivers\Timer;
+use SParallel\Exceptions\CancelerException;
 use SParallel\Exceptions\CouldNotForkProcessException;
-use SParallel\Exceptions\CouldNotOpenDevNullException;
-use SParallel\Exceptions\SParallelTimeoutException;
-use SParallel\Objects\Context;
+use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
 use Throwable;
@@ -29,7 +28,7 @@ readonly class ForkHandler
      * Forks the current process, executes the given callback and return child process id.
      */
     public function handle(
-        Timer $timer,
+        Canceler $canceler,
         string $driverName,
         string $socketPath,
         mixed $taskKey,
@@ -49,7 +48,7 @@ readonly class ForkHandler
 
         try {
             $this->onHandle(
-                timer: $timer,
+                canceler: $canceler,
                 driverName: $driverName,
                 socketPath: $socketPath,
                 taskKey: $taskKey,
@@ -65,7 +64,7 @@ readonly class ForkHandler
     }
 
     protected function onHandle(
-        Timer $timer,
+        Canceler $canceler,
         string $driverName,
         string $socketPath,
         mixed $taskKey,
@@ -114,11 +113,11 @@ readonly class ForkHandler
 
         try {
             $this->socketService->writeToSocket(
-                timer: $timer,
+                canceler: $canceler,
                 socket: $socketClient->socket,
                 data: $serializedResult
             );
-        } catch (SParallelTimeoutException) {
+        } catch (CancelerException) {
             // no action needed
         }
     }

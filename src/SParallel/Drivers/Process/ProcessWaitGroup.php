@@ -7,18 +7,19 @@ namespace SParallel\Drivers\Process;
 use Generator;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Timer;
 use SParallel\Exceptions\UnexpectedTaskException;
 use SParallel\Exceptions\UnexpectedTaskOperationException;
 use SParallel\Exceptions\UnexpectedTaskTerminationException;
-use SParallel\Objects\Context;
 use SParallel\Objects\ProcessParentMessage;
 use SParallel\Objects\ProcessTask;
 use SParallel\Objects\SocketServer;
 use SParallel\Objects\TaskResult;
+use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
+use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ProcessMessagesTransport;
 use SParallel\Transport\ResultTransport;
@@ -33,11 +34,12 @@ class ProcessWaitGroup implements WaitGroupInterface
     public function __construct(
         protected SocketServer $socketServer,
         protected array $processTasks,
-        protected Timer $timer,
+        protected Canceler $canceler,
         protected Context $context,
         protected SocketService $socketService,
         protected ContextTransport $contextTransport,
         protected CallbackTransport $callbackTransport,
+        protected CancelerTransport $cancelerTransport,
         protected ResultTransport $resultTransport,
         protected EventsBusInterface $eventsBus,
         protected ProcessMessagesTransport $messageTransport,
@@ -47,7 +49,8 @@ class ProcessWaitGroup implements WaitGroupInterface
 
     public function get(): Generator
     {
-        $serializedContext = $this->contextTransport->serialize($this->context);
+        $serializedContext  = $this->contextTransport->serialize($this->context);
+        $serializedCanceler = $this->cancelerTransport->serialize($this->canceler);
 
         $socket = $this->socketServer->socket;
 
@@ -65,7 +68,7 @@ class ProcessWaitGroup implements WaitGroupInterface
             $childClient = @socket_accept($socket);
 
             if ($childClient === false) {
-                $this->timer->check();
+                $this->canceler->check();
 
                 if (!$hasRunningProcesses) {
                     break;
@@ -74,7 +77,7 @@ class ProcessWaitGroup implements WaitGroupInterface
                 usleep(1000);
             } else {
                 $response = $this->socketService->readSocket(
-                    timer: $this->timer,
+                    canceler: $this->canceler,
                     socket: $childClient
                 );
 
@@ -88,12 +91,13 @@ class ProcessWaitGroup implements WaitGroupInterface
 
                 if ($message->operation === 'get') {
                     $this->socketService->writeToSocket(
-                        timer: $this->timer,
+                        canceler: $this->canceler,
                         socket: $childClient,
                         data: $this->messageTransport->serializeParent(
                             new ProcessParentMessage(
                                 taskKey: $message->taskKey,
                                 serializedContext: $serializedContext,
+                                serializedCanceler: $serializedCanceler,
                                 serializedCallback: $processTask->serializedCallback
                             )
                         )

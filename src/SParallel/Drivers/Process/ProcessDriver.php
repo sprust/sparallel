@@ -8,13 +8,14 @@ use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessScriptPathResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Timer;
 use SParallel\Exceptions\ProcessScriptNotExistsException;
-use SParallel\Objects\Context;
 use SParallel\Objects\ProcessTask;
+use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
+use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ProcessMessagesTransport;
 use SParallel\Transport\ResultTransport;
@@ -25,15 +26,14 @@ class ProcessDriver implements DriverInterface
 {
     public const DRIVER_NAME = 'process';
 
-    public const PARAM_TASK_KEY              = 'SPARALLEL_TASK_KEY';
-    public const PARAM_SOCKET_PATH           = 'SPARALLEL_SOCKET_PATH';
-    public const PARAM_TIMER_TIMEOUT_SECONDS = 'SPARALLEL_TIMER_TIMEOUT_SECONDS';
-    public const PARAM_TIMER_START_TIME      = 'SPARALLEL_TIMER_START_TIME';
+    public const PARAM_TASK_KEY    = 'SPARALLEL_TASK_KEY';
+    public const PARAM_SOCKET_PATH = 'SPARALLEL_SOCKET_PATH';
 
     protected string $scriptPath;
 
     public function __construct(
         protected CallbackTransport $callbackTransport,
+        protected CancelerTransport $cancelerTransport,
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,
         protected SocketService $socketService,
@@ -46,7 +46,7 @@ class ProcessDriver implements DriverInterface
         $this->scriptPath = $this->processScriptPathResolver->get();
     }
 
-    public function run(array &$callbacks, Timer $timer): WaitGroupInterface
+    public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface
     {
         $this->checkScriptPath();
 
@@ -71,10 +71,8 @@ class ProcessDriver implements DriverInterface
             $process = Process::fromShellCommandline(command: $command)
                 ->setTimeout(null)
                 ->setEnv([
-                    static::PARAM_TASK_KEY              => $taskKey,
-                    static::PARAM_SOCKET_PATH           => $socketPath,
-                    static::PARAM_TIMER_TIMEOUT_SECONDS => $timer->timeoutSeconds,
-                    static::PARAM_TIMER_START_TIME      => $timer->startTime,
+                    static::PARAM_TASK_KEY    => $taskKey,
+                    static::PARAM_SOCKET_PATH => $socketPath,
                 ]);
 
             $process->start();
@@ -91,11 +89,12 @@ class ProcessDriver implements DriverInterface
         return new ProcessWaitGroup(
             socketServer: $socketServer,
             processTasks: $processTasks,
-            timer: $timer,
+            canceler: $canceler,
             context: $this->context,
             socketService: $this->socketService,
             contextTransport: $this->contextTransport,
             callbackTransport: $this->callbackTransport,
+            cancelerTransport: $this->cancelerTransport,
             resultTransport: $this->resultTransport,
             eventsBus: $this->eventsBus,
             messageTransport: $this->messageTransport,

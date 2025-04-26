@@ -15,7 +15,7 @@ use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Hybrid\HybridDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
-use SParallel\Exceptions\SParallelTimeoutException;
+use SParallel\Exceptions\CancelerException;
 use SParallel\Services\SParallelService;
 use SParallel\Tests\TestContainer;
 
@@ -24,7 +24,7 @@ class SParallelServiceTest extends TestCase
     use SParallelServiceTestCasesTrait;
 
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
@@ -39,7 +39,7 @@ class SParallelServiceTest extends TestCase
     }
 
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
@@ -66,7 +66,7 @@ class SParallelServiceTest extends TestCase
     }
 
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
@@ -81,7 +81,7 @@ class SParallelServiceTest extends TestCase
     }
 
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
@@ -96,7 +96,7 @@ class SParallelServiceTest extends TestCase
     }
 
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     #[Test]
     #[DataProvider('driversMemoryLeakDataProvider')]
@@ -113,7 +113,7 @@ class SParallelServiceTest extends TestCase
     /**
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]

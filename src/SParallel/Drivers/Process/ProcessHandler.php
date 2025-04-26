@@ -7,11 +7,13 @@ namespace SParallel\Drivers\Process;
 use SParallel\Contracts\ContextSetterInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
+use SParallel\Exceptions\CancelerException;
 use SParallel\Exceptions\InvalidValueException;
-use SParallel\Exceptions\SParallelTimeoutException;
 use SParallel\Objects\ProcessChildMessage;
+use SParallel\Services\Canceler;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
+use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ProcessMessagesTransport;
 use SParallel\Transport\ResultTransport;
@@ -25,13 +27,14 @@ class ProcessHandler
         protected ProcessMessagesTransport $messagesTransport,
         protected CallbackTransport $callbackTransport,
         protected ContextTransport $contextTransport,
+        protected CancelerTransport $cancelerTransport,
         protected ResultTransport $resultTransport,
         protected EventsBusInterface $eventsBus,
     ) {
     }
 
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     public function handle(): void
     {
@@ -47,14 +50,12 @@ class ProcessHandler
     }
 
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     protected function onHandle(): void
     {
-        $taskKey        = $_SERVER[ProcessDriver::PARAM_TASK_KEY] ?? null;
-        $socketPath     = $_SERVER[ProcessDriver::PARAM_SOCKET_PATH] ?? null;
-        $timeoutSeconds = $_SERVER[ProcessDriver::PARAM_TIMER_TIMEOUT_SECONDS] ?? null;
-        $startTime      = $_SERVER[ProcessDriver::PARAM_TIMER_START_TIME] ?? null;
+        $taskKey    = $_SERVER[ProcessDriver::PARAM_TASK_KEY] ?? null;
+        $socketPath = $_SERVER[ProcessDriver::PARAM_SOCKET_PATH] ?? null;
 
         if (is_null($taskKey)) {
             throw new InvalidValueException(
@@ -68,27 +69,12 @@ class ProcessHandler
             );
         }
 
-        if (!$timeoutSeconds || !is_numeric($timeoutSeconds) || $timeoutSeconds < 1) {
-            throw new InvalidValueException(
-                'Timeout seconds is not set or is not numeric.'
-            );
-        }
-
-        if (!$startTime || !is_numeric($startTime) || $startTime < 0) {
-            throw new InvalidValueException(
-                'Start time is not set or is not numeric.'
-            );
-        }
-
-        $timer = new Timer(
-            timeoutSeconds: (int) $timeoutSeconds,
-            customStartTime: (int) $startTime
-        );
-
         $socketClient = $this->socketService->createClient($socketPath);
 
+        $initCanceler = (new Canceler())->add(new Timer(timeoutSeconds: 2));
+
         $this->socketService->writeToSocket(
-            timer: $timer,
+            canceler: $initCanceler,
             socket: $socketClient->socket,
             data: $this->messagesTransport->serializeChild(
                 new ProcessChildMessage(
@@ -100,7 +86,7 @@ class ProcessHandler
         );
 
         $response = $this->socketService->readSocket(
-            timer: $timer,
+            canceler: $initCanceler,
             socket: $socketClient->socket
         );
 
@@ -111,6 +97,8 @@ class ProcessHandler
         $context = $this->contextTransport->unserialize($message->serializedContext);
 
         $this->contextSetter->set($context);
+
+        $canceler = $this->cancelerTransport->unserialize($message->serializedCanceler);
 
         $driverName = ProcessDriver::DRIVER_NAME;
 
@@ -129,7 +117,7 @@ class ProcessHandler
             $socketClient = $this->socketService->createClient($socketPath);
 
             $this->socketService->writeToSocket(
-                timer: $timer,
+                canceler: $canceler,
                 socket: $socketClient->socket,
                 data: $this->messagesTransport->serializeChild(
                     new ProcessChildMessage(
@@ -152,7 +140,7 @@ class ProcessHandler
             $socketClient = $this->socketService->createClient($socketPath);
 
             $this->socketService->writeToSocket(
-                timer: $timer,
+                canceler: $canceler,
                 socket: $socketClient->socket,
                 data: $this->messagesTransport->serializeChild(
                     new ProcessChildMessage(

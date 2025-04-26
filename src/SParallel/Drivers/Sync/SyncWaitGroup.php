@@ -8,9 +8,9 @@ use Closure;
 use Generator;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Timer;
-use SParallel\Objects\Context;
 use SParallel\Objects\TaskResult;
+use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use Throwable;
 
 class SyncWaitGroup implements WaitGroupInterface
@@ -20,7 +20,7 @@ class SyncWaitGroup implements WaitGroupInterface
      */
     public function __construct(
         protected array &$callbacks,
-        protected Timer $timer,
+        protected Canceler $canceler,
         protected Context $context,
         protected EventsBusInterface $eventsBus
     ) {
@@ -31,7 +31,7 @@ class SyncWaitGroup implements WaitGroupInterface
         $callbackKeys = array_keys($this->callbacks);
 
         foreach ($callbackKeys as $callbackKey) {
-            $this->timer->check();
+            $this->canceler->check();
 
             $callback = $this->callbacks[$callbackKey];
 

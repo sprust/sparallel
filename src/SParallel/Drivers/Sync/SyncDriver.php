@@ -7,8 +7,8 @@ namespace SParallel\Drivers\Sync;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Timer;
-use SParallel\Objects\Context;
+use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 
 class SyncDriver implements DriverInterface
 {
@@ -20,11 +20,11 @@ class SyncDriver implements DriverInterface
     ) {
     }
 
-    public function run(array &$callbacks, Timer $timer): WaitGroupInterface
+    public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface
     {
         return new SyncWaitGroup(
             callbacks: $callbacks,
-            timer: $timer,
+            canceler: $canceler,
             context: $this->context,
             eventsBus: $this->eventsBus
         );

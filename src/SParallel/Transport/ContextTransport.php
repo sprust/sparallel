@@ -6,7 +6,7 @@ namespace SParallel\Transport;
 
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Exceptions\UnserializeException;
-use SParallel\Objects\Context;
+use SParallel\Services\Context;
 
 class ContextTransport
 {

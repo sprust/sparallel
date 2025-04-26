@@ -3,7 +3,7 @@
 namespace SParallel\Tests;
 
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Objects\Context;
+use SParallel\Services\Context;
 use Throwable;
 
 class TestEventsBus implements EventsBusInterface

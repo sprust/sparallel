@@ -6,7 +6,7 @@ namespace SParallel\Drivers\Fork;
 
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Timer;
+use SParallel\Services\Canceler;
 use SParallel\Services\Fork\ForkHandler;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
@@ -24,7 +24,7 @@ class ForkDriver implements DriverInterface
     ) {
     }
 
-    public function run(array &$callbacks, Timer $timer): WaitGroupInterface
+    public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface
     {
         /** @var array<mixed, int> $childProcessIds */
         $childProcessIds = [];
@@ -39,7 +39,7 @@ class ForkDriver implements DriverInterface
             $callback = $callbacks[$taskKey];
 
             $childProcessIds[$taskKey] = $this->forkHandler->handle(
-                timer: $timer,
+                canceler: $canceler,
                 driverName: static::DRIVER_NAME,
                 socketPath: $socketPath,
                 taskKey: $taskKey,
@@ -52,7 +52,7 @@ class ForkDriver implements DriverInterface
         return new ForkWaitGroup(
             socketServer: $socketServer,
             childProcessIds: $childProcessIds,
-            timer: $timer,
+            canceler: $canceler,
             resultTransport: $this->resultTransport,
             socketService: $this->socketService,
             forkService: $this->forkService,

@@ -3,7 +3,7 @@
 namespace SParallel\Tests;
 
 use SParallel\Contracts\ContextSetterInterface;
-use SParallel\Objects\Context;
+use SParallel\Services\Context;
 
 class ContextSetter implements ContextSetterInterface
 {

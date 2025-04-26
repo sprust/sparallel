@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace SParallel\Contracts;
 
 use Closure;
-use SParallel\Drivers\Timer;
-use SParallel\Exceptions\SParallelTimeoutException;
+use SParallel\Exceptions\CancelerException;
+use SParallel\Services\Canceler;
 
 interface DriverInterface
 {
     /**
      * @param array<mixed, Closure> $callbacks
      *
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
-    public function run(array &$callbacks, Timer $timer): WaitGroupInterface;
+    public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface;
 }

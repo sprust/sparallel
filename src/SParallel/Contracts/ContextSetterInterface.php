@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SParallel\Contracts;
 
-use SParallel\Objects\Context;
+use SParallel\Services\Context;
 
 interface ContextSetterInterface
 {

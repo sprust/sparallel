@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Contracts;
 
 use Generator;
-use SParallel\Exceptions\SParallelTimeoutException;
+use SParallel\Exceptions\CancelerException;
 use SParallel\Objects\TaskResult;
 
 interface WaitGroupInterface
@@ -13,7 +13,7 @@ interface WaitGroupInterface
     /**
      * @return Generator<TaskResult>
      *
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     public function get(): Generator;
 

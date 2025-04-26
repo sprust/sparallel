@@ -10,15 +10,15 @@ use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Exceptions\SParallelTimeoutException;
-use SParallel\Objects\Context;
+use SParallel\Exceptions\CancelerException;
+use SParallel\Services\Context;
 use SParallel\Services\SParallelService;
 use SParallel\Tests\TestCounter;
 
 trait SParallelServiceTestCasesTrait
 {
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     protected function onSuccess(SParallelService $service): void
     {
@@ -52,7 +52,7 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     protected function onFailure(SParallelService $service): void
     {
@@ -129,18 +129,18 @@ trait SParallelServiceTestCasesTrait
                 callbacks: $callbacks,
                 timeoutSeconds: 1
             );
-        } catch (SParallelTimeoutException $exception) {
+        } catch (CancelerException $exception) {
             //
         } finally {
             self::assertInstanceOf(
-                SParallelTimeoutException::class,
+                CancelerException::class,
                 $exception
             );
         }
     }
 
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     protected function onBreakAtFirstError(SParallelService $service): void
     {
@@ -162,7 +162,7 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     protected function onBigPayload(SParallelService $service): void
     {
@@ -185,7 +185,7 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      */
     protected function onMemoryLeak(SParallelService $service): void
     {
@@ -212,7 +212,7 @@ trait SParallelServiceTestCasesTrait
     /**
      * @param Closure(): ContainerInterface $containerResolver
      *
-     * @throws SParallelTimeoutException
+     * @throws CancelerException
      * @throws NotFoundExceptionInterface
      * @throws ContainerExceptionInterface
      * @see EventsBusInterface

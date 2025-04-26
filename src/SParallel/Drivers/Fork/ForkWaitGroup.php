@@ -6,10 +6,10 @@ namespace SParallel\Drivers\Fork;
 
 use Generator;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Timer;
 use SParallel\Exceptions\UnexpectedTaskTerminationException;
-use SParallel\Objects\TaskResult;
 use SParallel\Objects\SocketServer;
+use SParallel\Objects\TaskResult;
+use SParallel\Services\Canceler;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
@@ -22,7 +22,7 @@ class ForkWaitGroup implements WaitGroupInterface
     public function __construct(
         protected SocketServer $socketServer,
         protected array $childProcessIds,
-        protected Timer $timer,
+        protected Canceler $canceler,
         protected ResultTransport $resultTransport,
         protected SocketService $socketService,
         protected ForkService $forkService,
@@ -54,13 +54,13 @@ class ForkWaitGroup implements WaitGroupInterface
                 if (!count($this->childProcessIds)) {
                     $childrenFinished = true;
                 } else {
-                    $this->timer->check();
+                    $this->canceler->check();
 
                     usleep(1000);
                 }
             } else {
                 $response = $this->socketService->readSocket(
-                    timer: $this->timer,
+                    canceler: $this->canceler,
                     socket: $childClient
                 );
 

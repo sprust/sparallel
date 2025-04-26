@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Hybrid;
 
-use SParallel\Contracts\HybridScriptPathResolverInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\HybridScriptPathResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Timer;
 use SParallel\Exceptions\ProcessIsNotRunningException;
 use SParallel\Exceptions\ProcessScriptNotExistsException;
-use SParallel\Objects\Context;
+use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
+use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
 use Symfony\Component\Process\PhpExecutableFinder;
@@ -25,13 +26,9 @@ use Symfony\Component\Process\Process;
  */
 class HybridDriver implements DriverInterface
 {
-    // TODO: use SOMAXCONN const for limiting connections
-
     public const DRIVER_NAME = 'hybrid';
 
-    public const PARAM_SOCKET_PATH           = 'SPARALLEL_SOCKET_PATH';
-    public const PARAM_TIMER_TIMEOUT_SECONDS = 'SPARALLEL_TIMER_TIMEOUT_SECONDS';
-    public const PARAM_TIMER_START_TIME      = 'SPARALLEL_TIMER_START_TIME';
+    public const PARAM_SOCKET_PATH = 'SPARALLEL_SOCKET_PATH';
 
     protected string $scriptPath;
 
@@ -40,6 +37,7 @@ class HybridDriver implements DriverInterface
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,
+        protected CancelerTransport $cancelerTransport,
         protected HybridScriptPathResolverInterface $processScriptPathResolver,
         protected SocketService $socketService,
         protected ProcessService $processService,
@@ -48,7 +46,7 @@ class HybridDriver implements DriverInterface
         $this->scriptPath = $this->processScriptPathResolver->get();
     }
 
-    public function run(array &$callbacks, Timer $timer): WaitGroupInterface
+    public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface
     {
         $this->checkScriptPath();
 
@@ -62,7 +60,8 @@ class HybridDriver implements DriverInterface
             unset($callbacks[$callbackKey]);
         }
 
-        $serializedContext = $this->contextTransport->serialize($this->context);
+        $serializedContext  = $this->contextTransport->serialize($this->context);
+        $serializedCanceler = $this->cancelerTransport->serialize($canceler);
 
         $command = sprintf(
             '%s %s',
@@ -77,9 +76,7 @@ class HybridDriver implements DriverInterface
         $process = Process::fromShellCommandline(command: $command)
             ->setTimeout(null)
             ->setEnv([
-                static::PARAM_SOCKET_PATH           => $socketPath,
-                static::PARAM_TIMER_TIMEOUT_SECONDS => $timer->timeoutSeconds,
-                static::PARAM_TIMER_START_TIME      => $timer->startTime,
+                static::PARAM_SOCKET_PATH => $socketPath,
             ]);
 
         $process->start();
@@ -89,7 +86,7 @@ class HybridDriver implements DriverInterface
             $processClient = @socket_accept($socketServer->socket);
 
             if ($processClient === false) {
-                $timer->check();
+                $canceler->check();
 
                 usleep(1000);
 
@@ -97,12 +94,13 @@ class HybridDriver implements DriverInterface
             }
 
             $data = json_encode([
-                'c'  => $serializedContext,
-                'cb' => $serializedCallbacks,
+                'ctx' => $serializedContext,
+                'can' => $serializedCanceler,
+                'cbs' => $serializedCallbacks,
             ]);
 
             $this->socketService->writeToSocket(
-                timer: $timer,
+                canceler: $canceler,
                 socket: $processClient,
                 data: $data
             );
@@ -114,7 +112,7 @@ class HybridDriver implements DriverInterface
             taskKeys: $callbackKeys,
             process: $process,
             socketServer: $socketServer,
-            timer: $timer,
+            canceler: $canceler,
             eventsBus: $this->eventsBus,
             socketService: $this->socketService,
             resultTransport: $this->resultTransport,
