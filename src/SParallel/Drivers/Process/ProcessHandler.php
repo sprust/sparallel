@@ -108,11 +108,11 @@ class ProcessHandler
         );
 
         try {
-            $closure = $this->callbackTransport->unserialize(
+            $callback = $this->callbackTransport->unserialize(
                 $message->serializedCallback
             );
 
-            $result = $closure();
+            $result = $callback();
 
             $socketClient = $this->socketService->createClient($socketPath);
 

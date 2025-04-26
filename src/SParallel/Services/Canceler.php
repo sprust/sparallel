@@ -38,4 +38,15 @@ class Canceler
             }
         }
     }
+
+    public function canceled(): bool
+    {
+        try {
+            $this->check();
+
+            return false;
+        } catch (CancelerException) {
+            return true;
+        }
+    }
 }
