@@ -6,10 +6,9 @@ namespace SParallel\Drivers\Hybrid;
 
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\HybridScriptPathResolverInterface;
+use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Exceptions\ProcessIsNotRunningException;
-use SParallel\Exceptions\ProcessScriptNotExistsException;
 use SParallel\Services\Canceler;
 use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
@@ -18,7 +17,6 @@ use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
-use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
 
 /**
@@ -30,7 +28,7 @@ class HybridDriver implements DriverInterface
 
     public const PARAM_SOCKET_PATH = 'SPARALLEL_SOCKET_PATH';
 
-    protected string $scriptPath;
+    protected string $command;
 
     public function __construct(
         protected EventsBusInterface $eventsBus,
@@ -38,18 +36,16 @@ class HybridDriver implements DriverInterface
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,
         protected CancelerTransport $cancelerTransport,
-        protected HybridScriptPathResolverInterface $processScriptPathResolver,
+        protected HybridProcessCommandResolverInterface $hybridProcessCommandResolver,
         protected SocketService $socketService,
         protected ProcessService $processService,
         protected Context $context,
     ) {
-        $this->scriptPath = $this->processScriptPathResolver->get();
+        $this->command = $this->hybridProcessCommandResolver->get();
     }
 
     public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface
     {
-        $this->checkScriptPath();
-
         $serializedCallbacks = [];
 
         $callbackKeys = array_keys($callbacks);
@@ -63,17 +59,11 @@ class HybridDriver implements DriverInterface
         $serializedContext  = $this->contextTransport->serialize($this->context);
         $serializedCanceler = $this->cancelerTransport->serialize($canceler);
 
-        $command = sprintf(
-            '%s %s',
-            (new PhpExecutableFinder())->find(),
-            $this->scriptPath,
-        );
-
         $socketPath = $this->socketService->makeSocketPath();
 
         $socketServer = $this->socketService->createServer($socketPath);
 
-        $process = Process::fromShellCommandline(command: $command)
+        $process = Process::fromShellCommandline(command: $this->command)
             ->setTimeout(null)
             ->setEnv([
                 static::PARAM_SOCKET_PATH => $socketPath,
@@ -129,14 +119,5 @@ class HybridDriver implements DriverInterface
             pid: $process->getPid(),
             description: $this->processService->getOutput($process)
         );
-    }
-
-    private function checkScriptPath(): void
-    {
-        $scriptPath = explode(' ', $this->scriptPath)[0];
-
-        if (!file_exists($scriptPath)) {
-            throw new ProcessScriptNotExistsException($scriptPath);
-        }
     }
 }

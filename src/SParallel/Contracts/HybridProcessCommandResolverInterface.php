@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Contracts;
 
-interface ProcessScriptPathResolverInterface
+interface HybridProcessCommandResolverInterface
 {
     public function get(): string;
 }

@@ -6,9 +6,8 @@ namespace SParallel\Drivers\Process;
 
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\ProcessScriptPathResolverInterface;
+use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Exceptions\ProcessScriptNotExistsException;
 use SParallel\Objects\ProcessTask;
 use SParallel\Services\Canceler;
 use SParallel\Services\Context;
@@ -19,7 +18,6 @@ use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ProcessMessagesTransport;
 use SParallel\Transport\ResultTransport;
-use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
 
 class ProcessDriver implements DriverInterface
@@ -29,7 +27,7 @@ class ProcessDriver implements DriverInterface
     public const PARAM_TASK_KEY    = 'SPARALLEL_TASK_KEY';
     public const PARAM_SOCKET_PATH = 'SPARALLEL_SOCKET_PATH';
 
-    protected string $scriptPath;
+    protected string $command;
 
     public function __construct(
         protected CallbackTransport $callbackTransport,
@@ -37,25 +35,17 @@ class ProcessDriver implements DriverInterface
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,
         protected SocketService $socketService,
-        protected ProcessScriptPathResolverInterface $processScriptPathResolver,
+        protected ProcessCommandResolverInterface $processCommandResolver,
         protected EventsBusInterface $eventsBus,
         protected ProcessMessagesTransport $messageTransport,
         protected ProcessService $processService,
         protected Context $context,
     ) {
-        $this->scriptPath = $this->processScriptPathResolver->get();
+        $this->command = $this->processCommandResolver->get();
     }
 
     public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface
     {
-        $this->checkScriptPath();
-
-        $command = sprintf(
-            '%s %s',
-            (new PhpExecutableFinder())->find(),
-            $this->scriptPath,
-        );
-
         $taskKeys = array_keys($callbacks);
 
         $socketPath = $this->socketService->makeSocketPath();
@@ -68,7 +58,7 @@ class ProcessDriver implements DriverInterface
         foreach ($taskKeys as $taskKey) {
             $callback = $callbacks[$taskKey];
 
-            $process = Process::fromShellCommandline(command: $command)
+            $process = Process::fromShellCommandline(command: $this->command)
                 ->setTimeout(null)
                 ->setEnv([
                     static::PARAM_TASK_KEY    => $taskKey,
@@ -100,14 +90,5 @@ class ProcessDriver implements DriverInterface
             messageTransport: $this->messageTransport,
             processService: $this->processService
         );
-    }
-
-    private function checkScriptPath(): void
-    {
-        $scriptPath = explode(' ', $this->scriptPath)[0];
-
-        if (!file_exists($scriptPath)) {
-            throw new ProcessScriptNotExistsException($scriptPath);
-        }
     }
 }

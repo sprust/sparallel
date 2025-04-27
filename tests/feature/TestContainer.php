@@ -10,8 +10,8 @@ use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\ContextSetterInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\HybridScriptPathResolverInterface;
-use SParallel\Contracts\ProcessScriptPathResolverInterface;
+use SParallel\Contracts\HybridProcessCommandResolverInterface;
+use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Hybrid\HybridDriver;
@@ -90,9 +90,9 @@ class TestContainer implements ContainerInterface
 
             ProcessService::class => fn() => new ProcessService(),
 
-            ProcessScriptPathResolverInterface::class => fn() => new ProcessScriptPathResolver(),
+            ProcessCommandResolverInterface::class => fn() => new ProcessCommandResolver(),
 
-            HybridScriptPathResolverInterface::class => fn() => new HybridScriptPathResolver(),
+            HybridProcessCommandResolverInterface::class => fn() => new HybridProcessCommandResolver(),
 
             ForkHandler::class => fn() => new ForkHandler(
                 resultTransport: $this->get(ResultTransport::class),
@@ -114,7 +114,7 @@ class TestContainer implements ContainerInterface
                 resultTransport: $this->get(ResultTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
                 socketService: $this->get(SocketService::class),
-                processScriptPathResolver: $this->get(ProcessScriptPathResolverInterface::class),
+                processCommandResolver: $this->get(ProcessCommandResolverInterface::class),
                 eventsBus: $this->get(EventsBusInterface::class),
                 messageTransport: $this->get(ProcessMessagesTransport::class),
                 processService: $this->get(ProcessService::class),
@@ -136,7 +136,7 @@ class TestContainer implements ContainerInterface
                 resultTransport: $this->get(ResultTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
                 cancelerTransport: $this->get(CancelerTransport::class),
-                processScriptPathResolver: $this->get(HybridScriptPathResolverInterface::class),
+                hybridProcessCommandResolver: $this->get(HybridProcessCommandResolverInterface::class),
                 socketService: $this->get(SocketService::class),
                 processService: $this->get(ProcessService::class),
                 context: $this->get(Context::class),
