@@ -76,12 +76,40 @@ class SParallelService
         $this->eventsBus->flowStarting();
 
         try {
-            return $this->onRun(
+            if (is_null($canceler)) {
+                $canceler = new Canceler();
+            }
+
+            $canceler->add(
+                new Timer(
+                    timeoutSeconds: $timeoutSeconds
+                )
+            );
+
+            $waitGroup = $this->driver->run(
                 callbacks: $callbacks,
-                timeoutSeconds: $timeoutSeconds,
-                breakAtFirstError: $breakAtFirstError,
                 canceler: $canceler
             );
+
+            $brokeResult = null;
+
+            foreach ($waitGroup->get() as $result) {
+                $canceler->check();
+
+                if ($breakAtFirstError && $result->error) {
+                    $waitGroup->break();
+
+                    $brokeResult = $result;
+
+                    break;
+                }
+
+                yield $result;
+            }
+
+            if ($brokeResult) {
+                yield $brokeResult;
+            }
         } catch (CancelerException $exception) {
             $this->eventsBus->flowFailed($exception);
 
@@ -93,57 +121,8 @@ class SParallelService
                 message: $exception->getMessage(),
                 previous: $exception
             );
-        } finally {
-            $this->eventsBus->flowFinished();
-        }
-    }
-
-    /**
-     * @param array<mixed, Closure> $callbacks
-     *
-     * @return Generator<TaskResult>
-     *
-     * @throws CancelerException
-     */
-    private function onRun(
-        array &$callbacks,
-        int $timeoutSeconds = 0,
-        bool $breakAtFirstError = false,
-        ?Canceler $canceler = null
-    ): Generator {
-        if (is_null($canceler)) {
-            $canceler = new Canceler();
         }
 
-        $canceler->add(
-            new Timer(
-                timeoutSeconds: $timeoutSeconds
-            )
-        );
-
-        $waitGroup = $this->driver->run(
-            callbacks: $callbacks,
-            canceler: $canceler
-        );
-
-        $brokeResult = null;
-
-        foreach ($waitGroup->get() as $result) {
-            $canceler->check();
-
-            if ($breakAtFirstError && $result->error) {
-                $waitGroup->break();
-
-                $brokeResult = $result;
-
-                break;
-            }
-
-            yield $result;
-        }
-
-        if ($brokeResult) {
-            yield $brokeResult;
-        }
+        $this->eventsBus->flowFinished();
     }
 }
