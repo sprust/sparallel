@@ -23,7 +23,7 @@ use Throwable;
 class ProcessHandler
 {
     public function __construct(
-        protected ContextResolverInterface $contextSetter,
+        protected ContextResolverInterface $contextResolver,
         protected SocketService $socketService,
         protected ProcessMessagesTransport $messagesTransport,
         protected CallbackTransport $callbackTransport,
@@ -98,7 +98,7 @@ class ProcessHandler
 
         $context = $this->contextTransport->unserialize($message->serializedContext);
 
-        $this->contextSetter->set($context);
+        $this->contextResolver->set($context);
 
         $canceler = $this->cancelerTransport->unserialize($message->serializedCanceler);
 

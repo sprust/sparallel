@@ -21,7 +21,7 @@ use SParallel\Transport\ResultTransport;
 class HybridProcessHandler
 {
     public function __construct(
-        protected ContextResolverInterface $contextSetter,
+        protected ContextResolverInterface $contextResolver,
         protected ContextTransport $contextTransport,
         protected CancelerTransport $cancelerTransport,
         protected EventsBusInterface $eventsBus,
@@ -76,7 +76,7 @@ class HybridProcessHandler
         $context  = $this->contextTransport->unserialize($responseData['ctx']);
         $canceler = $this->cancelerTransport->unserialize($responseData['can']);
 
-        $this->contextSetter->set($context);
+        $this->contextResolver->set($context);
 
         /** @var array<mixed, int> $childProcessIds */
         $childProcessIds = [];

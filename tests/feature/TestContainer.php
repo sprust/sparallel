@@ -141,7 +141,7 @@ class TestContainer implements ContainerInterface
             ),
 
             HybridProcessHandler::class => fn() => new HybridProcessHandler(
-                contextSetter: $this->get(ContextResolverInterface::class),
+                contextResolver: $this->get(ContextResolverInterface::class),
                 contextTransport: $this->get(ContextTransport::class),
                 cancelerTransport: $this->get(CancelerTransport::class),
                 eventsBus: $this->get(EventsBusInterface::class),
@@ -157,7 +157,7 @@ class TestContainer implements ContainerInterface
             ),
 
             ProcessHandler::class => fn() => new ProcessHandler(
-                contextSetter: $this->get(ContextResolverInterface::class),
+                contextResolver: $this->get(ContextResolverInterface::class),
                 socketService: $this->get(SocketService::class),
                 messagesTransport: $this->get(ProcessMessagesTransport::class),
                 callbackTransport: $this->get(CallbackTransport::class),
