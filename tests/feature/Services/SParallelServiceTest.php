@@ -17,6 +17,7 @@ use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Exceptions\CancelerException;
 use SParallel\Services\SParallelService;
+use SParallel\TestCases\SParallelServiceTestCasesTrait;
 use SParallel\Tests\TestContainer;
 
 class SParallelServiceTest extends TestCase

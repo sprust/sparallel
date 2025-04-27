@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Tests\Services;
+namespace SParallel\TestCases;
 
 use Closure;
 use Psr\Container\ContainerExceptionInterface;
@@ -15,6 +15,7 @@ use SParallel\Services\Context;
 use SParallel\Services\SParallelService;
 use SParallel\Tests\TestCounter;
 
+/** @phpstan-ignore-next-line trait.unused */
 trait SParallelServiceTestCasesTrait
 {
     /**
