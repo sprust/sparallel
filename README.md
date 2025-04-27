@@ -13,7 +13,10 @@ $service = new \SParallel\Services\SParallelService(
 $callbacks = [
     'first'  => static fn() => 'first',
     'second' => static fn() => throw new RuntimeException('second'),
-    'third'  => static function(\SParallel\Services\Canceler $canceler)  {
+     'third'  => static function(
+        \SParallel\Services\Canceler $canceler,
+        \SParallel\Contracts\EventsBusInterface $eventsBus // DI support
+    ) {
         $canceler->check();
         
         return 'third';
