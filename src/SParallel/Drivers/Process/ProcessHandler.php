@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Drivers\Process;
 
 use SParallel\Contracts\CallbackCallerInterface;
-use SParallel\Contracts\ContextSetterInterface;
+use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\CancelerException;
@@ -23,7 +23,7 @@ use Throwable;
 class ProcessHandler
 {
     public function __construct(
-        protected ContextSetterInterface $contextSetter,
+        protected ContextResolverInterface $contextSetter,
         protected SocketService $socketService,
         protected ProcessMessagesTransport $messagesTransport,
         protected CallbackTransport $callbackTransport,

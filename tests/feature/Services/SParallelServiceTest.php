@@ -7,8 +7,7 @@ namespace SParallel\Tests\Services;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\NotFoundExceptionInterface;
+use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Fork\ForkDriver;
@@ -112,8 +111,6 @@ class SParallelServiceTest extends TestCase
     }
 
     /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
      * @throws CancelerException
      */
     #[Test]
@@ -125,7 +122,10 @@ class SParallelServiceTest extends TestCase
             eventsBus: TestContainer::resolve()->get(EventsBusInterface::class)
         );
 
-        $this->onEvents($service, static fn() => TestContainer::resolve());
+        $this->onEvents(
+            service: $service,
+            contextResolver: TestContainer::resolve()->get(ContextResolverInterface::class)
+        );
     }
 
     /**

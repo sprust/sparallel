@@ -6,7 +6,8 @@ namespace SParallel\Contracts;
 
 use SParallel\Services\Context;
 
-interface ContextSetterInterface
+interface ContextResolverInterface
 {
     public function set(Context $context): void;
+    public function get(): Context;
 }

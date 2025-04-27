@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Hybrid;
 
+use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Exceptions\ProcessIsNotRunningException;
 use SParallel\Services\Canceler;
-use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
@@ -39,7 +39,7 @@ class HybridDriver implements DriverInterface
         protected HybridProcessCommandResolverInterface $hybridProcessCommandResolver,
         protected SocketService $socketService,
         protected ProcessService $processService,
-        protected Context $context,
+        protected ContextResolverInterface $contextResolver,
     ) {
         $this->command = $this->hybridProcessCommandResolver->get();
     }
@@ -56,7 +56,7 @@ class HybridDriver implements DriverInterface
             unset($callbacks[$callbackKey]);
         }
 
-        $serializedContext  = $this->contextTransport->serialize($this->context);
+        $serializedContext  = $this->contextTransport->serialize($this->contextResolver->get());
         $serializedCanceler = $this->cancelerTransport->serialize($canceler);
 
         $socketPath = $this->socketService->makeSocketPath();

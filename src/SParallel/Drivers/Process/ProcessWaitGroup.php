@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Drivers\Process;
 
 use Generator;
+use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Exceptions\UnexpectedTaskException;
@@ -15,7 +16,6 @@ use SParallel\Objects\ProcessTask;
 use SParallel\Objects\SocketServer;
 use SParallel\Objects\TaskResult;
 use SParallel\Services\Canceler;
-use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
@@ -35,7 +35,7 @@ class ProcessWaitGroup implements WaitGroupInterface
         protected SocketServer $socketServer,
         protected array $processTasks,
         protected Canceler $canceler,
-        protected Context $context,
+        protected ContextResolverInterface $contextResolver,
         protected SocketService $socketService,
         protected ContextTransport $contextTransport,
         protected CallbackTransport $callbackTransport,
@@ -49,7 +49,7 @@ class ProcessWaitGroup implements WaitGroupInterface
 
     public function get(): Generator
     {
-        $serializedContext  = $this->contextTransport->serialize($this->context);
+        $serializedContext  = $this->contextTransport->serialize($this->contextResolver->get());
         $serializedCanceler = $this->cancelerTransport->serialize($this->canceler);
 
         $socket = $this->socketServer->socket;

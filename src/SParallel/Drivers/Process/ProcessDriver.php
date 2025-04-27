@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
+use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Objects\ProcessTask;
 use SParallel\Services\Canceler;
-use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
@@ -39,7 +39,7 @@ class ProcessDriver implements DriverInterface
         protected EventsBusInterface $eventsBus,
         protected ProcessMessagesTransport $messageTransport,
         protected ProcessService $processService,
-        protected Context $context,
+        protected ContextResolverInterface $contextResolver,
     ) {
         $this->command = $this->processCommandResolver->get();
     }
@@ -80,7 +80,7 @@ class ProcessDriver implements DriverInterface
             socketServer: $socketServer,
             processTasks: $processTasks,
             canceler: $canceler,
-            context: $this->context,
+            contextResolver: $this->contextResolver,
             socketService: $this->socketService,
             contextTransport: $this->contextTransport,
             callbackTransport: $this->callbackTransport,

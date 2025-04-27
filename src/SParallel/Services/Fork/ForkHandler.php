@@ -6,11 +6,11 @@ namespace SParallel\Services\Fork;
 
 use Closure;
 use SParallel\Contracts\CallbackCallerInterface;
+use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Exceptions\CancelerException;
 use SParallel\Exceptions\CouldNotForkProcessException;
 use SParallel\Services\Canceler;
-use SParallel\Services\Context;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
 use Throwable;
@@ -20,7 +20,7 @@ readonly class ForkHandler
     public function __construct(
         protected ResultTransport $resultTransport,
         protected SocketService $socketService,
-        protected Context $context,
+        protected ContextResolverInterface $contextResolver,
         protected CallbackCallerInterface $callbackCaller,
         protected EventsBusInterface $eventsBus,
     ) {
@@ -85,7 +85,7 @@ readonly class ForkHandler
 
         $this->eventsBus->taskStarting(
             driverName: $driverName,
-            context: $this->context
+            context: $this->contextResolver->get()
         );
 
         try {
@@ -99,7 +99,7 @@ readonly class ForkHandler
         } catch (Throwable $exception) {
             $this->eventsBus->taskFailed(
                 driverName: $driverName,
-                context: $this->context,
+                context: $this->contextResolver->get(),
                 exception: $exception
             );
 
@@ -110,7 +110,7 @@ readonly class ForkHandler
         } finally {
             $this->eventsBus->taskFinished(
                 driverName: $driverName,
-                context: $this->context
+                context: $this->contextResolver->get()
             );
         }
 

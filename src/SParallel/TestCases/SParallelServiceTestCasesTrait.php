@@ -4,14 +4,9 @@ declare(strict_types=1);
 
 namespace SParallel\TestCases;
 
-use Closure;
-use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\ContainerInterface;
-use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
-use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Exceptions\CancelerException;
-use SParallel\Services\Context;
 use SParallel\Services\SParallelService;
 use SParallel\Tests\TestCounter;
 
@@ -195,11 +190,11 @@ trait SParallelServiceTestCasesTrait
             'second' => static function () {
                 ini_set('memory_limit', '60m');
 
-                str_repeat(uniqid(), 1000000000);
+                return str_repeat(uniqid(), 1000000000);
             },
         ];
 
-        $results  = $service->wait(
+        $results = $service->wait(
             callbacks: $callbacks,
             timeoutSeconds: 1,
         );
@@ -211,22 +206,15 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @param Closure(): ContainerInterface $containerResolver
-     *
      * @throws CancelerException
-     * @throws NotFoundExceptionInterface
-     * @throws ContainerExceptionInterface
-     * @see EventsBusInterface
-     *
      */
-    protected function onEvents(SParallelService $service, Closure $containerResolver): void
-    {
+    protected function onEvents(
+        SParallelService $service,
+        ContextResolverInterface $contextResolver
+    ): void {
         $counterKey = uniqid();
 
-        $container = $containerResolver();
-
-        /** @var Context $context */
-        $context = $container->get(Context::class);
+        $context = $contextResolver->get();
 
         $context->add(
             $counterKey,
@@ -236,11 +224,9 @@ trait SParallelServiceTestCasesTrait
         TestCounter::reset();
 
         $callbacks = [
-            'first'  => static fn() => $containerResolver()
-                ->get(Context::class)
+            'first'  => static fn() => $contextResolver->get()
                 ->get($counterKey),
-            'second' => static fn() => $containerResolver()
-                ->get(Context::class)
+            'second' => static fn() => $contextResolver->get()
                 ->get($counterKey),
         ];
 
@@ -263,16 +249,14 @@ trait SParallelServiceTestCasesTrait
         TestCounter::reset();
 
         $callbacks = [
-            'first'  => static function () use ($containerResolver, $counterKey) {
-                $containerResolver()
-                    ->get(Context::class)
+            'first'  => static function () use ($contextResolver, $counterKey) {
+                $contextResolver->get()
                     ->get($counterKey);
 
                 throw new RuntimeException();
             },
-            'second' => static function () use ($containerResolver, $counterKey) {
-                $containerResolver()
-                    ->get(Context::class)
+            'second' => static function () use ($contextResolver, $counterKey) {
+                $contextResolver->get()
                     ->get($counterKey);
 
                 throw new RuntimeException();

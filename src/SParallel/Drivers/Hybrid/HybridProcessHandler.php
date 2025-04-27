@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Hybrid;
 
-use SParallel\Contracts\ContextSetterInterface;
+use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
 use SParallel\Exceptions\CancelerException;
@@ -21,7 +21,7 @@ use SParallel\Transport\ResultTransport;
 class HybridProcessHandler
 {
     public function __construct(
-        protected ContextSetterInterface $contextSetter,
+        protected ContextResolverInterface $contextSetter,
         protected ContextTransport $contextTransport,
         protected CancelerTransport $cancelerTransport,
         protected EventsBusInterface $eventsBus,
