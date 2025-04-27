@@ -2,26 +2,67 @@
 
 ## example ##
 
+Init
 ```php
-try {
-    $driverFactory = new \SParallel\Drivers\Factory(
-        container: \SParallel\Tests\Container::resolve()
-    );
-    
-    $results = (new \SParallel\Services\SParallelService($driverFactory->detect()))->run(
-        callbacks: [
-            'first'  => static fn() => 'first',
-            'second' => static fn() => 'second',
-        ],
-        timeoutSeconds: 2,
-    );
-} catch (\SParallel\Exceptions\CancelerException $exception) {
-    throw new RuntimeException($exception->getMessage());
+$service = new \SParallel\Services\SParallelService(
+    new \SParallel\Drivers\Factory(
+        container: \SParallel\Tests\TestContainer::resolve()
+    )
+);
+
+$callbacks = [
+    'first'  => static fn() => 'first',
+    'second' => static fn() => throw new RuntimeException('second'),
+    'third'  => static function(\SParallel\Services\Canceler $canceler)  {
+        $canceler->check();
+        
+        return 'third';
+    },
+];
+```
+
+Wait all tasks to finish and get results
+```php
+/** 
+ * @var \SParallel\Services\SParallelService $service 
+ * @var array<string, Closure> $callbacks 
+ */
+
+$results = $service->wait(
+    callbacks: $callbacks,
+    timeoutSeconds: 2,
+);
+
+if ($results->hasFailed()) {
+    foreach ($results->getFailed() as $key => $failedResult) {
+        echo "$taskKey: ERROR: " . ($failedResult->error?->message ?: 'unknown error') . "\n";
+    }
 }
+
+foreach ($results->getResults() as $result) {
+    if ($result->error) {
+        continue;
+    }
+
+    echo "$taskKey: SUCCESS: " . $result->result . "\n";
+}
+```
+
+Run tasks and get results at any task completion
+```php
+/** 
+ * @var \SParallel\Services\SParallelService $service 
+ * @var array<string, Closure> $callbacks 
+ */
+
+$results = $service->run(
+    callbacks: $callbacks,
+    timeoutSeconds: 2,
+);
 
 foreach ($results as $taskKey => $result) {
     if ($result->error) {
-        echo "$taskKey: ERROR: " . ($result->error?->message ?: 'unknown error') . "\n";
+        echo "$taskKey: ERROR: " . ($result->error->message ?: 'unknown error') . "\n";
         
         continue;
     }
