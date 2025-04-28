@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
+use Closure;
 use Generator;
 use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Exceptions\UnexpectedTaskException;
 use SParallel\Exceptions\UnexpectedTaskOperationException;
@@ -28,14 +30,28 @@ use Throwable;
 
 class ProcessWaitGroup implements WaitGroupInterface
 {
+    protected string $command;
+
     /**
-     * @param array<mixed, ProcessTask> $processTasks
+     * @var array<mixed, ProcessTask>
+     */
+    protected array $activeProcessTasks;
+
+    /**
+     * @var array<mixed>
+     */
+    protected array $remainTaskKeys;
+
+    /**
+     * @param array<mixed, Closure> $callbacks
      */
     public function __construct(
+        protected array &$callbacks,
+        protected int $workersLimit,
         protected SocketServer $socketServer,
-        protected array $processTasks,
         protected Canceler $canceler,
         protected ContextResolverInterface $contextResolver,
+        protected ProcessCommandResolverInterface $processCommandResolver,
         protected SocketService $socketService,
         protected ContextTransport $contextTransport,
         protected CallbackTransport $callbackTransport,
@@ -45,6 +61,13 @@ class ProcessWaitGroup implements WaitGroupInterface
         protected ProcessMessagesTransport $messageTransport,
         protected ProcessService $processService
     ) {
+        $this->command = $this->processCommandResolver->get();
+
+        $this->activeProcessTasks = [];
+
+        $this->remainTaskKeys = array_keys($this->callbacks);
+
+        $this->shiftWorkers();
     }
 
     public function get(): Generator
@@ -52,30 +75,36 @@ class ProcessWaitGroup implements WaitGroupInterface
         $serializedContext  = $this->contextTransport->serialize($this->contextResolver->get());
         $serializedCanceler = $this->cancelerTransport->serialize($this->canceler);
 
-        $socket = $this->socketServer->socket;
+        while (true) {
+            $this->canceler->check();
 
-        while (count($this->processTasks) > 0) {
-            $hasRunningProcesses = false;
+            $this->shiftWorkers();
 
-            foreach ($this->processTasks as $processTask) {
-                if ($processTask->process->isRunning()) {
-                    $hasRunningProcesses = true;
+            if (!count($this->activeProcessTasks)) {
+                break;
+            }
 
-                    break;
+            $currentActiveProcessTasks = $this->activeProcessTasks;
+
+            $taskKeys = array_keys($currentActiveProcessTasks);
+
+            foreach ($taskKeys as $taskKey) {
+                $processTask = $this->activeProcessTasks[$taskKey];
+
+                if (!$processTask->process->isRunning()) {
+                    unset($this->activeProcessTasks[$taskKey]);
                 }
             }
 
-            $childClient = @socket_accept($socket);
+            while (true) {
+                $childClient = @socket_accept($this->socketServer->socket);
 
-            if ($childClient === false) {
-                $this->canceler->check();
+                if ($childClient === false) {
+                    usleep(1000);
 
-                if (!$hasRunningProcesses) {
                     break;
                 }
 
-                usleep(1000);
-            } else {
                 $response = $this->socketService->readSocket(
                     canceler: $this->canceler,
                     socket: $childClient
@@ -83,7 +112,7 @@ class ProcessWaitGroup implements WaitGroupInterface
 
                 $message = $this->messageTransport->unserializeChild($response);
 
-                $processTask = $this->processTasks[$message->taskKey] ?? null;
+                $processTask = $currentActiveProcessTasks[$message->taskKey] ?? null;
 
                 if (!$processTask) {
                     throw new UnexpectedTaskException($message->taskKey);
@@ -105,7 +134,7 @@ class ProcessWaitGroup implements WaitGroupInterface
                 } elseif ($message->operation === 'resp') {
                     $result = $this->resultTransport->unserialize($message->payload);
 
-                    unset($this->processTasks[$message->taskKey]);
+                    $this->deleteRemainTaskKeys($result->taskKey);
 
                     $pid = $processTask->process->getPid();
 
@@ -128,11 +157,13 @@ class ProcessWaitGroup implements WaitGroupInterface
         }
 
         while (true) {
-            $processTask = $this->shiftProcessTask();
+            $processTask = $this->pullProcessTask();
 
             if (!$processTask) {
                 break;
             }
+
+            $this->deleteRemainTaskKeys($processTask->taskKey);
 
             $output = $this->processService->getOutput($processTask->process);
 
@@ -146,12 +177,23 @@ class ProcessWaitGroup implements WaitGroupInterface
                 )
             );
         }
+
+        while (count($this->remainTaskKeys) > 0) {
+            $taskKey = array_shift($this->remainTaskKeys);
+
+            yield new TaskResult(
+                taskKey: $taskKey,
+                exception: new UnexpectedTaskTerminationException(
+                    taskKey: $taskKey
+                )
+            );
+        }
     }
 
     public function break(): void
     {
         while (true) {
-            $processTask = $this->shiftProcessTask();
+            $processTask = $this->pullProcessTask();
 
             if (!$processTask) {
                 break;
@@ -161,9 +203,45 @@ class ProcessWaitGroup implements WaitGroupInterface
         }
     }
 
-    protected function shiftProcessTask(): ?ProcessTask
+    protected function shiftWorkers(): void
     {
-        return array_shift($this->processTasks);
+        $activeProcessTasksCount = count($this->activeProcessTasks);
+
+        if ($activeProcessTasksCount >= $this->workersLimit) {
+            return;
+        }
+
+        $taskKeys = array_slice(
+            array: array_keys($this->callbacks),
+            offset: 0,
+            length: $this->workersLimit - $activeProcessTasksCount
+        );
+
+        foreach ($taskKeys as $taskKey) {
+            $callback = $this->callbacks[$taskKey];
+
+            $process = Process::fromShellCommandline(command: $this->command)
+                ->setTimeout(null)
+                ->setEnv([
+                    ProcessDriver::PARAM_TASK_KEY    => serialize($taskKey),
+                    ProcessDriver::PARAM_SOCKET_PATH => $this->socketServer->path,
+                ]);
+
+            $process->start();
+
+            $this->activeProcessTasks[$taskKey] = new ProcessTask(
+                taskKey: $taskKey,
+                serializedCallback: $this->callbackTransport->serialize($callback),
+                process: $process
+            );
+
+            unset($this->callbacks[$taskKey]);
+        }
+    }
+
+    protected function pullProcessTask(): ?ProcessTask
+    {
+        return array_shift($this->activeProcessTasks);
     }
 
     protected function stopProcess(Process $process): void
@@ -179,6 +257,14 @@ class ProcessWaitGroup implements WaitGroupInterface
         if ($pid = $process->getPid()) {
             $this->eventsBus->processFinished($pid);
         }
+    }
+
+    protected function deleteRemainTaskKeys(mixed $taskKey): void
+    {
+        $this->remainTaskKeys = array_filter(
+            $this->remainTaskKeys,
+            static fn(mixed $remainTaskKey) => $remainTaskKey !== $taskKey
+        );
     }
 
     public function __destruct()

@@ -9,7 +9,6 @@ use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Objects\ProcessTask;
 use SParallel\Services\Canceler;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
@@ -18,7 +17,6 @@ use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ProcessMessagesTransport;
 use SParallel\Transport\ResultTransport;
-use Symfony\Component\Process\Process;
 
 class ProcessDriver implements DriverInterface
 {
@@ -26,8 +24,6 @@ class ProcessDriver implements DriverInterface
 
     public const PARAM_TASK_KEY    = 'SPARALLEL_TASK_KEY';
     public const PARAM_SOCKET_PATH = 'SPARALLEL_SOCKET_PATH';
-
-    protected string $command;
 
     public function __construct(
         protected CallbackTransport $callbackTransport,
@@ -41,46 +37,21 @@ class ProcessDriver implements DriverInterface
         protected ProcessService $processService,
         protected ContextResolverInterface $contextResolver,
     ) {
-        $this->command = $this->processCommandResolver->get();
     }
 
     public function run(array &$callbacks, Canceler $canceler, int $workersLimit): WaitGroupInterface
     {
-        $taskKeys = array_keys($callbacks);
-
-        $socketPath = $this->socketService->makeSocketPath();
-
-        $socketServer = $this->socketService->createServer($socketPath);
-
-        /** @var array<mixed, ProcessTask> $processTasks */
-        $processTasks = [];
-
-        foreach ($taskKeys as $taskKey) {
-            $callback = $callbacks[$taskKey];
-
-            $process = Process::fromShellCommandline(command: $this->command)
-                ->setTimeout(null)
-                ->setEnv([
-                    static::PARAM_TASK_KEY    => $taskKey,
-                    static::PARAM_SOCKET_PATH => $socketPath,
-                ]);
-
-            $process->start();
-
-            $processTasks[$taskKey] = new ProcessTask(
-                taskKey: $taskKey,
-                serializedCallback: $this->callbackTransport->serialize($callback),
-                process: $process
-            );
-
-            unset($callbacks[$taskKey]);
-        }
+        $socketServer = $this->socketService->createServer(
+            $this->socketService->makeSocketPath()
+        );
 
         return new ProcessWaitGroup(
+            callbacks: $callbacks,
+            workersLimit: $workersLimit,
             socketServer: $socketServer,
-            processTasks: $processTasks,
             canceler: $canceler,
             contextResolver: $this->contextResolver,
+            processCommandResolver: $this->processCommandResolver,
             socketService: $this->socketService,
             contextTransport: $this->contextTransport,
             callbackTransport: $this->callbackTransport,

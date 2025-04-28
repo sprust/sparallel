@@ -71,6 +71,8 @@ class ProcessHandler
             );
         }
 
+        $taskKey = unserialize($taskKey);
+
         $socketClient = $this->socketService->createClient($socketPath);
 
         $initCanceler = (new Canceler())->add(new Timer(timeoutSeconds: 2));

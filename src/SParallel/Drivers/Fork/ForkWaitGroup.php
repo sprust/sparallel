@@ -42,7 +42,8 @@ class ForkWaitGroup implements WaitGroupInterface
         protected ForkService $forkService,
     ) {
         $this->activeProcessIds = [];
-        $this->remainTaskKeys   = array_keys($this->callbacks);
+
+        $this->remainTaskKeys = array_keys($this->callbacks);
 
         $this->shiftWorkers();
     }
@@ -72,28 +73,23 @@ class ForkWaitGroup implements WaitGroupInterface
                 $childClient = @socket_accept($this->socketServer->socket);
 
                 if ($childClient === false) {
-                    $this->canceler->check();
-
                     usleep(1000);
 
                     break;
-                } else {
-                    $response = $this->socketService->readSocket(
-                        canceler: $this->canceler,
-                        socket: $childClient
-                    );
-
-                    $result = $this->resultTransport->unserialize($response);
-
-                    unset($this->activeProcessIds[$result->taskKey]);
-
-                    $this->remainTaskKeys = array_filter(
-                        $this->remainTaskKeys,
-                        static fn(mixed $taskKey) => $taskKey !== $result->taskKey
-                    );
-
-                    yield $result;
                 }
+
+                $response = $this->socketService->readSocket(
+                    canceler: $this->canceler,
+                    socket: $childClient
+                );
+
+                $result = $this->resultTransport->unserialize($response);
+
+                unset($this->activeProcessIds[$result->taskKey]);
+
+                $this->deleteRemainTaskKeys($result->taskKey);
+
+                yield $result;
             }
         }
 
@@ -153,6 +149,14 @@ class ForkWaitGroup implements WaitGroupInterface
 
             unset($this->callbacks[$taskKey]);
         }
+    }
+
+    protected function deleteRemainTaskKeys(mixed $taskKey): void
+    {
+        $this->remainTaskKeys = array_filter(
+            $this->remainTaskKeys,
+            static fn(mixed $remainTaskKey) => $remainTaskKey !== $taskKey
+        );
     }
 
     public function __destruct()
