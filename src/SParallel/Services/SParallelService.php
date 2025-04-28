@@ -121,8 +121,8 @@ class SParallelService
                 message: $exception->getMessage(),
                 previous: $exception
             );
+        } finally {
+            $this->eventsBus->flowFinished();
         }
-
-        $this->eventsBus->flowFinished();
     }
 }
