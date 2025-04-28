@@ -110,6 +110,37 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws CancelerException
      */
+    protected function onWorkersLimit(SParallelService $service): void
+    {
+        $callbacks = [
+            'first'  => static function () {
+                sleep(1);
+
+                return 'first';
+            },
+            'second' => static function () {
+                sleep(1);
+
+                return 'second';
+            },
+        ];
+
+        $startTime = time();
+
+        $service->wait(
+            callbacks: $callbacks,
+            timeoutSeconds: 4,
+            workersLimit: 1
+        );
+
+        self::assertTrue(
+            (time() - $startTime) >= 2
+        );
+    }
+
+    /**
+     * @throws CancelerException
+     */
     protected function onFailure(SParallelService $service): void
     {
         $exceptionMessage = uniqid();

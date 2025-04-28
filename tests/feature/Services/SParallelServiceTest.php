@@ -73,6 +73,21 @@ class SParallelServiceTest extends TestCase
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
+    public function workersLimit(DriverInterface $driver): void
+    {
+        $service = new SParallelService(
+            driver: $driver,
+            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        );
+
+        $this->onWorkersLimit($service);
+    }
+
+    /**
+     * @throws CancelerException
+     */
+    #[Test]
+    #[DataProvider('driversDataProvider')]
     public function failure(DriverInterface $driver): void
     {
         $service = new SParallelService(

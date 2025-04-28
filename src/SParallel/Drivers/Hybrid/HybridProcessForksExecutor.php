@@ -51,10 +51,6 @@ class HybridProcessForksExecutor
         while (true) {
             $this->canceler->check();
 
-            usleep(1000);
-
-            $this->shiftWorkers();
-
             $activeProcessIdKeys = array_keys($this->activeProcessIds);
 
             foreach ($activeProcessIdKeys as $activeProcessIdKey) {
@@ -65,9 +61,13 @@ class HybridProcessForksExecutor
                 }
             }
 
+            $this->shiftWorkers();
+
             if (count($this->activeProcessIds) === 0) {
                 break;
             }
+
+            usleep(1000);
         }
     }
 
