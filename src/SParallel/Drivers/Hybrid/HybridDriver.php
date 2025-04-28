@@ -26,7 +26,8 @@ class HybridDriver implements DriverInterface
 {
     public const DRIVER_NAME = 'hybrid';
 
-    public const PARAM_SOCKET_PATH = 'SPARALLEL_SOCKET_PATH';
+    public const PARAM_SOCKET_PATH   = 'SPARALLEL_SOCKET_PATH';
+    public const PARAM_WORKERS_LIMIT = 'SPARALLEL_WORKERS_LIMIT';
 
     protected string $command;
 
@@ -66,7 +67,8 @@ class HybridDriver implements DriverInterface
         $process = Process::fromShellCommandline(command: $this->command)
             ->setTimeout(null)
             ->setEnv([
-                static::PARAM_SOCKET_PATH => $socketPath,
+                static::PARAM_SOCKET_PATH   => $socketPath,
+                static::PARAM_WORKERS_LIMIT => $workersLimit,
             ]);
 
         $process->start();

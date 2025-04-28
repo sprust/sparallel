@@ -62,7 +62,21 @@ class HybridProcessHandler
             );
         }
 
-        // read payload from caller
+        $workersLimit = $_SERVER[HybridDriver::PARAM_WORKERS_LIMIT] ?? null;
+
+        if (is_null($workersLimit)) {
+            throw new InvalidValueException(
+                'Workers limit is not set.'
+            );
+        }
+
+        if (!is_numeric($workersLimit)) {
+            throw new InvalidValueException(
+                'Workers limit is not a number.'
+            );
+        }
+
+        $workersLimit = (int) $workersLimit;
 
         $socketClient = $this->socketService->createClient($socketPath);
 
@@ -78,33 +92,18 @@ class HybridProcessHandler
 
         $this->contextResolver->set($context);
 
-        /** @var array<mixed, int> $childProcessIds */
-        $childProcessIds = [];
+        $forksExecutor = new HybridProcessForksExecutor(
+            serializedCallbacks: $responseData['cbs'],
+            workersLimit: $workersLimit,
+            socketPath: $socketPath,
+            canceler: $canceler,
+            forkHandler: $this->forkHandler,
+            callbackTransport: $this->callbackTransport,
+            resultTransport: $this->resultTransport,
+            socketService: $this->socketService,
+            forkService: $this->forkService
+        );
 
-        foreach ($responseData['cbs'] as $taskKey => $serializedCallback) {
-            $childProcessIds[$taskKey] = $this->forkHandler->handle(
-                canceler: $canceler,
-                driverName: HybridDriver::DRIVER_NAME,
-                socketPath: $socketPath,
-                taskKey: $taskKey,
-                callback: $this->callbackTransport->unserialize($serializedCallback)
-            );
-        }
-
-        while (count($childProcessIds) > 0) {
-            $canceler->check();
-
-            $childProcessIdKeys = array_keys($childProcessIds);
-
-            foreach ($childProcessIdKeys as $childProcessIdKey) {
-                $childProcessPid = $childProcessIds[$childProcessIdKey];
-
-                if ($this->forkService->isFinished($childProcessPid)) {
-                    unset($childProcessIds[$childProcessIdKey]);
-                }
-            }
-
-            usleep(1000);
-        }
+        $forksExecutor->exec();
     }
 }
