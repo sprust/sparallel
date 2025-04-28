@@ -50,6 +50,66 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws CancelerException
      */
+    protected function onWaitFirstOnlySuccess(SParallelService $service): void
+    {
+        $callbacks = [
+            'first'  => static fn() => throw new RuntimeException('first'),
+            'second' => static function () {
+                sleep(1);
+
+                return 'second';
+            },
+        ];
+
+        $result = $service->waitFirst(
+            callbacks: $callbacks,
+            timeoutSeconds: 2,
+            onlySuccess: true,
+        );
+
+        self::assertTrue(
+            is_null($result->error)
+        );
+
+        self::assertEquals(
+            'second',
+            $result->result
+        );
+    }
+
+    /**
+     * @throws CancelerException
+     */
+    protected function onWaitFirstNotOnlySuccess(SParallelService $service): void
+    {
+        $callbacks = [
+            'first'  => static fn() => throw new RuntimeException('first'),
+            'second' => static function () {
+                sleep(1);
+
+                return 'second';
+            },
+        ];
+
+        $result = $service->waitFirst(
+            callbacks: $callbacks,
+            timeoutSeconds: 2,
+            onlySuccess: false,
+        );
+
+        self::assertFalse(
+            is_null($result->error)
+        );
+
+        self::assertEquals(
+            'first',
+            $result->error->message
+        );
+    }
+
+    /**
+     * @throws CancelerException
+     */
     protected function onFailure(SParallelService $service): void
     {
         $exceptionMessage = uniqid();

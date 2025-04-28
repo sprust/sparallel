@@ -43,6 +43,36 @@ class SParallelServiceTest extends TestCase
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
+    public function waitFirstOnlySuccess(DriverInterface $driver): void
+    {
+        $service = new SParallelService(
+            driver: $driver,
+            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        );
+
+        $this->onWaitFirstOnlySuccess($service);
+    }
+
+    /**
+     * @throws CancelerException
+     */
+    #[Test]
+    #[DataProvider('driversDataProvider')]
+    public function waitFirstNotOnlySuccess(DriverInterface $driver): void
+    {
+        $service = new SParallelService(
+            driver: $driver,
+            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        );
+
+        $this->onWaitFirstNotOnlySuccess($service);
+    }
+
+    /**
+     * @throws CancelerException
+     */
+    #[Test]
+    #[DataProvider('driversDataProvider')]
     public function failure(DriverInterface $driver): void
     {
         $service = new SParallelService(

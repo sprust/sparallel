@@ -28,11 +28,43 @@ class SParallelService
      *
      * @throws CancelerException
      */
+    public function waitFirst(
+        array &$callbacks,
+        int $timeoutSeconds,
+        bool $onlySuccess,
+        ?Canceler $canceler = null,
+    ): ?TaskResult {
+        $generator = $this->run(
+            callbacks: $callbacks,
+            timeoutSeconds: $timeoutSeconds,
+            canceler: $canceler
+        );
+
+        $result = null;
+
+        foreach ($generator as $result) {
+            /** @var TaskResult $result */
+
+            if ($result->error && $onlySuccess) {
+                continue;
+            }
+
+            break;
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<mixed, Closure> $callbacks
+     *
+     * @throws CancelerException
+     */
     public function wait(
         array &$callbacks,
         int $timeoutSeconds,
         bool $breakAtFirstError = false,
-        ?Canceler $canceler = null
+        ?Canceler $canceler = null,
     ): TaskResults {
         $tasksCount = count($callbacks);
 
