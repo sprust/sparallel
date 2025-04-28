@@ -12,7 +12,6 @@ use SParallel\Objects\SocketClient;
 use SParallel\Objects\SocketServer;
 use SParallel\Services\Canceler;
 
-// TODO: use SOMAXCONN const for limiting connections
 readonly class SocketService
 {
     protected int $timeoutSeconds;
