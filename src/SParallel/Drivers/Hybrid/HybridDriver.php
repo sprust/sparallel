@@ -44,7 +44,7 @@ class HybridDriver implements DriverInterface
         $this->command = $this->hybridProcessCommandResolver->get();
     }
 
-    public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface
+    public function run(array &$callbacks, Canceler $canceler, int $workersLimit): WaitGroupInterface
     {
         $serializedCallbacks = [];
 

@@ -44,7 +44,7 @@ class ProcessDriver implements DriverInterface
         $this->command = $this->processCommandResolver->get();
     }
 
-    public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface
+    public function run(array &$callbacks, Canceler $canceler, int $workersLimit): WaitGroupInterface
     {
         $taskKeys = array_keys($callbacks);
 

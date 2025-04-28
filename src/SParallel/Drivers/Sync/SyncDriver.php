@@ -22,7 +22,7 @@ class SyncDriver implements DriverInterface
     ) {
     }
 
-    public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface
+    public function run(array &$callbacks, Canceler $canceler, int $workersLimit): WaitGroupInterface
     {
         return new SyncWaitGroup(
             callbacks: $callbacks,

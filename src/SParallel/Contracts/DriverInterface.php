@@ -15,5 +15,5 @@ interface DriverInterface
      *
      * @throws CancelerException
      */
-    public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface;
+    public function run(array &$callbacks, Canceler $canceler, int $workersLimit): WaitGroupInterface;
 }

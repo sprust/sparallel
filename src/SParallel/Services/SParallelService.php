@@ -32,11 +32,13 @@ class SParallelService
         array &$callbacks,
         int $timeoutSeconds,
         bool $onlySuccess,
+        int $workersLimit = 0,
         ?Canceler $canceler = null,
     ): ?TaskResult {
         $generator = $this->run(
             callbacks: $callbacks,
             timeoutSeconds: $timeoutSeconds,
+            workersLimit: $workersLimit,
             canceler: $canceler
         );
 
@@ -63,6 +65,7 @@ class SParallelService
     public function wait(
         array &$callbacks,
         int $timeoutSeconds,
+        int $workersLimit = 0,
         bool $breakAtFirstError = false,
         ?Canceler $canceler = null,
     ): TaskResults {
@@ -73,6 +76,7 @@ class SParallelService
         $generator = $this->run(
             callbacks: $callbacks,
             timeoutSeconds: $timeoutSeconds,
+            workersLimit: $workersLimit,
             breakAtFirstError: $breakAtFirstError,
             canceler: $canceler
         );
@@ -102,9 +106,16 @@ class SParallelService
     public function run(
         array &$callbacks,
         int $timeoutSeconds,
+        int $workersLimit = 0,
         bool $breakAtFirstError = false,
         ?Canceler $canceler = null
     ): Generator {
+        if ($workersLimit < 1) {
+            $workersLimit = SOMAXCONN;
+        } else {
+            $workersLimit = min($workersLimit, SOMAXCONN);
+        }
+
         $this->eventsBus->flowStarting();
 
         try {
@@ -120,7 +131,8 @@ class SParallelService
 
             $waitGroup = $this->driver->run(
                 callbacks: $callbacks,
-                canceler: $canceler
+                canceler: $canceler,
+                workersLimit: $workersLimit
             );
 
             $brokeResult = null;

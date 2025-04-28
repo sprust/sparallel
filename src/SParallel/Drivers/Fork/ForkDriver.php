@@ -24,38 +24,21 @@ class ForkDriver implements DriverInterface
     ) {
     }
 
-    public function run(array &$callbacks, Canceler $canceler): WaitGroupInterface
+    public function run(array &$callbacks, Canceler $canceler, int $workersLimit): WaitGroupInterface
     {
-        /** @var array<mixed, int> $childProcessIds */
-        $childProcessIds = [];
-
-        $socketPath = $this->socketService->makeSocketPath();
-
-        $socketServer = $this->socketService->createServer($socketPath);
-
-        $taskKeys = array_keys($callbacks);
-
-        foreach ($taskKeys as $taskKey) {
-            $callback = $callbacks[$taskKey];
-
-            $childProcessIds[$taskKey] = $this->forkHandler->handle(
-                canceler: $canceler,
-                driverName: static::DRIVER_NAME,
-                socketPath: $socketPath,
-                taskKey: $taskKey,
-                callback: $callback
-            );
-
-            unset($callbacks[$taskKey]);
-        }
+        $socketServer = $this->socketService->createServer(
+            $this->socketService->makeSocketPath()
+        );
 
         return new ForkWaitGroup(
+            callbacks: $callbacks,
+            workersLimit: $workersLimit,
             socketServer: $socketServer,
-            childProcessIds: $childProcessIds,
             canceler: $canceler,
+            forkHandler: $this->forkHandler,
             resultTransport: $this->resultTransport,
             socketService: $this->socketService,
-            forkService: $this->forkService,
+            forkService: $this->forkService
         );
     }
 }
