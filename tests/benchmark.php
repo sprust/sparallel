@@ -57,19 +57,30 @@ foreach ($driverClasses as $driverClass) {
 
     $generator = $service->run(
         callbacks: $clonedCallbacks,
-        timeoutSeconds: 3
+        timeoutSeconds: 5,
+        workersLimit: 5
     );
 
     foreach ($generator as $result) {
         ++$counter;
 
         if ($result->error) {
-            echo 'ERROR: ' . $result->taskKey . ': ' . $result->error->message . PHP_EOL;
+            echo sprintf(
+                "%f\t%s\tERROR\t%s\n",
+                microtime(true),
+                $result->taskKey,
+                $result->error->message
+            );
 
             continue;
         }
 
-        echo 'INFO: ' . $result->taskKey . ': ' . substr($result->result, 0, 50) . PHP_EOL;
+        echo sprintf(
+            "%f\t%s\tINFO\t%s\n",
+            microtime(true),
+            $result->taskKey,
+            substr($result->result, 0, 50)
+        );
     }
 
     $end = microtime(true);
