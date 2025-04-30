@@ -116,19 +116,21 @@ class SParallelService
             $workersLimit = min($workersLimit, SOMAXCONN);
         }
 
-        $this->eventsBus->flowStarting();
+        if (is_null($context)) {
+            $context = new Context();
+        }
+
+        $context->addChecker(
+            new Timer(
+                timeoutSeconds: $timeoutSeconds
+            )
+        );
+
+        $this->eventsBus->flowStarting(
+            context: $context
+        );
 
         try {
-            if (is_null($context)) {
-                $context = new Context();
-            }
-
-            $context->addChecker(
-                new Timer(
-                    timeoutSeconds: $timeoutSeconds
-                )
-            );
-
             $waitGroup = $this->driver->run(
                 callbacks: $callbacks,
                 context: $context,
@@ -155,18 +157,26 @@ class SParallelService
                 yield $brokeResult;
             }
         } catch (ContextCheckerException $exception) {
-            $this->eventsBus->flowFailed($exception);
+            $this->eventsBus->flowFailed(
+                context: $context,
+                exception: $exception
+            );
 
             throw $exception;
         } catch (Throwable $exception) {
-            $this->eventsBus->flowFailed($exception);
+            $this->eventsBus->flowFailed(
+                context: $context,
+                exception: $exception
+            );
 
             throw new RuntimeException(
                 message: $exception->getMessage(),
                 previous: $exception
             );
         } finally {
-            $this->eventsBus->flowFinished();
+            $this->eventsBus->flowFinished(
+                context: $context,
+            );
         }
     }
 }

@@ -8,17 +8,17 @@ use Throwable;
 
 class TestEventsBus implements EventsBusInterface
 {
-    public function flowStarting(): void
+    public function flowStarting(Context $context): void
     {
         TestCounter::increment();
     }
 
-    public function flowFailed(Throwable $exception): void
+    public function flowFailed(Context $context, Throwable $exception): void
     {
         TestCounter::increment();
     }
 
-    public function flowFinished(): void
+    public function flowFinished(Context $context): void
     {
         TestCounter::increment();
     }
