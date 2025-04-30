@@ -7,14 +7,14 @@ namespace SParallel\Tests\Services;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Fork\ForkDriver;
 use SParallel\Drivers\Hybrid\HybridDriver;
 use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Sync\SyncDriver;
-use SParallel\Exceptions\CancelerException;
+use SParallel\Exceptions\ContextCheckerException;
+use SParallel\Services\Context;
 use SParallel\Services\SParallelService;
 use SParallel\TestCases\SParallelServiceTestCasesTrait;
 use SParallel\Tests\TestContainer;
@@ -24,152 +24,120 @@ class SParallelServiceTest extends TestCase
     use SParallelServiceTestCasesTrait;
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function success(DriverInterface $driver): void
     {
-        $service = new SParallelService(
-            driver: $driver,
-            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        $this->onSuccess(
+            service: $this->makeServiceByDriver($driver),
         );
-
-        $this->onSuccess($service);
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function waitFirstOnlySuccess(DriverInterface $driver): void
     {
-        $service = new SParallelService(
-            driver: $driver,
-            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        $this->onWaitFirstOnlySuccess(
+            service: $this->makeServiceByDriver($driver),
         );
-
-        $this->onWaitFirstOnlySuccess($service);
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function waitFirstNotOnlySuccess(DriverInterface $driver): void
     {
-        $service = new SParallelService(
-            driver: $driver,
-            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        $this->onWaitFirstNotOnlySuccess(
+            service: $this->makeServiceByDriver($driver),
         );
-
-        $this->onWaitFirstNotOnlySuccess($service);
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function workersLimit(DriverInterface $driver): void
     {
-        $service = new SParallelService(
-            driver: $driver,
-            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        $this->onWorkersLimit(
+            service: $this->makeServiceByDriver($driver),
         );
-
-        $this->onWorkersLimit($service);
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function failure(DriverInterface $driver): void
     {
-        $service = new SParallelService(
-            driver: $driver,
-            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        $this->onFailure(
+            service: $this->makeServiceByDriver($driver),
         );
-
-        $this->onFailure($service);
     }
 
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function timeout(DriverInterface $driver): void
     {
-        $service = new SParallelService(
-            driver: $driver,
-            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        $this->onTimeout(
+            service: $this->makeServiceByDriver($driver),
         );
-
-        $this->onTimeout($service);
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function breakAtFirstError(DriverInterface $driver): void
     {
-        $service = new SParallelService(
-            driver: $driver,
-            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        $this->onBreakAtFirstError(
+            service: $this->makeServiceByDriver($driver),
         );
-
-        $this->onBreakAtFirstError($service);
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function bigPayload(DriverInterface $driver): void
     {
-        $service = new SParallelService(
-            driver: $driver,
-            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        $this->onBigPayload(
+            service: $this->makeServiceByDriver($driver),
         );
-
-        $this->onBigPayload($service);
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     #[Test]
     #[DataProvider('driversMemoryLeakDataProvider')]
     public function memoryLeak(DriverInterface $driver): void
     {
-        $service = new SParallelService(
-            driver: $driver,
-            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        $this->onMemoryLeak(
+            service: $this->makeServiceByDriver($driver),
         );
-
-        $this->onMemoryLeak($service);
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     #[Test]
     #[DataProvider('driversDataProvider')]
     public function events(DriverInterface $driver): void
     {
-        $service = new SParallelService(
-            driver: $driver,
-            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class)
-        );
-
         $this->onEvents(
-            service: $service,
-            contextResolver: TestContainer::resolve()->get(ContextResolverInterface::class)
+            service: $this->makeServiceByDriver($driver),
+            context: new Context()
         );
     }
 
@@ -224,5 +192,13 @@ class SParallelServiceTest extends TestCase
         return [
             'driver' => $driver,
         ];
+    }
+
+    private function makeServiceByDriver(DriverInterface $driver): SParallelService
+    {
+        return new SParallelService(
+            driver: $driver,
+            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        );
     }
 }

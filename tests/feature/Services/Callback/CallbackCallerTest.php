@@ -11,7 +11,7 @@ use ReflectionException;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Services\Callback\CallbackCaller;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Tests\TestContainer;
 
 class CallbackCallerTest extends TestCase
@@ -32,36 +32,29 @@ class CallbackCallerTest extends TestCase
      * @throws ReflectionException
      * @throws NotFoundExceptionInterface
      */
-    public function testCanceler(): void
+    public function testDependencyInjection(): void
     {
-        $canceler = new Canceler();
+        $context = new Context();
 
-        $callback = static fn(Canceler $canceler) => $canceler;
+        $callback = static function (SerializerInterface $serializer, Context $context) {
+            return [$serializer, $context];
+        };
 
-        $result = $this->callbackCaller->call($callback, $canceler);
-
-        self::assertEquals(
-            spl_object_id($canceler),
-            spl_object_id($result)
+        [$gotSerializer, $gotContext] = $this->callbackCaller->call(
+            callback: $callback,
+            context: $context
         );
-    }
 
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws ReflectionException
-     * @throws NotFoundExceptionInterface
-     */
-    public function testInjection(): void
-    {
         $serializer = TestContainer::resolve()->get(SerializerInterface::class);
-
-        $callback = static fn(SerializerInterface $serializer) => $serializer;
-
-        $result = $this->callbackCaller->call($callback, new Canceler());
 
         self::assertEquals(
             spl_object_id($serializer),
-            spl_object_id($result)
+            spl_object_id($gotSerializer)
+        );
+
+        self::assertEquals(
+            spl_object_id($context),
+            spl_object_id($gotContext)
         );
     }
 }

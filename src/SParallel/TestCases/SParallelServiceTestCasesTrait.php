@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SParallel\TestCases;
 
 use RuntimeException;
-use SParallel\Contracts\ContextResolverInterface;
-use SParallel\Exceptions\CancelerException;
+use SParallel\Exceptions\ContextCheckerException;
+use SParallel\Services\Context;
 use SParallel\Services\SParallelService;
 use SParallel\Tests\TestCounter;
 
@@ -14,7 +14,7 @@ use SParallel\Tests\TestCounter;
 trait SParallelServiceTestCasesTrait
 {
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     protected function onSuccess(SParallelService $service): void
     {
@@ -48,7 +48,7 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     protected function onWaitFirstOnlySuccess(SParallelService $service): void
     {
@@ -78,7 +78,7 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     protected function onWaitFirstNotOnlySuccess(SParallelService $service): void
     {
@@ -108,7 +108,7 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     protected function onWorkersLimit(SParallelService $service): void
     {
@@ -139,7 +139,7 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     protected function onFailure(SParallelService $service): void
     {
@@ -216,18 +216,18 @@ trait SParallelServiceTestCasesTrait
                 callbacks: $callbacks,
                 timeoutSeconds: 1
             );
-        } catch (CancelerException $exception) {
+        } catch (ContextCheckerException $exception) {
             //
         } finally {
             self::assertInstanceOf(
-                CancelerException::class,
+                ContextCheckerException::class,
                 $exception
             );
         }
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     protected function onBreakAtFirstError(SParallelService $service): void
     {
@@ -249,7 +249,7 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     protected function onBigPayload(SParallelService $service): void
     {
@@ -272,7 +272,7 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     protected function onMemoryLeak(SParallelService $service): void
     {
@@ -297,17 +297,15 @@ trait SParallelServiceTestCasesTrait
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     protected function onEvents(
         SParallelService $service,
-        ContextResolverInterface $contextResolver
+        Context $context
     ): void {
         $counterKey = uniqid();
 
-        $context = $contextResolver->get();
-
-        $context->add(
+        $context->addValue(
             $counterKey,
             static fn() => TestCounter::increment()
         );
@@ -315,10 +313,10 @@ trait SParallelServiceTestCasesTrait
         TestCounter::reset();
 
         $callbacks = [
-            'first'  => static fn() => $contextResolver->get()
-                ->get($counterKey),
-            'second' => static fn() => $contextResolver->get()
-                ->get($counterKey),
+            'first'  => static fn(Context $context) => $context
+                ->getValue($counterKey),
+            'second' => static fn(Context $context) => $context
+                ->getValue($counterKey),
         ];
 
         $callbacksCount = count($callbacks);
@@ -326,6 +324,7 @@ trait SParallelServiceTestCasesTrait
         $results = $service->wait(
             callbacks: $callbacks,
             timeoutSeconds: 1,
+            context: $context
         );
 
         self::assertTrue($results->isFinished());
@@ -340,15 +339,13 @@ trait SParallelServiceTestCasesTrait
         TestCounter::reset();
 
         $callbacks = [
-            'first'  => static function () use ($contextResolver, $counterKey) {
-                $contextResolver->get()
-                    ->get($counterKey);
+            'first'  => static function (Context $context) use ($counterKey) {
+                $context->getValue($counterKey);
 
                 throw new RuntimeException();
             },
-            'second' => static function () use ($contextResolver, $counterKey) {
-                $contextResolver->get()
-                    ->get($counterKey);
+            'second' => static function (Context $context) use ($counterKey) {
+                $context->getValue($counterKey);
 
                 throw new RuntimeException();
             },
@@ -359,6 +356,7 @@ trait SParallelServiceTestCasesTrait
         $results = $service->wait(
             callbacks: $callbacks,
             timeoutSeconds: 1,
+            context: $context
         );
 
         self::assertTrue($results->isFinished());

@@ -5,16 +5,14 @@ declare(strict_types=1);
 namespace SParallel\Drivers\Process;
 
 use SParallel\Contracts\CallbackCallerInterface;
-use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
-use SParallel\Exceptions\CancelerException;
+use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\InvalidValueException;
 use SParallel\Objects\ProcessChildMessage;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
-use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ProcessMessagesTransport;
 use SParallel\Transport\ResultTransport;
@@ -23,20 +21,18 @@ use Throwable;
 class ProcessHandler
 {
     public function __construct(
-        protected ContextResolverInterface $contextResolver,
         protected SocketService $socketService,
         protected ProcessMessagesTransport $messagesTransport,
         protected CallbackTransport $callbackTransport,
         protected ContextTransport $contextTransport,
         protected CallbackCallerInterface $callbackCaller,
-        protected CancelerTransport $cancelerTransport,
         protected ResultTransport $resultTransport,
         protected EventsBusInterface $eventsBus,
     ) {
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     public function handle(): void
     {
@@ -52,7 +48,7 @@ class ProcessHandler
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     protected function onHandle(): void
     {
@@ -75,10 +71,10 @@ class ProcessHandler
 
         $socketClient = $this->socketService->createClient($socketPath);
 
-        $initCanceler = (new Canceler())->add(new Timer(timeoutSeconds: 2));
+        $initContext = new Context();
 
         $this->socketService->writeToSocket(
-            canceler: $initCanceler,
+            context: $initContext->addChecker(new Timer(timeoutSeconds: 2)),
             socket: $socketClient->socket,
             data: $this->messagesTransport->serializeChild(
                 new ProcessChildMessage(
@@ -89,8 +85,10 @@ class ProcessHandler
             )
         );
 
+        $initContext->clear();
+
         $response = $this->socketService->readSocket(
-            canceler: $initCanceler,
+            context: $initContext->addChecker(new Timer(timeoutSeconds: 2)),
             socket: $socketClient->socket
         );
 
@@ -99,10 +97,6 @@ class ProcessHandler
         $message = $this->messagesTransport->unserializeParent($response);
 
         $context = $this->contextTransport->unserialize($message->serializedContext);
-
-        $this->contextResolver->set($context);
-
-        $canceler = $this->cancelerTransport->unserialize($message->serializedCanceler);
 
         $driverName = ProcessDriver::DRIVER_NAME;
 
@@ -118,13 +112,13 @@ class ProcessHandler
 
             $result = $this->callbackCaller->call(
                 callback: $callback,
-                canceler: $canceler
+                context: $context
             );
 
             $socketClient = $this->socketService->createClient($socketPath);
 
             $this->socketService->writeToSocket(
-                canceler: $canceler,
+                context: $context,
                 socket: $socketClient->socket,
                 data: $this->messagesTransport->serializeChild(
                     new ProcessChildMessage(
@@ -147,7 +141,7 @@ class ProcessHandler
             $socketClient = $this->socketService->createClient($socketPath);
 
             $this->socketService->writeToSocket(
-                canceler: $canceler,
+                context: $context,
                 socket: $socketClient->socket,
                 data: $this->messagesTransport->serializeChild(
                     new ProcessChildMessage(

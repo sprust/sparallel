@@ -10,7 +10,7 @@ use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
-use SParallel\Exceptions\CancelerException;
+use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Objects\TaskResult;
 use SParallel\Objects\TaskResults;
 use Throwable;
@@ -26,20 +26,20 @@ class SParallelService
     /**
      * @param array<mixed, Closure> $callbacks
      *
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     public function waitFirst(
         array &$callbacks,
         int $timeoutSeconds,
         bool $onlySuccess,
         int $workersLimit = 0,
-        ?Canceler $canceler = null,
+        ?Context $context = null,
     ): ?TaskResult {
         $generator = $this->run(
             callbacks: $callbacks,
             timeoutSeconds: $timeoutSeconds,
             workersLimit: $workersLimit,
-            canceler: $canceler
+            context: $context
         );
 
         $result = null;
@@ -60,14 +60,14 @@ class SParallelService
     /**
      * @param array<mixed, Closure> $callbacks
      *
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     public function wait(
         array &$callbacks,
         int $timeoutSeconds,
         int $workersLimit = 0,
         bool $breakAtFirstError = false,
-        ?Canceler $canceler = null,
+        ?Context $context = null,
     ): TaskResults {
         $tasksCount = count($callbacks);
 
@@ -78,7 +78,7 @@ class SParallelService
             timeoutSeconds: $timeoutSeconds,
             workersLimit: $workersLimit,
             breakAtFirstError: $breakAtFirstError,
-            canceler: $canceler
+            context: $context
         );
 
         foreach ($generator as $result) {
@@ -101,14 +101,14 @@ class SParallelService
      *
      * @return Generator<TaskResult>
      *
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     public function run(
         array &$callbacks,
         int $timeoutSeconds,
         int $workersLimit = 0,
         bool $breakAtFirstError = false,
-        ?Canceler $canceler = null
+        ?Context $context = null
     ): Generator {
         if ($workersLimit < 1) {
             $workersLimit = SOMAXCONN;
@@ -119,11 +119,11 @@ class SParallelService
         $this->eventsBus->flowStarting();
 
         try {
-            if (is_null($canceler)) {
-                $canceler = new Canceler();
+            if (is_null($context)) {
+                $context = new Context();
             }
 
-            $canceler->add(
+            $context->addChecker(
                 new Timer(
                     timeoutSeconds: $timeoutSeconds
                 )
@@ -131,14 +131,14 @@ class SParallelService
 
             $waitGroup = $this->driver->run(
                 callbacks: $callbacks,
-                canceler: $canceler,
+                context: $context,
                 workersLimit: $workersLimit
             );
 
             $brokeResult = null;
 
             foreach ($waitGroup->get() as $result) {
-                $canceler->check();
+                $context->check();
 
                 if ($breakAtFirstError && $result->error) {
                     $waitGroup->break();
@@ -154,7 +154,7 @@ class SParallelService
             if ($brokeResult) {
                 yield $brokeResult;
             }
-        } catch (CancelerException $exception) {
+        } catch (ContextCheckerException $exception) {
             $this->eventsBus->flowFailed($exception);
 
             throw $exception;

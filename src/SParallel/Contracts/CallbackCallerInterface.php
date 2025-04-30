@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace SParallel\Contracts;
 
 use Closure;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 
 interface CallbackCallerInterface
 {
-    public function call(Closure $callback, Canceler $canceler): mixed;
+    public function call(Closure $callback, Context $context): mixed;
 }

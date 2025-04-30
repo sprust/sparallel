@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Process;
 
-use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
-use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ProcessMessagesTransport;
 use SParallel\Transport\ResultTransport;
@@ -27,7 +25,6 @@ class ProcessDriver implements DriverInterface
 
     public function __construct(
         protected CallbackTransport $callbackTransport,
-        protected CancelerTransport $cancelerTransport,
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,
         protected SocketService $socketService,
@@ -35,11 +32,10 @@ class ProcessDriver implements DriverInterface
         protected EventsBusInterface $eventsBus,
         protected ProcessMessagesTransport $messageTransport,
         protected ProcessService $processService,
-        protected ContextResolverInterface $contextResolver,
     ) {
     }
 
-    public function run(array &$callbacks, Canceler $canceler, int $workersLimit): WaitGroupInterface
+    public function run(array &$callbacks, Context $context, int $workersLimit): WaitGroupInterface
     {
         $socketServer = $this->socketService->createServer(
             $this->socketService->makeSocketPath()
@@ -49,13 +45,11 @@ class ProcessDriver implements DriverInterface
             callbacks: $callbacks,
             workersLimit: $workersLimit,
             socketServer: $socketServer,
-            canceler: $canceler,
-            contextResolver: $this->contextResolver,
+            context: $context,
             processCommandResolver: $this->processCommandResolver,
             socketService: $this->socketService,
             contextTransport: $this->contextTransport,
             callbackTransport: $this->callbackTransport,
-            cancelerTransport: $this->cancelerTransport,
             resultTransport: $this->resultTransport,
             eventsBus: $this->eventsBus,
             messageTransport: $this->messageTransport,

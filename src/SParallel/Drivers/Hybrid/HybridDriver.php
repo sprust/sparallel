@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Hybrid;
 
-use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Exceptions\ProcessIsNotRunningException;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
-use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
 use Symfony\Component\Process\Process;
@@ -36,16 +34,14 @@ class HybridDriver implements DriverInterface
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected ContextTransport $contextTransport,
-        protected CancelerTransport $cancelerTransport,
         protected HybridProcessCommandResolverInterface $hybridProcessCommandResolver,
         protected SocketService $socketService,
         protected ProcessService $processService,
-        protected ContextResolverInterface $contextResolver,
     ) {
         $this->command = $this->hybridProcessCommandResolver->get();
     }
 
-    public function run(array &$callbacks, Canceler $canceler, int $workersLimit): WaitGroupInterface
+    public function run(array &$callbacks, Context $context, int $workersLimit): WaitGroupInterface
     {
         $serializedCallbacks = [];
 
@@ -57,8 +53,7 @@ class HybridDriver implements DriverInterface
             unset($callbacks[$callbackKey]);
         }
 
-        $serializedContext  = $this->contextTransport->serialize($this->contextResolver->get());
-        $serializedCanceler = $this->cancelerTransport->serialize($canceler);
+        $serializedContext  = $this->contextTransport->serialize($context);
 
         $socketPath = $this->socketService->makeSocketPath();
 
@@ -78,7 +73,7 @@ class HybridDriver implements DriverInterface
             $processClient = @socket_accept($socketServer->socket);
 
             if ($processClient === false) {
-                $canceler->check();
+                $context->check();
 
                 usleep(1000);
 
@@ -87,12 +82,11 @@ class HybridDriver implements DriverInterface
 
             $data = json_encode([
                 'ctx' => $serializedContext,
-                'can' => $serializedCanceler,
                 'cbs' => $serializedCallbacks,
             ]);
 
             $this->socketService->writeToSocket(
-                canceler: $canceler,
+                context: $context,
                 socket: $processClient,
                 data: $data
             );
@@ -104,7 +98,7 @@ class HybridDriver implements DriverInterface
             taskKeys: $callbackKeys,
             process: $process,
             socketServer: $socketServer,
-            canceler: $canceler,
+            context: $context,
             eventsBus: $this->eventsBus,
             socketService: $this->socketService,
             resultTransport: $this->resultTransport,

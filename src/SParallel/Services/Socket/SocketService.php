@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace SParallel\Services\Socket;
 
 use Socket;
-use SParallel\Exceptions\CancelerException;
+use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\CouldNotConnectToSocketException;
 use SParallel\Exceptions\CouldNotCreateSocketServerException;
 use SParallel\Objects\SocketClient;
 use SParallel\Objects\SocketServer;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 
 readonly class SocketService
 {
@@ -74,9 +74,9 @@ readonly class SocketService
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
-    public function readSocket(Canceler $canceler, Socket $socket): string
+    public function readSocket(Context $context, Socket $socket): string
     {
         socket_set_nonblock($socket);
 
@@ -86,7 +86,7 @@ readonly class SocketService
             $chunk = socket_read($socket, 4 - strlen($lengthHeader));
 
             if ($chunk === false || $chunk === '') {
-                $canceler->check();
+                $context->check();
 
                 usleep(1000);
 
@@ -103,7 +103,7 @@ readonly class SocketService
             $chunk = socket_read($socket, min(8192, $dataLength - strlen($data)));
 
             if ($chunk === false || $chunk === '') {
-                $canceler->check();
+                $context->check();
 
                 usleep(1000);
 
@@ -117,9 +117,9 @@ readonly class SocketService
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
-    public function writeToSocket(Canceler $canceler, Socket $socket, string $data): void
+    public function writeToSocket(Context $context, Socket $socket, string $data): void
     {
         socket_set_nonblock($socket);
 
@@ -132,7 +132,7 @@ readonly class SocketService
             $bytes = socket_write($socket, substr($lengthHeader, $sentBytes), 4 - $sentBytes);
 
             if ($bytes === false) {
-                $canceler->check();
+                $context->check();
 
                 usleep(1000);
 
@@ -150,7 +150,7 @@ readonly class SocketService
             $bytes = socket_write($socket, $chunk, strlen($chunk));
 
             if ($bytes === false) {
-                $canceler->check();
+                $context->check();
 
                 usleep(1000);
 

@@ -6,7 +6,7 @@ namespace SParallel\Drivers\Fork;
 
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Fork\ForkHandler;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
@@ -24,7 +24,7 @@ class ForkDriver implements DriverInterface
     ) {
     }
 
-    public function run(array &$callbacks, Canceler $canceler, int $workersLimit): WaitGroupInterface
+    public function run(array &$callbacks, Context $context, int $workersLimit): WaitGroupInterface
     {
         $socketServer = $this->socketService->createServer(
             $this->socketService->makeSocketPath()
@@ -34,7 +34,7 @@ class ForkDriver implements DriverInterface
             callbacks: $callbacks,
             workersLimit: $workersLimit,
             socketServer: $socketServer,
-            canceler: $canceler,
+            context: $context,
             forkHandler: $this->forkHandler,
             resultTransport: $this->resultTransport,
             socketService: $this->socketService,

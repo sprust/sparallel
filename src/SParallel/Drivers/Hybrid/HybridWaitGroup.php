@@ -7,11 +7,11 @@ namespace SParallel\Drivers\Hybrid;
 use Generator;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Exceptions\CancelerException;
+use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\UnexpectedTaskTerminationException;
 use SParallel\Objects\SocketServer;
 use SParallel\Objects\TaskResult;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
 use Symfony\Component\Process\Process;
@@ -25,7 +25,7 @@ class HybridWaitGroup implements WaitGroupInterface
         protected array $taskKeys,
         protected Process $process,
         protected SocketServer $socketServer,
-        protected Canceler $canceler,
+        protected Context $context,
         protected EventsBusInterface $eventsBus,
         protected SocketService $socketService,
         protected ResultTransport $resultTransport,
@@ -48,8 +48,8 @@ class HybridWaitGroup implements WaitGroupInterface
                     $processFinished = true;
                 } else {
                     try {
-                        $this->canceler->check();
-                    } catch (CancelerException $exception) {
+                        $this->context->check();
+                    } catch (ContextCheckerException $exception) {
                         $this->break();
 
                         throw $exception;
@@ -59,7 +59,7 @@ class HybridWaitGroup implements WaitGroupInterface
                 }
             } else {
                 $response = $this->socketService->readSocket(
-                    canceler: $this->canceler,
+                    context: $this->context,
                     socket: $childClient
                 );
 

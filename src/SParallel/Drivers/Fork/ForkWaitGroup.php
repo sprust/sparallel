@@ -10,7 +10,7 @@ use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Exceptions\UnexpectedTaskTerminationException;
 use SParallel\Objects\SocketServer;
 use SParallel\Objects\TaskResult;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Fork\ForkHandler;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
@@ -35,7 +35,7 @@ class ForkWaitGroup implements WaitGroupInterface
         protected array &$callbacks,
         protected int $workersLimit,
         protected SocketServer $socketServer,
-        protected Canceler $canceler,
+        protected Context $context,
         protected ForkHandler $forkHandler,
         protected ResultTransport $resultTransport,
         protected SocketService $socketService,
@@ -51,7 +51,7 @@ class ForkWaitGroup implements WaitGroupInterface
     public function get(): Generator
     {
         while (true) {
-            $this->canceler->check();
+            $this->context->check();
 
             $this->shiftWorkers();
 
@@ -79,7 +79,7 @@ class ForkWaitGroup implements WaitGroupInterface
                 }
 
                 $response = $this->socketService->readSocket(
-                    canceler: $this->canceler,
+                    context: $this->context,
                     socket: $childClient
                 );
 
@@ -140,7 +140,7 @@ class ForkWaitGroup implements WaitGroupInterface
             $callback = $this->callbacks[$taskKey];
 
             $this->activeProcessIds[$taskKey] = $this->forkHandler->handle(
-                canceler: $this->canceler,
+                context: $this->context,
                 driverName: ForkDriver::DRIVER_NAME,
                 socketPath: $this->socketServer->path,
                 taskKey: $taskKey,

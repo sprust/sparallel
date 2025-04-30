@@ -8,7 +8,6 @@ use Closure;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
-use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\ProcessCommandResolverInterface;
@@ -20,13 +19,11 @@ use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Process\ProcessHandler;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Services\Callback\CallbackCaller;
-use SParallel\Services\Context;
 use SParallel\Services\Fork\ForkHandler;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
-use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\OpisSerializer;
 use SParallel\Transport\ProcessMessagesTransport;
@@ -72,17 +69,9 @@ class TestContainer implements ContainerInterface
                 serializer: $this->get(SerializerInterface::class)
             ),
 
-            CancelerTransport::class => fn() => new CancelerTransport(
-                serializer: $this->get(SerializerInterface::class)
-            ),
-
-            Context::class => fn() => new Context(),
-
             CallbackCallerInterface::class => fn() => new CallbackCaller(
                 container: $this
             ),
-
-            ContextResolverInterface::class => fn() => new ContextResolver(),
 
             EventsBusInterface::class => fn() => new TestEventsBus(),
 
@@ -95,20 +84,17 @@ class TestContainer implements ContainerInterface
             ForkHandler::class => fn() => new ForkHandler(
                 resultTransport: $this->get(ResultTransport::class),
                 socketService: $this->get(SocketService::class),
-                contextResolver: $this->get(ContextResolverInterface::class),
                 callbackCaller: $this->get(CallbackCallerInterface::class),
                 eventsBus: $this->get(EventsBusInterface::class),
             ),
 
             SyncDriver::class => fn() => new SyncDriver(
-                contextResolver: $this->get(ContextResolverInterface::class),
                 eventsBus: $this->get(EventsBusInterface::class),
                 callbackCaller: $this->get(CallbackCallerInterface::class)
             ),
 
             ProcessDriver::class => fn() => new ProcessDriver(
                 callbackTransport: $this->get(CallbackTransport::class),
-                cancelerTransport: $this->get(CancelerTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
                 socketService: $this->get(SocketService::class),
@@ -116,7 +102,6 @@ class TestContainer implements ContainerInterface
                 eventsBus: $this->get(EventsBusInterface::class),
                 messageTransport: $this->get(ProcessMessagesTransport::class),
                 processService: $this->get(ProcessService::class),
-                contextResolver: $this->get(ContextResolverInterface::class),
             ),
 
             ForkDriver::class => fn() => new ForkDriver(
@@ -133,17 +118,13 @@ class TestContainer implements ContainerInterface
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
-                cancelerTransport: $this->get(CancelerTransport::class),
                 hybridProcessCommandResolver: $this->get(HybridProcessCommandResolverInterface::class),
                 socketService: $this->get(SocketService::class),
                 processService: $this->get(ProcessService::class),
-                contextResolver: $this->get(ContextResolverInterface::class),
             ),
 
             HybridProcessHandler::class => fn() => new HybridProcessHandler(
-                contextResolver: $this->get(ContextResolverInterface::class),
                 contextTransport: $this->get(ContextTransport::class),
-                cancelerTransport: $this->get(CancelerTransport::class),
                 eventsBus: $this->get(EventsBusInterface::class),
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
@@ -157,13 +138,11 @@ class TestContainer implements ContainerInterface
             ),
 
             ProcessHandler::class => fn() => new ProcessHandler(
-                contextResolver: $this->get(ContextResolverInterface::class),
                 socketService: $this->get(SocketService::class),
                 messagesTransport: $this->get(ProcessMessagesTransport::class),
                 callbackTransport: $this->get(CallbackTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
                 callbackCaller: $this->get(CallbackCallerInterface::class),
-                cancelerTransport: $this->get(CancelerTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 eventsBus: $this->get(EventsBusInterface::class),
             ),

@@ -4,26 +4,22 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Hybrid;
 
-use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Drivers\Timer;
-use SParallel\Exceptions\CancelerException;
+use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\InvalidValueException;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Fork\ForkHandler;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
-use SParallel\Transport\CancelerTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\ResultTransport;
 
 class HybridProcessHandler
 {
     public function __construct(
-        protected ContextResolverInterface $contextResolver,
         protected ContextTransport $contextTransport,
-        protected CancelerTransport $cancelerTransport,
         protected EventsBusInterface $eventsBus,
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
@@ -34,11 +30,13 @@ class HybridProcessHandler
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     public function handle(): void
     {
         $pid = getmypid();
+
+        var_dump($pid);
 
         $this->eventsBus->processCreated(pid: $pid);
 
@@ -50,7 +48,7 @@ class HybridProcessHandler
     }
 
     /**
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
     protected function onHandle(): void
     {
@@ -80,23 +78,22 @@ class HybridProcessHandler
 
         $socketClient = $this->socketService->createClient($socketPath);
 
+        $initContext = new Context();
+
         $response = $this->socketService->readSocket(
-            canceler: (new Canceler())->add(new Timer(timeoutSeconds: 2)),
+            context: $initContext->addChecker(new Timer(timeoutSeconds: 2)),
             socket: $socketClient->socket
         );
 
         $responseData = json_decode($response, true);
 
-        $context  = $this->contextTransport->unserialize($responseData['ctx']);
-        $canceler = $this->cancelerTransport->unserialize($responseData['can']);
-
-        $this->contextResolver->set($context);
+        $context = $this->contextTransport->unserialize($responseData['ctx']);
 
         $forksExecutor = new HybridProcessForksExecutor(
             serializedCallbacks: $responseData['cbs'],
             workersLimit: $workersLimit,
             socketPath: $socketPath,
-            canceler: $canceler,
+            context: $context,
             forkHandler: $this->forkHandler,
             callbackTransport: $this->callbackTransport,
             resultTransport: $this->resultTransport,

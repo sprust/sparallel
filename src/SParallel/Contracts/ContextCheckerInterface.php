@@ -6,7 +6,7 @@ namespace SParallel\Contracts;
 
 use Throwable;
 
-interface CancelerInterface
+interface ContextCheckerInterface
 {
     /**
      * @throws Throwable

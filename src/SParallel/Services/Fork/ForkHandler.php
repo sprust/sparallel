@@ -6,11 +6,10 @@ namespace SParallel\Services\Fork;
 
 use Closure;
 use SParallel\Contracts\CallbackCallerInterface;
-use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Exceptions\CancelerException;
+use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\CouldNotForkProcessException;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
 use Throwable;
@@ -20,7 +19,6 @@ readonly class ForkHandler
     public function __construct(
         protected ResultTransport $resultTransport,
         protected SocketService $socketService,
-        protected ContextResolverInterface $contextResolver,
         protected CallbackCallerInterface $callbackCaller,
         protected EventsBusInterface $eventsBus,
     ) {
@@ -30,7 +28,7 @@ readonly class ForkHandler
      * Forks the current process, executes the given callback and return child process id.
      */
     public function handle(
-        Canceler $canceler,
+        Context $context,
         string $driverName,
         string $socketPath,
         mixed $taskKey,
@@ -50,7 +48,7 @@ readonly class ForkHandler
 
         try {
             $this->onHandle(
-                canceler: $canceler,
+                context: $context,
                 driverName: $driverName,
                 socketPath: $socketPath,
                 taskKey: $taskKey,
@@ -66,7 +64,7 @@ readonly class ForkHandler
     }
 
     protected function onHandle(
-        Canceler $canceler,
+        Context $context,
         string $driverName,
         string $socketPath,
         mixed $taskKey,
@@ -85,7 +83,7 @@ readonly class ForkHandler
 
         $this->eventsBus->taskStarting(
             driverName: $driverName,
-            context: $this->contextResolver->get()
+            context: $context
         );
 
         try {
@@ -93,13 +91,13 @@ readonly class ForkHandler
                 taskKey: $taskKey,
                 result: $this->callbackCaller->call(
                     callback: $callback,
-                    canceler: $canceler
+                    context: $context
                 )
             );
         } catch (Throwable $exception) {
             $this->eventsBus->taskFailed(
                 driverName: $driverName,
-                context: $this->contextResolver->get(),
+                context: $context,
                 exception: $exception
             );
 
@@ -110,7 +108,7 @@ readonly class ForkHandler
         } finally {
             $this->eventsBus->taskFinished(
                 driverName: $driverName,
-                context: $this->contextResolver->get()
+                context: $context
             );
         }
 
@@ -118,11 +116,11 @@ readonly class ForkHandler
 
         try {
             $this->socketService->writeToSocket(
-                canceler: $canceler,
+                context: $context,
                 socket: $socketClient->socket,
                 data: $serializedResult
             );
-        } catch (CancelerException) {
+        } catch (ContextCheckerException) {
             // no action needed
         }
     }

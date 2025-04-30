@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace SParallel\Contracts;
 
 use Closure;
-use SParallel\Exceptions\CancelerException;
-use SParallel\Services\Canceler;
+use SParallel\Exceptions\ContextCheckerException;
+use SParallel\Services\Context;
 
 interface DriverInterface
 {
     /**
      * @param array<mixed, Closure> $callbacks
      *
-     * @throws CancelerException
+     * @throws ContextCheckerException
      */
-    public function run(array &$callbacks, Canceler $canceler, int $workersLimit): WaitGroupInterface;
+    public function run(array &$callbacks, Context $context, int $workersLimit): WaitGroupInterface;
 }

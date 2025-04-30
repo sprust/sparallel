@@ -7,11 +7,10 @@ namespace SParallel\Drivers\Sync;
 use Closure;
 use Generator;
 use SParallel\Contracts\CallbackCallerInterface;
-use SParallel\Contracts\ContextResolverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Objects\TaskResult;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 use Throwable;
 
 class SyncWaitGroup implements WaitGroupInterface
@@ -21,8 +20,7 @@ class SyncWaitGroup implements WaitGroupInterface
      */
     public function __construct(
         protected array &$callbacks,
-        protected Canceler $canceler,
-        protected ContextResolverInterface $contextResolver,
+        protected Context $context,
         protected EventsBusInterface $eventsBus,
         protected CallbackCallerInterface $callbackCaller
     ) {
@@ -33,13 +31,13 @@ class SyncWaitGroup implements WaitGroupInterface
         $callbackKeys = array_keys($this->callbacks);
 
         foreach ($callbackKeys as $callbackKey) {
-            $this->canceler->check();
+            $this->context->check();
 
             $callback = $this->callbacks[$callbackKey];
 
             $this->eventsBus->taskStarting(
                 driverName: SyncDriver::DRIVER_NAME,
-                context: $this->contextResolver->get()
+                context: $this->context
             );
 
             try {
@@ -47,13 +45,13 @@ class SyncWaitGroup implements WaitGroupInterface
                     taskKey: $callbackKey,
                     result: $this->callbackCaller->call(
                         callback: $callback,
-                        canceler: $this->canceler
+                        context: $this->context
                     )
                 );
             } catch (Throwable $exception) {
                 $this->eventsBus->taskFailed(
                     driverName: SyncDriver::DRIVER_NAME,
-                    context: $this->contextResolver->get(),
+                    context: $this->context,
                     exception: $exception
                 );
 
@@ -64,7 +62,7 @@ class SyncWaitGroup implements WaitGroupInterface
             } finally {
                 $this->eventsBus->taskFinished(
                     driverName: SyncDriver::DRIVER_NAME,
-                    context: $this->contextResolver->get()
+                    context: $this->context
                 );
             }
 

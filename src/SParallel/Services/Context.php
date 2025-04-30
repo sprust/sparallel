@@ -4,41 +4,36 @@ declare(strict_types=1);
 
 namespace SParallel\Services;
 
+use SParallel\Contracts\ContextCheckerInterface;
+use SParallel\Exceptions\ContextCheckerException;
+use Throwable;
+
 class Context
 {
     /**
      * @var array<string, mixed>
      */
-    protected array $context = [];
+    protected array $values = [];
 
-    public function add(string $key, mixed $value): static
+    /**
+     * @var array<ContextCheckerInterface>
+     */
+    protected array $checkers = [];
+
+    public function addValue(string $key, mixed $value): static
     {
-        $this->context[$key] = $value;
+        $this->values[$key] = $value;
 
         return $this;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function all(): array
+    public function getValue(string $key): mixed
     {
-        $context = [];
-
-        foreach ($this->context as $key => $serializedValue) {
-            $context[$key] = $this->get($key);
-        }
-
-        return $context;
-    }
-
-    public function get(string $key): mixed
-    {
-        if (!array_key_exists($key, $this->context)) {
+        if (!array_key_exists($key, $this->values)) {
             return null;
         }
 
-        $value = $this->context[$key];
+        $value = $this->values[$key];
 
         if (is_null($value)) {
             return null;
@@ -51,33 +46,67 @@ class Context
         return $value;
     }
 
-    public function has(string $key): bool
+    /**
+     * @return array<string, mixed>
+     */
+    public function getValues(): array
     {
-        return array_key_exists($key, $this->context);
+        $context = [];
+
+        foreach ($this->values as $key => $serializedValue) {
+            $context[$key] = $this->getValue($key);
+        }
+
+        return $context;
     }
 
-    public function delete(string $key): void
+    public function hasValue(string $key): bool
     {
-        unset($this->context[$key]);
+        return array_key_exists($key, $this->values);
+    }
+
+    public function deleteValue(string $key): void
+    {
+        unset($this->values[$key]);
+    }
+
+    public function clearValues(): void
+    {
+        $this->values = [];
+    }
+
+    public function addChecker(ContextCheckerInterface $checker): static
+    {
+        $this->checkers[] = $checker;
+
+        return $this;
+    }
+
+    /**
+     * @throws ContextCheckerException
+     */
+    public function check(): void
+    {
+        foreach ($this->checkers as $checker) {
+            try {
+                $checker->check();
+            } catch (Throwable $exception) {
+                throw new ContextCheckerException(
+                    checker: $checker,
+                    exception: $exception
+                );
+            }
+        }
+    }
+
+    public function clearCheckers(): void
+    {
+        $this->checkers = [];
     }
 
     public function clear(): void
     {
-        $this->context = [];
-    }
-
-    public function __serialize(): array
-    {
-        return [
-            'context' => $this->context,
-        ];
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     */
-    public function __unserialize(array $data): void
-    {
-        $this->context = $data['context'];
+        $this->clearValues();
+        $this->clearCheckers();
     }
 }

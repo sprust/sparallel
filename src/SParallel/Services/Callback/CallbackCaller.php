@@ -12,7 +12,7 @@ use ReflectionException;
 use ReflectionFunction;
 use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
-use SParallel\Services\Canceler;
+use SParallel\Services\Context;
 
 class CallbackCaller implements CallbackCallerInterface
 {
@@ -25,7 +25,7 @@ class CallbackCaller implements CallbackCallerInterface
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
-    public function call(Closure $callback, Canceler $canceler): mixed
+    public function call(Closure $callback, Context $context): mixed
     {
         $reflection = new ReflectionFunction($callback);
 
@@ -49,8 +49,8 @@ class CallbackCaller implements CallbackCallerInterface
                 );
             }
 
-            if ($type === Canceler::class) {
-                $callbackParameters[$name] = $canceler;
+            if ($type === Context::class) {
+                $callbackParameters[$name] = $context;
 
                 continue;
             }

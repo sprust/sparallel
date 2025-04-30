@@ -14,10 +14,10 @@ $callbacks = [
     'first'  => static fn() => 'first',
     'second' => static fn() => throw new RuntimeException('second'),
      'third'  => static function(
-        \SParallel\Services\Canceler $canceler,
+        \SParallel\Services\Context $context,
         \SParallel\Contracts\EventsBusInterface $eventsBus // DI support
     ) {
-        $canceler->check();
+        $context->check();
         
         return 'third';
     },

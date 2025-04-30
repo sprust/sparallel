@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers;
 
-use SParallel\Contracts\CancelerInterface;
+use SParallel\Contracts\ContextCheckerInterface;
 use SParallel\Exceptions\InvalidValueException;
 use SParallel\Exceptions\SParallelTimeoutException;
 
-readonly class Timer implements CancelerInterface
+readonly class Timer implements ContextCheckerInterface
 {
     public int $startTime;
 
@@ -38,7 +38,7 @@ readonly class Timer implements CancelerInterface
         }
     }
 
-    public function isTimeout(): bool
+    protected function isTimeout(): bool
     {
         return (time() - $this->startTime) > $this->timeoutSeconds;
     }
