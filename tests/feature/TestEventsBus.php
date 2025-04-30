@@ -23,17 +23,17 @@ class TestEventsBus implements EventsBusInterface
         TestCounter::increment();
     }
 
-    public function taskStarting(string $driverName, ?Context $context): void
+    public function taskStarting(string $driverName, Context $context): void
     {
         TestCounter::increment();
     }
 
-    public function taskFailed(string $driverName, ?Context $context, Throwable $exception): void
+    public function taskFailed(string $driverName, Context $context, Throwable $exception): void
     {
         TestCounter::increment();
     }
 
-    public function taskFinished(string $driverName, ?Context $context): void
+    public function taskFinished(string $driverName, Context $context): void
     {
         TestCounter::increment();
     }
