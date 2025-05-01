@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SParallel\Tests;
 
 use SParallel\Contracts\EventsBusInterface;
@@ -10,37 +12,38 @@ class TestEventsBus implements EventsBusInterface
 {
     public function __construct(
         protected TestProcessesRepository $processesRepository,
+        protected TestEventsRepository $eventsRepository,
     ) {
     }
 
     public function flowStarting(Context $context): void
     {
-        TestCounter::increment();
+        $this->eventsRepository->add(__FUNCTION__);
     }
 
     public function flowFailed(Context $context, Throwable $exception): void
     {
-        TestCounter::increment();
+        $this->eventsRepository->add(__FUNCTION__);
     }
 
     public function flowFinished(Context $context): void
     {
-        TestCounter::increment();
+        $this->eventsRepository->add(__FUNCTION__);
     }
 
     public function taskStarting(string $driverName, Context $context): void
     {
-        TestCounter::increment();
+        $this->eventsRepository->add(__FUNCTION__);
     }
 
     public function taskFailed(string $driverName, Context $context, Throwable $exception): void
     {
-        TestCounter::increment();
+        $this->eventsRepository->add(__FUNCTION__);
     }
 
     public function taskFinished(string $driverName, Context $context): void
     {
-        TestCounter::increment();
+        $this->eventsRepository->add(__FUNCTION__);
     }
 
     public function processCreated(int $pid): void

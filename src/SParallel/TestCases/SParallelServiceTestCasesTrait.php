@@ -6,9 +6,7 @@ namespace SParallel\TestCases;
 
 use RuntimeException;
 use SParallel\Exceptions\ContextCheckerException;
-use SParallel\Services\Context;
 use SParallel\Services\SParallelService;
-use SParallel\Tests\TestCounter;
 
 /** @phpstan-ignore-next-line trait.unused */
 trait SParallelServiceTestCasesTrait
@@ -294,78 +292,5 @@ trait SParallelServiceTestCasesTrait
         self::assertTrue($results->hasFailed());
         self::assertTrue($results->count() === 2);
         self::assertTrue(count($results->getFailed()) === 1);
-    }
-
-    /**
-     * @throws ContextCheckerException
-     */
-    protected function onEvents(
-        SParallelService $service,
-        Context $context
-    ): void {
-        $counterKey = uniqid();
-
-        $context->addValue(
-            $counterKey,
-            static fn() => TestCounter::increment()
-        );
-
-        TestCounter::reset();
-
-        $callbacks = [
-            'first'  => static fn(Context $context) => $context
-                ->getValue($counterKey),
-            'second' => static fn(Context $context) => $context
-                ->getValue($counterKey),
-        ];
-
-        $callbacksCount = count($callbacks);
-
-        $results = $service->wait(
-            callbacks: $callbacks,
-            timeoutSeconds: 1,
-            context: $context
-        );
-
-        self::assertTrue($results->isFinished());
-        self::assertFalse($results->hasFailed());
-        self::assertTrue($results->count() === $callbacksCount);
-
-        self::assertEquals(
-            (3 * $callbacksCount) + 2,
-            TestCounter::getCount()
-        );
-
-        TestCounter::reset();
-
-        $callbacks = [
-            'first'  => static function (Context $context) use ($counterKey) {
-                $context->getValue($counterKey);
-
-                throw new RuntimeException();
-            },
-            'second' => static function (Context $context) use ($counterKey) {
-                $context->getValue($counterKey);
-
-                throw new RuntimeException();
-            },
-        ];
-
-        $callbacksCount = count($callbacks);
-
-        $results = $service->wait(
-            callbacks: $callbacks,
-            timeoutSeconds: 1,
-            context: $context
-        );
-
-        self::assertTrue($results->isFinished());
-        self::assertTrue($results->hasFailed());
-        self::assertTrue($results->count() === $callbacksCount);
-
-        self::assertEquals(
-            (4 * $callbacksCount) + 2,
-            TestCounter::getCount()
-        );
     }
 }

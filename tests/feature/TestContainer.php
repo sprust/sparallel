@@ -74,13 +74,15 @@ class TestContainer implements ContainerInterface
             ),
 
             EventsBusInterface::class => fn() => new TestEventsBus(
-                processesRepository: $this->get(TestProcessesRepository::class)
+                processesRepository: $this->get(TestProcessesRepository::class),
+                eventsRepository: $this->get(TestEventsRepository::class),
             ),
 
             ProcessService::class => fn() => new ProcessService(),
 
-            TestProcessesRepository::class => fn() => new TestProcessesRepository(),
+            TestProcessesRepository::class   => fn() => new TestProcessesRepository(),
             TestSocketFilesRepository::class => fn() => new TestSocketFilesRepository(),
+            TestEventsRepository::class      => fn() => new TestEventsRepository(),
 
             ProcessCommandResolverInterface::class => fn() => new ProcessCommandResolver(),
 
