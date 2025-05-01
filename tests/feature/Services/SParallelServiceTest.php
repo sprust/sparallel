@@ -19,20 +19,24 @@ use SParallel\Services\SParallelService;
 use SParallel\TestCases\SParallelServiceTestCasesTrait;
 use SParallel\Tests\TestContainer;
 use SParallel\Tests\TestProcessesRepository;
+use SParallel\Tests\TestSocketFilesRepository;
 
 class SParallelServiceTest extends TestCase
 {
     use SParallelServiceTestCasesTrait;
 
     protected TestProcessesRepository $processesRepository;
+    protected TestSocketFilesRepository $socketFilesRepository;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->processesRepository = TestContainer::resolve()->get(TestProcessesRepository::class);
+        $this->processesRepository   = TestContainer::resolve()->get(TestProcessesRepository::class);
+        $this->socketFilesRepository = TestContainer::resolve()->get(TestSocketFilesRepository::class);
 
         $this->processesRepository->flush();
+        $this->socketFilesRepository->flush();
     }
 
     /**
@@ -46,7 +50,8 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
         );
 
-        $this->assertProcessesCount(0);
+        $this->assertActiveProcessesCount(0);
+        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -62,6 +67,7 @@ class SParallelServiceTest extends TestCase
 
         // TODO
         //$this->assertProcessesCount(0);
+        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -77,6 +83,7 @@ class SParallelServiceTest extends TestCase
 
         // TODO
         //$this->assertProcessesCount(0);
+        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -90,7 +97,8 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
         );
 
-        $this->assertProcessesCount(0);
+        $this->assertActiveProcessesCount(0);
+        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -104,7 +112,8 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
         );
 
-        $this->assertProcessesCount(0);
+        $this->assertActiveProcessesCount(0);
+        $this->assertActiveSocketServersCount(0);
     }
 
     #[Test]
@@ -117,6 +126,7 @@ class SParallelServiceTest extends TestCase
 
         // TODO
         //$this->assertProcessesCount(0);
+        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -132,6 +142,7 @@ class SParallelServiceTest extends TestCase
 
         // TODO
         //$this->assertProcessesCount(0);
+        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -145,7 +156,8 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
         );
 
-        $this->assertProcessesCount(0);
+        $this->assertActiveProcessesCount(0);
+        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -159,7 +171,8 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
         );
 
-        $this->assertProcessesCount(0);
+        $this->assertActiveProcessesCount(0);
+        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -174,7 +187,8 @@ class SParallelServiceTest extends TestCase
             context: new Context()
         );
 
-        $this->assertProcessesCount(0);
+        $this->assertActiveProcessesCount(0);
+        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -238,11 +252,25 @@ class SParallelServiceTest extends TestCase
         );
     }
 
-    private function assertProcessesCount(int $expected): void
+    private function assertActiveProcessesCount(int $expectedCount): void
     {
+        $activeProcessesCount = $this->processesRepository->getActiveCount();
+
         self::assertEquals(
-            $expected,
-            $this->processesRepository->getActiveCount()
+            $expectedCount,
+            $activeProcessesCount,
+            "Expected active processes count: $expectedCount, got: $activeProcessesCount"
+        );
+    }
+
+    private function assertActiveSocketServersCount(int $expectedCount): void
+    {
+        $openedSocketsCount = $this->socketFilesRepository->getCount();
+
+        self::assertEquals(
+            $expectedCount,
+            $openedSocketsCount,
+            "Expected active sockets count: $expectedCount, got: $openedSocketsCount"
         );
     }
 }

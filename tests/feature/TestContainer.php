@@ -80,6 +80,7 @@ class TestContainer implements ContainerInterface
             ProcessService::class => fn() => new ProcessService(),
 
             TestProcessesRepository::class => fn() => new TestProcessesRepository(),
+            TestSocketFilesRepository::class => fn() => new TestSocketFilesRepository(),
 
             ProcessCommandResolverInterface::class => fn() => new ProcessCommandResolver(),
 

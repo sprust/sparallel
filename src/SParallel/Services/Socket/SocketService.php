@@ -14,6 +14,8 @@ use SParallel\Services\Context;
 
 readonly class SocketService
 {
+    public const SOCKET_PATH_PREFIX = 'sparallel_socket';
+
     protected int $timeoutSeconds;
     protected int $timeoutMicroseconds;
 
@@ -29,7 +31,8 @@ readonly class SocketService
     public function makeSocketPath(): string
     {
         $socketPath = sprintf(
-            rtrim($this->socketPathDirectory, '/') . '/sparallel_socket_%d_%f_%s',
+            rtrim($this->socketPathDirectory, '/') . '/%s_%d_%f_%s',
+            self::SOCKET_PATH_PREFIX,
             getmypid(),
             microtime(true),
             uniqid(more_entropy: true)
