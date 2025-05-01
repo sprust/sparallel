@@ -44,7 +44,9 @@ readonly class ForkHandler
             return $pid;
         }
 
-        $this->eventsBus->processCreated(pid: $pid);
+        $myPid = getmypid();
+
+        $this->eventsBus->processCreated(pid: $myPid);
 
         try {
             $this->onHandle(
@@ -55,9 +57,9 @@ readonly class ForkHandler
                 callback: $callback
             );
         } finally {
-            $this->eventsBus->processFinished(getmypid());
+            $this->eventsBus->processFinished($myPid);
 
-            posix_kill(getmypid(), SIGKILL);
+            posix_kill($myPid, SIGKILL);
         }
 
         return 0;

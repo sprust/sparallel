@@ -73,9 +73,13 @@ class TestContainer implements ContainerInterface
                 container: $this
             ),
 
-            EventsBusInterface::class => fn() => new TestEventsBus(),
+            EventsBusInterface::class => fn() => new TestEventsBus(
+                processesRepository: $this->get(TestProcessesRepository::class)
+            ),
 
             ProcessService::class => fn() => new ProcessService(),
+
+            TestProcessesRepository::class => fn() => new TestProcessesRepository(),
 
             ProcessCommandResolverInterface::class => fn() => new ProcessCommandResolver(),
 
@@ -134,7 +138,7 @@ class TestContainer implements ContainerInterface
             ),
 
             SocketService::class => fn() => new SocketService(
-                socketPathDirectory: __DIR__ . '/../storage/',
+                socketPathDirectory: __DIR__ . '/../storage/sockets',
             ),
 
             ProcessHandler::class => fn() => new ProcessHandler(

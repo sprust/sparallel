@@ -9,6 +9,7 @@ use Symfony\Component\Process\Process;
 class ProcessTask
 {
     public function __construct(
+        public ?int $pid,
         public mixed $taskKey,
         public string $serializedCallback,
         public Process $process,

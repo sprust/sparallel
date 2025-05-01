@@ -36,8 +36,6 @@ class HybridProcessHandler
     {
         $pid = getmypid();
 
-        var_dump($pid);
-
         $this->eventsBus->processCreated(pid: $pid);
 
         try {

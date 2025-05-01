@@ -8,6 +8,11 @@ use Throwable;
 
 class TestEventsBus implements EventsBusInterface
 {
+    public function __construct(
+        protected TestProcessesRepository $processesRepository,
+    ) {
+    }
+
     public function flowStarting(Context $context): void
     {
         TestCounter::increment();
@@ -40,11 +45,11 @@ class TestEventsBus implements EventsBusInterface
 
     public function processCreated(int $pid): void
     {
-        //
+        $this->processesRepository->add($pid);
     }
 
     public function processFinished(int $pid): void
     {
-        //
+        $this->processesRepository->deleteByPid($pid);
     }
 }

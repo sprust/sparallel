@@ -18,10 +18,22 @@ use SParallel\Services\Context;
 use SParallel\Services\SParallelService;
 use SParallel\TestCases\SParallelServiceTestCasesTrait;
 use SParallel\Tests\TestContainer;
+use SParallel\Tests\TestProcessesRepository;
 
 class SParallelServiceTest extends TestCase
 {
     use SParallelServiceTestCasesTrait;
+
+    protected TestProcessesRepository $processesRepository;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->processesRepository = TestContainer::resolve()->get(TestProcessesRepository::class);
+
+        $this->processesRepository->flush();
+    }
 
     /**
      * @throws ContextCheckerException
@@ -33,6 +45,8 @@ class SParallelServiceTest extends TestCase
         $this->onSuccess(
             service: $this->makeServiceByDriver($driver),
         );
+
+        $this->assertProcessesCount(0);
     }
 
     /**
@@ -45,6 +59,9 @@ class SParallelServiceTest extends TestCase
         $this->onWaitFirstOnlySuccess(
             service: $this->makeServiceByDriver($driver),
         );
+
+        // TODO
+        //$this->assertProcessesCount(0);
     }
 
     /**
@@ -57,6 +74,9 @@ class SParallelServiceTest extends TestCase
         $this->onWaitFirstNotOnlySuccess(
             service: $this->makeServiceByDriver($driver),
         );
+
+        // TODO
+        //$this->assertProcessesCount(0);
     }
 
     /**
@@ -69,6 +89,8 @@ class SParallelServiceTest extends TestCase
         $this->onWorkersLimit(
             service: $this->makeServiceByDriver($driver),
         );
+
+        $this->assertProcessesCount(0);
     }
 
     /**
@@ -81,6 +103,8 @@ class SParallelServiceTest extends TestCase
         $this->onFailure(
             service: $this->makeServiceByDriver($driver),
         );
+
+        $this->assertProcessesCount(0);
     }
 
     #[Test]
@@ -90,6 +114,9 @@ class SParallelServiceTest extends TestCase
         $this->onTimeout(
             service: $this->makeServiceByDriver($driver),
         );
+
+        // TODO
+        //$this->assertProcessesCount(0);
     }
 
     /**
@@ -102,6 +129,9 @@ class SParallelServiceTest extends TestCase
         $this->onBreakAtFirstError(
             service: $this->makeServiceByDriver($driver),
         );
+
+        // TODO
+        //$this->assertProcessesCount(0);
     }
 
     /**
@@ -114,6 +144,8 @@ class SParallelServiceTest extends TestCase
         $this->onBigPayload(
             service: $this->makeServiceByDriver($driver),
         );
+
+        $this->assertProcessesCount(0);
     }
 
     /**
@@ -126,6 +158,8 @@ class SParallelServiceTest extends TestCase
         $this->onMemoryLeak(
             service: $this->makeServiceByDriver($driver),
         );
+
+        $this->assertProcessesCount(0);
     }
 
     /**
@@ -139,6 +173,8 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
             context: new Context()
         );
+
+        $this->assertProcessesCount(0);
     }
 
     /**
@@ -199,6 +235,14 @@ class SParallelServiceTest extends TestCase
         return new SParallelService(
             driver: $driver,
             eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+        );
+    }
+
+    private function assertProcessesCount(int $expected): void
+    {
+        self::assertEquals(
+            $expected,
+            $this->processesRepository->getActiveCount()
         );
     }
 }

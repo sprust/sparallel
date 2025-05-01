@@ -68,7 +68,7 @@ class ProcessWaitGroup implements WaitGroupInterface
 
     public function get(): Generator
     {
-        $serializedContext  = $this->contextTransport->serialize($this->context);
+        $serializedContext = $this->contextTransport->serialize($this->context);
 
         while (true) {
             $this->context->check();
@@ -161,7 +161,7 @@ class ProcessWaitGroup implements WaitGroupInterface
 
             $output = $this->processService->getOutput($processTask->process);
 
-            $this->stopProcess($processTask->process);
+            $this->stopProcess($processTask);
 
             yield new TaskResult(
                 taskKey: $processTask->taskKey,
@@ -193,7 +193,7 @@ class ProcessWaitGroup implements WaitGroupInterface
                 break;
             }
 
-            $this->stopProcess($processTask->process);
+            $this->stopProcess($processTask);
         }
     }
 
@@ -217,13 +217,14 @@ class ProcessWaitGroup implements WaitGroupInterface
             $process = Process::fromShellCommandline(command: $this->command)
                 ->setTimeout(null)
                 ->setEnv([
-                    ProcessDriver::PARAM_TASK_KEY    => serialize($taskKey),
+                    ProcessDriver::PARAM_TASK_KEY => serialize($taskKey),
                     ProcessDriver::PARAM_SOCKET_PATH => $this->socketServer->path,
                 ]);
 
             $process->start();
 
             $this->activeProcessTasks[$taskKey] = new ProcessTask(
+                pid: $process->getPid(),
                 taskKey: $taskKey,
                 serializedCallback: $this->callbackTransport->serialize($callback),
                 process: $process
@@ -238,18 +239,14 @@ class ProcessWaitGroup implements WaitGroupInterface
         return array_shift($this->activeProcessTasks);
     }
 
-    protected function stopProcess(Process $process): void
+    protected function stopProcess(ProcessTask $processTask): void
     {
-        if ($process->isRunning()) {
+        if ($processTask->process->isRunning()) {
             try {
-                $process->stop();
+                $processTask->process->stop();
             } catch (Throwable) {
                 //
             }
-        }
-
-        if ($pid = $process->getPid()) {
-            $this->eventsBus->processFinished($pid);
         }
     }
 

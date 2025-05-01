@@ -36,25 +36,23 @@ class HybridWaitGroup implements WaitGroupInterface
     {
         $remainTaskKeys = $this->taskKeys;
 
-        $processFinished = false;
+        while (true) {
+            try {
+                $this->context->check();
+            } catch (ContextCheckerException $exception) {
+                $this->break();
 
-        while (!$processFinished) {
+                throw $exception;
+            }
+
             $childClient = @socket_accept($this->socketServer->socket);
 
             if ($childClient === false) {
                 if (!$this->process->isRunning()) {
                     $this->break();
 
-                    $processFinished = true;
+                    break;
                 } else {
-                    try {
-                        $this->context->check();
-                    } catch (ContextCheckerException $exception) {
-                        $this->break();
-
-                        throw $exception;
-                    }
-
                     usleep(1000);
                 }
             } else {
