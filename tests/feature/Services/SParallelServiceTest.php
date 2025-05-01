@@ -70,8 +70,7 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
         );
 
-        // TODO
-        //$this->assertProcessesCount(0);
+        $this->assertActiveProcessesCount(0);
         $this->assertActiveSocketServersCount(0);
     }
 
@@ -87,7 +86,7 @@ class SParallelServiceTest extends TestCase
         );
 
         // TODO
-        //$this->assertProcessesCount(0);
+        //$this->assertActiveProcessesCount(0);
         $this->assertActiveSocketServersCount(0);
     }
 
@@ -130,7 +129,7 @@ class SParallelServiceTest extends TestCase
         );
 
         // TODO
-        //$this->assertProcessesCount(0);
+        //$this->assertActiveProcessesCount(0);
         $this->assertActiveSocketServersCount(0);
     }
 
@@ -146,7 +145,7 @@ class SParallelServiceTest extends TestCase
         );
 
         // TODO
-        //$this->assertProcessesCount(0);
+        //$this->assertActiveProcessesCount(0);
         $this->assertActiveSocketServersCount(0);
     }
 
