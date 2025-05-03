@@ -293,4 +293,80 @@ trait SParallelServiceTestCasesTrait
         self::assertTrue($results->count() === 2);
         self::assertTrue(count($results->getFailed()) === 1);
     }
+
+    /**
+     * @throws ContextCheckerException
+     */
+    protected function onUnexpectedExitOfParent(SParallelService $processService, SParallelService $testableService): void
+    {
+        $parentCallback = [
+            static function () use ($testableService) {
+                $callbacks = [
+                    'first'  => static fn() => sleep(3),
+                    'second' => static function () {
+                        /** @phpstan-ignore-next-line while.alwaysTrue */
+                        while (true) {
+                            //
+                        }
+                    },
+                ];
+
+                $testableService->run(
+                    callbacks: $callbacks,
+                    timeoutSeconds: 2
+                );
+
+                sleep(1);
+
+                exit(1);
+            },
+        ];
+
+        $results = $processService->wait(
+            callbacks: $parentCallback,
+            timeoutSeconds: 2,
+        );
+
+        self::assertTrue($results->isFinished());
+        self::assertTrue($results->hasFailed());
+        self::assertTrue($results->count() === 1);
+    }
+
+    /**
+     * @throws ContextCheckerException
+     */
+    protected function onMemoryLeakOfParent(SParallelService $processService, SParallelService $testableService): void
+    {
+        $parentCallback = [
+            static function () use ($testableService) {
+                $callbacks = [
+                    'first'  => static fn() => sleep(3),
+                    'second' => static function () {
+                        /** @phpstan-ignore-next-line while.alwaysTrue */
+                        while (true) {
+                            //
+                        }
+                    },
+                ];
+
+                $testableService->run(
+                    callbacks: $callbacks,
+                    timeoutSeconds: 2
+                );
+
+                sleep(1);
+
+                return str_repeat(uniqid(), 90000000000);
+            },
+        ];
+
+        $results = $processService->wait(
+            callbacks: $parentCallback,
+            timeoutSeconds: 2,
+        );
+
+        self::assertTrue($results->isFinished());
+        self::assertTrue($results->hasFailed());
+        self::assertTrue($results->count() === 1);
+    }
 }
