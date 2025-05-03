@@ -68,8 +68,6 @@ class HybridDriver implements DriverInterface
 
         $process->start();
 
-        $this->eventsBus->processCreated(pid: $process->getPid());
-
         // wait for the main process to start and to put payload
         while ($this->checkProcess($process)) {
             $processClient = @socket_accept($socketServer->socket);
