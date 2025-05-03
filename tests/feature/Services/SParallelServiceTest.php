@@ -169,7 +169,7 @@ class SParallelServiceTest extends TestCase
      * @throws ContextCheckerException
      */
     #[Test]
-    #[DataProvider('asyncDriversMemoryProvider')]
+    #[DataProvider('asyncDriversDataProvider')]
     public function memoryLeak(DriverInterface $driver): void
     {
         $this->onMemoryLeak(
@@ -288,7 +288,7 @@ class SParallelServiceTest extends TestCase
      * @throws ContextCheckerException
      */
     #[Test]
-    #[DataProvider('asyncDriversMemoryProvider')]
+    #[DataProvider('asyncDriversDataProvider')]
     public function unexpectedExitOfParent(DriverInterface $driver): void
     {
         $processService = $this->makeServiceByDriver(
@@ -313,7 +313,7 @@ class SParallelServiceTest extends TestCase
      * @throws ContextCheckerException
      */
     #[Test]
-    #[DataProvider('asyncDriversMemoryProvider')]
+    #[DataProvider('asyncDriversDataProvider')]
     public function memoryLeakOfParent(DriverInterface $driver): void
     {
         $processService = $this->makeServiceByDriver(
@@ -360,7 +360,7 @@ class SParallelServiceTest extends TestCase
     /**
      * @return array{driver: DriverInterface}[]
      */
-    public static function asyncDriversMemoryProvider(): array
+    public static function asyncDriversDataProvider(): array
     {
         $container = TestContainer::resolve();
 
