@@ -223,8 +223,12 @@ class ProcessWaitGroup implements WaitGroupInterface
 
             $process->start();
 
+            $pid = $process->getPid();
+
+            $this->eventsBus->processCreated(pid: $pid);
+
             $this->activeProcessTasks[$taskKey] = new ProcessTask(
-                pid: $process->getPid(),
+                pid: $pid,
                 taskKey: $taskKey,
                 serializedCallback: $this->callbackTransport->serialize($callback),
                 process: $process

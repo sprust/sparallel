@@ -38,8 +38,6 @@ class ProcessHandler
     {
         $pid = getmypid();
 
-        $this->eventsBus->processCreated(pid: $pid);
-
         try {
             $this->onHandle();
         } finally {

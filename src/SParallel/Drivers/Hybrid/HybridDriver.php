@@ -53,7 +53,7 @@ class HybridDriver implements DriverInterface
             unset($callbacks[$callbackKey]);
         }
 
-        $serializedContext  = $this->contextTransport->serialize($context);
+        $serializedContext = $this->contextTransport->serialize($context);
 
         $socketPath = $this->socketService->makeSocketPath();
 
@@ -67,6 +67,8 @@ class HybridDriver implements DriverInterface
             ]);
 
         $process->start();
+
+        $this->eventsBus->processCreated(pid: $process->getPid());
 
         // wait for the main process to start and to put payload
         while ($this->checkProcess($process)) {
