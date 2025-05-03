@@ -9,7 +9,7 @@ use SParallel\Drivers\Timer;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\InvalidValueException;
 use SParallel\Services\Context;
-use SParallel\Services\Fork\ForkHandler;
+use SParallel\Services\Fork\Forker;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
@@ -24,7 +24,7 @@ class HybridProcessHandler
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected SocketService $socketService,
-        protected ForkHandler $forkHandler,
+        protected Forker $forkExecutor,
         protected ForkService $forkService,
     ) {
     }
@@ -90,7 +90,7 @@ class HybridProcessHandler
             workersLimit: $workersLimit,
             socketPath: $socketPath,
             context: $context,
-            forkHandler: $this->forkHandler,
+            forker: $this->forkExecutor,
             callbackTransport: $this->callbackTransport,
             resultTransport: $this->resultTransport,
             socketService: $this->socketService,

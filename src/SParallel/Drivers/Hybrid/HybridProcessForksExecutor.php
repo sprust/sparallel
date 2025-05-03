@@ -6,7 +6,7 @@ namespace SParallel\Drivers\Hybrid;
 
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Services\Context;
-use SParallel\Services\Fork\ForkHandler;
+use SParallel\Services\Fork\Forker;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
@@ -32,7 +32,7 @@ class HybridProcessForksExecutor
         protected int $workersLimit,
         protected string $socketPath,
         protected Context $context,
-        protected ForkHandler $forkHandler,
+        protected Forker $forker,
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected SocketService $socketService,
@@ -90,7 +90,7 @@ class HybridProcessForksExecutor
         foreach ($taskKeys as $taskKey) {
             $serializedCallback = $this->serializedCallbacks[$taskKey];
 
-            $this->activeProcessIds[$taskKey] = $this->forkHandler->handle(
+            $this->activeProcessIds[$taskKey] = $this->forker->fork(
                 context: $this->context,
                 driverName: HybridDriver::DRIVER_NAME,
                 socketPath: $this->socketPath,

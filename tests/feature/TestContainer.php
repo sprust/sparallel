@@ -9,6 +9,7 @@ use Psr\Container\ContainerInterface;
 use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\ForkStarterInterface;
 use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\SerializerInterface;
@@ -19,6 +20,7 @@ use SParallel\Drivers\Process\ProcessDriver;
 use SParallel\Drivers\Process\ProcessHandler;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Services\Callback\CallbackCaller;
+use SParallel\Services\Fork\Forker;
 use SParallel\Services\Fork\ForkHandler;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Process\ProcessService;
@@ -84,15 +86,27 @@ class TestContainer implements ContainerInterface
             TestSocketFilesRepository::class => fn() => new TestSocketFilesRepository(),
             TestEventsRepository::class      => fn() => new TestEventsRepository(),
 
-            ProcessCommandResolverInterface::class => fn() => new ProcessCommandResolver(),
-
-            HybridProcessCommandResolverInterface::class => fn() => new HybridProcessCommandResolver(),
-
             ForkHandler::class => fn() => new ForkHandler(
                 resultTransport: $this->get(ResultTransport::class),
                 socketService: $this->get(SocketService::class),
                 callbackCaller: $this->get(CallbackCallerInterface::class),
                 eventsBus: $this->get(EventsBusInterface::class),
+            ),
+
+            ForkStarterInterface::class => fn() => new TestForkStarter(
+                forkHandler: $this->get(ForkHandler::class)
+            ),
+
+            ProcessCommandResolverInterface::class => fn() => new ProcessCommandResolver(),
+
+            HybridProcessCommandResolverInterface::class => fn() => new HybridProcessCommandResolver(),
+
+            Forker::class => fn() => new Forker(
+                resultTransport: $this->get(ResultTransport::class),
+                socketService: $this->get(SocketService::class),
+                callbackCaller: $this->get(CallbackCallerInterface::class),
+                eventsBus: $this->get(EventsBusInterface::class),
+                forkStarter: $this->get(ForkStarterInterface::class),
             ),
 
             SyncDriver::class => fn() => new SyncDriver(
@@ -113,7 +127,7 @@ class TestContainer implements ContainerInterface
 
             ForkDriver::class => fn() => new ForkDriver(
                 resultTransport: $this->get(ResultTransport::class),
-                forkHandler: $this->get(ForkHandler::class),
+                forkExecutor: $this->get(Forker::class),
                 socketService: $this->get(SocketService::class),
                 forkService: $this->get(ForkService::class),
             ),
@@ -136,7 +150,7 @@ class TestContainer implements ContainerInterface
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
                 socketService: $this->get(SocketService::class),
-                forkHandler: $this->get(ForkHandler::class),
+                forkExecutor: $this->get(Forker::class),
                 forkService: $this->get(ForkService::class),
             ),
 

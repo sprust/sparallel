@@ -11,7 +11,7 @@ use SParallel\Exceptions\UnexpectedTaskTerminationException;
 use SParallel\Objects\SocketServer;
 use SParallel\Objects\TaskResult;
 use SParallel\Services\Context;
-use SParallel\Services\Fork\ForkHandler;
+use SParallel\Services\Fork\Forker;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
@@ -32,14 +32,14 @@ class ForkWaitGroup implements WaitGroupInterface
      * @param array<mixed, Closure> $callbacks
      */
     public function __construct(
-        protected array &$callbacks,
-        protected int $workersLimit,
-        protected SocketServer $socketServer,
-        protected Context $context,
-        protected ForkHandler $forkHandler,
+        protected array           &$callbacks,
+        protected int             $workersLimit,
+        protected SocketServer    $socketServer,
+        protected Context         $context,
+        protected Forker    $forker,
         protected ResultTransport $resultTransport,
-        protected SocketService $socketService,
-        protected ForkService $forkService,
+        protected SocketService   $socketService,
+        protected ForkService     $forkService,
     ) {
         $this->activeProcessIds = [];
 
@@ -139,7 +139,7 @@ class ForkWaitGroup implements WaitGroupInterface
         foreach ($taskKeys as $taskKey) {
             $callback = $this->callbacks[$taskKey];
 
-            $this->activeProcessIds[$taskKey] = $this->forkHandler->handle(
+            $this->activeProcessIds[$taskKey] = $this->forker->fork(
                 context: $this->context,
                 driverName: ForkDriver::DRIVER_NAME,
                 socketPath: $this->socketServer->path,

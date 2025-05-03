@@ -7,7 +7,7 @@ namespace SParallel\Drivers\Fork;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Services\Context;
-use SParallel\Services\Fork\ForkHandler;
+use SParallel\Services\Fork\Forker;
 use SParallel\Services\Fork\ForkService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\ResultTransport;
@@ -18,7 +18,7 @@ class ForkDriver implements DriverInterface
 
     public function __construct(
         protected ResultTransport $resultTransport,
-        protected ForkHandler $forkHandler,
+        protected Forker $forkExecutor,
         protected SocketService $socketService,
         protected ForkService $forkService,
     ) {
@@ -35,7 +35,7 @@ class ForkDriver implements DriverInterface
             workersLimit: $workersLimit,
             socketServer: $socketServer,
             context: $context,
-            forkHandler: $this->forkHandler,
+            forker: $this->forkExecutor,
             resultTransport: $this->resultTransport,
             socketService: $this->socketService,
             forkService: $this->forkService
