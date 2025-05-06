@@ -22,4 +22,11 @@ readonly class ForkService
 
         return false;
     }
+
+    public function finish(int $pid): void
+    {
+        pcntl_waitpid($pid, $status);
+
+        posix_kill($pid, SIGKILL);
+    }
 }

@@ -99,6 +99,10 @@ class HybridProcessHandler
             forkService: $this->forkService
         );
 
-        $forksExecutor->exec();
+        try {
+            $forksExecutor->exec();
+        } finally {
+            $forksExecutor->break();
+        }
     }
 }

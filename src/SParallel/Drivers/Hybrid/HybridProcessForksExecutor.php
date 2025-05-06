@@ -102,18 +102,21 @@ class HybridProcessForksExecutor
         }
     }
 
-    public function __destruct()
+    public function break(): void
     {
         $taskKeys = array_keys($this->activeProcessIds);
 
         foreach ($taskKeys as $taskKey) {
-            $pid = $this->activeProcessIds[$taskKey];
-
-            if (!$this->forkService->isFinished($pid)) {
-                posix_kill($pid, SIGKILL);
-            }
+            $this->forkService->finish(
+                pid: $this->activeProcessIds[$taskKey]
+            );
 
             unset($this->activeProcessIds[$taskKey]);
         }
+    }
+
+    public function __destruct()
+    {
+        $this->break();
     }
 }

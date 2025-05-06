@@ -32,14 +32,14 @@ class ForkWaitGroup implements WaitGroupInterface
      * @param array<mixed, Closure> $callbacks
      */
     public function __construct(
-        protected array           &$callbacks,
-        protected int             $workersLimit,
-        protected SocketServer    $socketServer,
-        protected Context         $context,
-        protected Forker    $forker,
+        protected array &$callbacks,
+        protected int $workersLimit,
+        protected SocketServer $socketServer,
+        protected Context $context,
+        protected Forker $forker,
         protected ResultTransport $resultTransport,
-        protected SocketService   $socketService,
-        protected ForkService     $forkService,
+        protected SocketService $socketService,
+        protected ForkService $forkService,
     ) {
         $this->activeProcessIds = [];
 
@@ -112,11 +112,9 @@ class ForkWaitGroup implements WaitGroupInterface
         $taskKeys = array_keys($this->activeProcessIds);
 
         foreach ($taskKeys as $taskKey) {
-            $pid = $this->activeProcessIds[$taskKey];
-
-            if (!$this->forkService->isFinished($pid)) {
-                posix_kill($pid, SIGKILL);
-            }
+            $this->forkService->finish(
+                pid: $this->activeProcessIds[$taskKey]
+            );
 
             unset($this->activeProcessIds[$taskKey]);
         }
