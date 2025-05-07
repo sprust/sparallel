@@ -148,7 +148,6 @@ class HybridTaskManager implements TaskManagerInterface
 
             $this->finishedTaskKeys[] = unserialize($response);
         }
-        //var_dump("++++++++++++response:\n" . print_r($this->finishedTaskKeys, true));
 
         return in_array($taskKey, $this->finishedTaskKeys);
     }
