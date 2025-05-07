@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace SParallel\Services\Socket;
 
 use Socket;
+use SParallel\Entities\SocketClient;
+use SParallel\Entities\SocketServer;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\CouldNotConnectToSocketException;
 use SParallel\Exceptions\CouldNotCreateSocketServerException;
-use SParallel\Objects\SocketClient;
-use SParallel\Objects\SocketServer;
 use SParallel\Services\Context;
 
 readonly class SocketService
@@ -74,6 +74,11 @@ readonly class SocketService
         return new SocketClient(
             socket: $socket
         );
+    }
+
+    public function accept(Socket $socket): Socket|false
+    {
+        return @socket_accept($socket);
     }
 
     /**

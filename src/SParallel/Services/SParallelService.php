@@ -7,10 +7,10 @@ namespace SParallel\Services;
 use Closure;
 use Generator;
 use RuntimeException;
-use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Drivers\Timer;
+use SParallel\Entities\Timer;
 use SParallel\Exceptions\ContextCheckerException;
+use SParallel\Flows\FlowFactory;
 use SParallel\Objects\TaskResult;
 use SParallel\Objects\TaskResults;
 use Throwable;
@@ -18,13 +18,13 @@ use Throwable;
 class SParallelService
 {
     public function __construct(
-        protected DriverInterface $driver,
         protected EventsBusInterface $eventsBus,
+        protected FlowFactory $flowFactory,
     ) {
     }
 
     /**
-     * @param array<mixed, Closure> $callbacks
+     * @param array<int|string, Closure> $callbacks
      *
      * @throws ContextCheckerException
      */
@@ -58,7 +58,7 @@ class SParallelService
     }
 
     /**
-     * @param array<mixed, Closure> $callbacks
+     * @param array<int|string, Closure> $callbacks
      *
      * @throws ContextCheckerException
      */
@@ -97,7 +97,7 @@ class SParallelService
     }
 
     /**
-     * @param array<mixed, Closure> $callbacks
+     * @param array<int|string, Closure> $callbacks
      *
      * @return Generator<TaskResult>
      *
@@ -131,7 +131,7 @@ class SParallelService
         );
 
         try {
-            $waitGroup = $this->driver->run(
+            $waitGroup = $this->flowFactory->create(
                 callbacks: $callbacks,
                 context: $context,
                 workersLimit: $workersLimit

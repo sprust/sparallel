@@ -15,13 +15,13 @@ class ProcessService
         if ($output = $process->getOutput()) {
             $process->clearOutput();
 
-            return $output;
+            return trim($output);
         }
 
         if ($errorOutput = $process->getErrorOutput()) {
             $process->clearErrorOutput();
 
-            return $errorOutput;
+            return trim($errorOutput);
         }
 
         return null;

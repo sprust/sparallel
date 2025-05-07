@@ -21,15 +21,15 @@ class CallbackTransport
 
     public function unserialize(string $data): Closure
     {
-        $serialized = $this->serializer->unserialize($data);
+        $callback = $this->serializer->unserialize($data);
 
-        if (!is_callable($serialized)) {
-            throw new UnserializeException(
-                expected: 'callback',
-                got: $serialized
-            );
+        if (is_callable($callback)) {
+            return $callback;
         }
 
-        return $serialized;
+        throw new UnserializeException(
+            expected: 'callback',
+            got: gettype($callback)
+        );
     }
 }

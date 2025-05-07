@@ -29,7 +29,7 @@ class ContextTransport
 
         throw new UnserializeException(
             expected: Context::class,
-            got: $context
+            got: gettype($context)
         );
     }
 }

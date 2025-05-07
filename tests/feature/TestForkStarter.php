@@ -6,8 +6,8 @@ namespace SParallel\Tests;
 
 use Closure;
 use SParallel\Contracts\ForkStarterInterface;
+use SParallel\Flows\ASync\Fork\ForkHandler;
 use SParallel\Services\Context;
-use SParallel\Services\Fork\ForkHandler;
 
 class TestForkStarter implements ForkStarterInterface
 {

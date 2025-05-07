@@ -1,0 +1,166 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SParallel\Flows\ASync\Process;
+
+use SParallel\Contracts\CallbackCallerInterface;
+use SParallel\Contracts\EventsBusInterface;
+use SParallel\Entities\Timer;
+use SParallel\Enum\MessageOperationTypeEnum;
+use SParallel\Exceptions\ContextCheckerException;
+use SParallel\Exceptions\InvalidValueException;
+use SParallel\Objects\Message;
+use SParallel\Services\Context;
+use SParallel\Services\Socket\SocketService;
+use SParallel\Transport\CallbackTransport;
+use SParallel\Transport\ContextTransport;
+use SParallel\Transport\MessageTransport;
+use SParallel\Transport\ResultTransport;
+use Throwable;
+
+class ProcessHandler
+{
+    public function __construct(
+        protected SocketService $socketService,
+        protected MessageTransport $messageTransport,
+        protected CallbackTransport $callbackTransport,
+        protected ContextTransport $contextTransport,
+        protected CallbackCallerInterface $callbackCaller,
+        protected ResultTransport $resultTransport,
+        protected EventsBusInterface $eventsBus,
+    ) {
+    }
+
+    /**
+     * @throws ContextCheckerException
+     */
+    public function handle(): void
+    {
+        $pid = getmypid();
+
+        $this->eventsBus->processCreated(pid: $pid);
+
+        try {
+            $this->onHandle();
+        } finally {
+            $this->eventsBus->processFinished(pid: $pid);
+        }
+    }
+
+    /**
+     * @throws ContextCheckerException
+     */
+    protected function onHandle(): void
+    {
+        $taskKey    = $_SERVER[ProcessTaskManager::PARAM_TASK_KEY] ?? null;
+        $socketPath = $_SERVER[ProcessTaskManager::PARAM_SOCKET_PATH] ?? null;
+
+        if (is_null($taskKey)) {
+            throw new InvalidValueException(
+                'Task key is not set.'
+            );
+        }
+
+        if (!$socketPath || !is_string($socketPath)) {
+            throw new InvalidValueException(
+                'Socket path is not set or is not a string.'
+            );
+        }
+
+        $taskKey = unserialize($taskKey);
+
+        $socketClient = $this->socketService->createClient($socketPath);
+
+        $initContext = new Context();
+
+        $this->socketService->writeToSocket(
+            context: $initContext->addChecker(new Timer(timeoutSeconds: 2)),
+            socket: $socketClient->socket,
+            data: $this->messageTransport->serialize(
+                new Message(
+                    operation: MessageOperationTypeEnum::GetJob,
+                    taskKey: $taskKey,
+                )
+            )
+        );
+
+        $initContext->clear();
+
+        $response = $this->socketService->readSocket(
+            context: $initContext->addChecker(new Timer(timeoutSeconds: 2)),
+            socket: $socketClient->socket
+        );
+
+        unset($socketClient);
+
+        $message = $this->messageTransport->unserialize($response);
+
+        $context = $this->contextTransport->unserialize($message->serializedContext);
+
+        $driverName = ProcessTaskManager::DRIVER_NAME;
+
+        $this->eventsBus->taskStarting(
+            driverName: $driverName,
+            context: $context
+        );
+
+        try {
+            $callback = $this->callbackTransport->unserialize(
+                $message->payload
+            );
+
+            $result = $this->callbackCaller->call(
+                callback: $callback,
+                context: $context
+            );
+
+            $socketClient = $this->socketService->createClient($socketPath);
+
+            $this->socketService->writeToSocket(
+                context: $context,
+                socket: $socketClient->socket,
+                data: $this->messageTransport->serialize(
+                    new Message(
+                        operation: MessageOperationTypeEnum::Response,
+                        taskKey: $taskKey,
+                        payload: $this->resultTransport->serialize(
+                            taskKey: $taskKey,
+                            result: $result
+                        ),
+                    )
+                )
+            );
+        } catch (Throwable $exception) {
+            $this->eventsBus->taskFailed(
+                driverName: $driverName,
+                context: $context,
+                exception: $exception
+            );
+
+            $socketClient = $this->socketService->createClient($socketPath);
+
+            $this->socketService->writeToSocket(
+                context: $context,
+                socket: $socketClient->socket,
+                data: $this->messageTransport->serialize(
+                    new Message(
+                        operation: MessageOperationTypeEnum::Response,
+                        taskKey: $taskKey,
+                        payload: $this->resultTransport->serialize(
+                            taskKey: $taskKey,
+                            exception: $exception
+                        ),
+                    )
+                )
+            );
+        }
+
+        unset($socketClient);
+
+        $this->eventsBus->taskFinished(
+            driverName: $driverName,
+            context: $context
+        );
+    }
+}

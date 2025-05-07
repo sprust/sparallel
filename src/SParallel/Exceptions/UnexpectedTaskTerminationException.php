@@ -9,7 +9,7 @@ use RuntimeException;
 class UnexpectedTaskTerminationException extends RuntimeException
 {
     public function __construct(
-        public readonly mixed $taskKey,
+        public readonly int|string $taskKey,
         public readonly ?string $description = null,
     ) {
         parent::__construct(

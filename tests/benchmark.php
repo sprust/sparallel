@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 ini_set('memory_limit', '1G');
 
-use SParallel\Contracts\EventsBusInterface;
-use SParallel\Drivers\Fork\ForkDriver;
-use SParallel\Drivers\Hybrid\HybridDriver;
-use SParallel\Drivers\Process\ProcessDriver;
+use SParallel\Contracts\TaskManagerFactoryInterface;
+use SParallel\Flows\ASync\Fork\ForkTaskManager;
+use SParallel\Flows\ASync\Hybrid\HybridTaskManager;
+use SParallel\Flows\ASync\Process\ProcessTaskManager;
 use SParallel\Services\SParallelService;
 use SParallel\Tests\TestContainer;
 
@@ -28,28 +28,31 @@ shuffle($callbacks);
 
 $callbacksCount = count($callbacks);
 
-/** @var array<class-string<\SParallel\Contracts\DriverInterface>> $driverClasses */
-$driverClasses = [
-    ForkDriver::class,
-    ProcessDriver::class,
-    HybridDriver::class,
+/** @var array<class-string<\SParallel\Contracts\TaskManagerInterface>> $taskManagerClasses */
+$taskManagerClasses = [
+    ProcessTaskManager::class,
+    ForkTaskManager::class,
+    HybridTaskManager::class,
 ];
 
 $metrics = [];
 
-foreach ($driverClasses as $driverClass) {
+$container = TestContainer::resolve();
+
+foreach ($taskManagerClasses as $taskManagerClass) {
     echo '------------------------------------------' . PHP_EOL;
-    echo 'Driver: ' . $driverClass . PHP_EOL;
+    echo 'Driver: ' . $taskManagerClass . PHP_EOL;
     echo '------------------------------------------' . PHP_EOL;
 
     $start = microtime(true);
 
     $clonedCallbacks = array_merge($callbacks);
 
-    $service = new SParallelService(
-        driver: TestContainer::resolve()->get($driverClass),
-        eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+    $container->get(TaskManagerFactoryInterface::class)->forceDriver(
+        $container->get($taskManagerClass),
     );
+
+    $service = $container->get(SParallelService::class);
 
     memory_reset_peak_usage();
 
@@ -58,7 +61,7 @@ foreach ($driverClasses as $driverClass) {
     $generator = $service->run(
         callbacks: $clonedCallbacks,
         timeoutSeconds: 5,
-        workersLimit: 5
+    //workersLimit: 5
     );
 
     foreach ($generator as $result) {
@@ -87,7 +90,7 @@ foreach ($driverClasses as $driverClass) {
 
     $executionTime = $end - $start;
 
-    $metrics[$driverClass] = [
+    $metrics[$taskManagerClass] = [
         'memory'         => memory_get_peak_usage(true) / 1024 / 1024,
         'execution_time' => $executionTime,
         'count'          => $counter,
@@ -96,10 +99,10 @@ foreach ($driverClasses as $driverClass) {
 
 echo '------------------------------------------' . PHP_EOL;
 
-foreach ($metrics as $driverClass => $metric) {
+foreach ($metrics as $taskManagerClass => $metric) {
     echo sprintf(
             "%s\tmemPeak:%f\ttime:%f\tcount:%d/%d",
-            $driverClass,
+            $taskManagerClass,
             $metric['memory'],
             $metric['execution_time'],
             $metric['count'],

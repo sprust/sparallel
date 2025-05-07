@@ -9,7 +9,7 @@ use RuntimeException;
 class UnexpectedTaskOperationException extends RuntimeException
 {
     public function __construct(
-        public readonly mixed $taskKey,
+        public readonly int|string $taskKey,
         public readonly string $operation,
     ) {
         parent::__construct(

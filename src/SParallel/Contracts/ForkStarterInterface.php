@@ -13,7 +13,7 @@ interface ForkStarterInterface
         Context $context,
         string $driverName,
         string $socketPath,
-        mixed $taskKey,
+        int|string $taskKey,
         Closure $callback
     ): void;
 }
