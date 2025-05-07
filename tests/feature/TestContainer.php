@@ -97,6 +97,7 @@ class TestContainer implements ContainerInterface
                 callbackCaller: $this->get(CallbackCallerInterface::class),
                 eventsBus: $this->get(EventsBusInterface::class),
                 messageTransport: $this->get(MessageTransport::class),
+                processService: $this->get(ProcessService::class),
             ),
 
             ForkStarterInterface::class => fn() => new TestForkStarter(
@@ -140,7 +141,6 @@ class TestContainer implements ContainerInterface
                 contextTransport: $this->get(ContextTransport::class),
                 callbackTransport: $this->get(CallbackTransport::class),
                 resultTransport: $this->get(ResultTransport::class),
-                eventsBus: $this->get(EventsBusInterface::class),
                 messageTransport: $this->get(MessageTransport::class),
             ),
 
@@ -168,6 +168,7 @@ class TestContainer implements ContainerInterface
                 forkService: $this->get(ForkService::class),
                 flowFactory: $this->get(FlowFactory::class),
                 forkTaskManager: $this->get(ForkTaskManager::class),
+                processService: $this->get(ProcessService::class),
             ),
 
             SocketService::class => fn() => new SocketService(
@@ -182,6 +183,7 @@ class TestContainer implements ContainerInterface
                 callbackCaller: $this->get(CallbackCallerInterface::class),
                 resultTransport: $this->get(ResultTransport::class),
                 eventsBus: $this->get(EventsBusInterface::class),
+                processService: $this->get(ProcessService::class),
             ),
         ];
     }

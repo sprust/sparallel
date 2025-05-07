@@ -13,6 +13,7 @@ use SParallel\Flows\ASync\Fork\ForkService;
 use SParallel\Flows\ASync\Fork\ForkTaskManager;
 use SParallel\Flows\FlowFactory;
 use SParallel\Services\Context;
+use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
@@ -30,6 +31,7 @@ class HybridProcessHandler
         protected ForkService $forkService,
         protected FlowFactory $flowFactory,
         protected ForkTaskManager $forkTaskManager,
+        protected ProcessService $processService,
     ) {
     }
 
@@ -42,18 +44,14 @@ class HybridProcessHandler
 
         $this->eventsBus->processCreated($pid);
 
-        try {
-            $this->onHandle();
-        } finally {
-            $this->eventsBus->processFinished(pid: $pid);
-        }
-    }
+        $this->processService->registerShutdownFunction(
+            function () use ($pid) {
+                $this->eventsBus->processFinished(pid: $pid);
 
-    /**
-     * @throws ContextCheckerException
-     */
-    protected function onHandle(): void
-    {
+                exit(0);
+            }
+        );
+
         $parentSocketPath = $_SERVER[HybridTaskManager::PARAM_PARENT_SOCKET_PATH] ?? null;
 
         if (!$parentSocketPath || !is_string($parentSocketPath)) {
@@ -129,5 +127,7 @@ class HybridProcessHandler
                 data: serialize($taskResult->taskKey)
             );
         }
+
+        $flow->break();
     }
 }

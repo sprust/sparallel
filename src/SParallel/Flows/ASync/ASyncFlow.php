@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SParallel\Flows\ASync;
 
 use Generator;
-use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\FlowInterface;
 use SParallel\Contracts\TaskInterface;
 use SParallel\Contracts\TaskManagerInterface;
@@ -47,7 +46,6 @@ class ASyncFlow implements FlowInterface
         protected ContextTransport $contextTransport,
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
-        protected EventsBusInterface $eventsBus,
         protected MessageTransport $messageTransport,
     ) {
     }
@@ -154,13 +152,7 @@ class ASyncFlow implements FlowInterface
 
                     $this->deleteRemainTaskKeys($result->taskKey);
 
-                    $pid = $task->getPid();
-
-                    try {
-                        $task->finish();
-                    } finally {
-                        $this->eventsBus->processFinished($pid);
-                    }
+                    $task->finish();
 
                     yield $result;
                 } else {
@@ -244,8 +236,6 @@ class ASyncFlow implements FlowInterface
                 key: $taskKey,
                 callback: $callback
             );
-
-            $this->eventsBus->processCreated($task->getPid());
 
             $this->activeTasks[$taskKey] = $task;
 

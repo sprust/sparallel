@@ -2,6 +2,7 @@
 
 namespace SParallel\Services\Process;
 
+use Closure;
 use Symfony\Component\Process\Process;
 
 class ProcessService
@@ -25,5 +26,10 @@ class ProcessService
         }
 
         return null;
+    }
+
+    public function registerShutdownFunction(Closure $callback): void
+    {
+        register_shutdown_function($callback);
     }
 }

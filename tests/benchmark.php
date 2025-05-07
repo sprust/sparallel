@@ -10,6 +10,9 @@ use SParallel\Flows\ASync\Hybrid\HybridTaskManager;
 use SParallel\Flows\ASync\Process\ProcessTaskManager;
 use SParallel\Services\SParallelService;
 use SParallel\Tests\TestContainer;
+use SParallel\Tests\TestEventsRepository;
+use SParallel\Tests\TestProcessesRepository;
+use SParallel\Tests\TestSocketFilesRepository;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -17,11 +20,11 @@ require_once __DIR__ . '/../vendor/autoload.php';
  * @var array<mixed, Closure> $callbacks
  */
 $callbacks = [
-    ...makeCaseUnique(5),
-    ...makeCaseBigResponse(5),
-    ...makeCaseMemoryLimit(5),
-    ...makeCaseSleep(count: 5, sec: 1),
-    ...makeCaseThrow(5),
+    // ...makeCaseUnique(1),
+    // ...makeCaseBigResponse(1),
+    ...makeCaseMemoryLimit(1),
+    // ...makeCaseSleep(count: 1, sec: 1),
+    ...makeCaseThrow(1),
 ];
 
 shuffle($callbacks);
@@ -30,14 +33,18 @@ $callbacksCount = count($callbacks);
 
 /** @var array<class-string<\SParallel\Contracts\TaskManagerInterface>> $taskManagerClasses */
 $taskManagerClasses = [
-    ProcessTaskManager::class,
-    ForkTaskManager::class,
+    // ProcessTaskManager::class,
+    // ForkTaskManager::class,
     HybridTaskManager::class,
 ];
 
 $metrics = [];
 
 $container = TestContainer::resolve();
+
+$container->get(TestProcessesRepository::class)->flush();
+$container->get(TestSocketFilesRepository::class)->flush();
+$container->get(TestEventsRepository::class)->flush();
 
 foreach ($taskManagerClasses as $taskManagerClass) {
     echo '------------------------------------------' . PHP_EOL;
@@ -91,9 +98,9 @@ foreach ($taskManagerClasses as $taskManagerClass) {
     $executionTime = $end - $start;
 
     $metrics[$taskManagerClass] = [
-        'memory'         => memory_get_peak_usage(true) / 1024 / 1024,
+        'memory' => memory_get_peak_usage(true) / 1024 / 1024,
         'execution_time' => $executionTime,
-        'count'          => $counter,
+        'count' => $counter,
     ];
 }
 

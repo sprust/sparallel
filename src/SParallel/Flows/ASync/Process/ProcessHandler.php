@@ -12,6 +12,7 @@ use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\InvalidValueException;
 use SParallel\Objects\Message;
 use SParallel\Services\Context;
+use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
@@ -29,6 +30,7 @@ class ProcessHandler
         protected CallbackCallerInterface $callbackCaller,
         protected ResultTransport $resultTransport,
         protected EventsBusInterface $eventsBus,
+        protected ProcessService $processService,
     ) {
     }
 
@@ -41,11 +43,15 @@ class ProcessHandler
 
         $this->eventsBus->processCreated(pid: $pid);
 
-        try {
-            $this->onHandle();
-        } finally {
-            $this->eventsBus->processFinished(pid: $pid);
-        }
+        $this->processService->registerShutdownFunction(
+            function () use ($pid) {
+                $this->eventsBus->processFinished(pid: $pid);
+
+                exit(0);
+            }
+        );
+
+        $this->onHandle();
     }
 
     /**
@@ -154,13 +160,13 @@ class ProcessHandler
                     )
                 )
             );
+        } finally {
+            $this->eventsBus->taskFinished(
+                driverName: $driverName,
+                context: $context
+            );
         }
 
         unset($socketClient);
-
-        $this->eventsBus->taskFinished(
-            driverName: $driverName,
-            context: $context
-        );
     }
 }

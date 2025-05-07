@@ -11,6 +11,7 @@ use SParallel\Enum\MessageOperationTypeEnum;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Objects\Message;
 use SParallel\Services\Context;
+use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\MessageTransport;
 use SParallel\Transport\ResultTransport;
@@ -24,6 +25,7 @@ readonly class ForkHandler
         protected CallbackCallerInterface $callbackCaller,
         protected EventsBusInterface $eventsBus,
         protected MessageTransport $messageTransport,
+        protected ProcessService $processService,
     ) {
     }
 
@@ -40,6 +42,15 @@ readonly class ForkHandler
         $myPid = getmypid();
 
         $this->eventsBus->processCreated(pid: $myPid);
+
+        // TODO: it doesnt work at hybrid usage
+        $this->processService->registerShutdownFunction(
+            function () use ($myPid) {
+                $this->eventsBus->processFinished(pid: $myPid);
+
+                exit(0);
+            }
+        );
 
         try {
             // TODO: crushing sometimes
@@ -102,9 +113,7 @@ readonly class ForkHandler
                 // no action needed
             }
         } finally {
-            $this->eventsBus->processFinished($myPid);
-
-            posix_kill($myPid, SIGKILL);
+            exit(0);
         }
     }
 }
