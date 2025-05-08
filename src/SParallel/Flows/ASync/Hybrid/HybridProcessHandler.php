@@ -27,7 +27,10 @@ use SParallel\Transport\ResultTransport;
 
 class HybridProcessHandler
 {
-    private ?FlowInterface $flow = null;
+    /**
+     * @var array<int|string, int> $activeTaskPids
+     */
+    protected array $activeTaskPids;
 
     public function __construct(
         protected ContextTransport $contextTransport,
@@ -49,12 +52,16 @@ class HybridProcessHandler
      */
     public function handle(): void
     {
+        $this->activeTaskPids = [];
+
         $myPid = getmypid();
 
         $this->eventsBus->processCreated($myPid);
 
         $exitHandler = function () use ($myPid) {
-            $this->flow?->break();
+            foreach ($this->activeTaskPids as $activeTaskPid) {
+                $this->forkService->finish($activeTaskPid);
+            }
 
             $this->eventsBus->processFinished(pid: $myPid);
 
@@ -110,16 +117,11 @@ class HybridProcessHandler
             data: $socketServer->path
         );
 
-        /**
-         * @var array<int|string, int> $activeTaskPids
-         */
-        $activeTaskPids = [];
-
-        while (count($callbacks) > 0 || count($activeTaskPids) > 0) {
-            $activeTaskKeys = array_keys($activeTaskPids);
+        while (count($callbacks) > 0 || count($this->activeTaskPids) > 0) {
+            $activeTaskKeys = array_keys($this->activeTaskPids);
 
             foreach ($activeTaskKeys as $activeTaskKey) {
-                $taskPid = $activeTaskPids[$activeTaskKey];
+                $taskPid = $this->activeTaskPids[$activeTaskKey];
 
                 if (!$this->forkService->isFinished($taskPid)) {
                     continue;
@@ -127,7 +129,7 @@ class HybridProcessHandler
 
                 $this->forkService->finish($taskPid);
 
-                unset($activeTaskPids[$activeTaskKey]);
+                unset($this->activeTaskPids[$activeTaskKey]);
 
                 $client = $this->socketService->createClient($managerSocketPath);
 
@@ -179,7 +181,7 @@ class HybridProcessHandler
                     callback: $callbacks[$taskKey],
                 );
 
-                $activeTaskPids[$taskKey] = $taskPid;
+                $this->activeTaskPids[$taskKey] = $taskPid;
 
                 unset($callbacks[$taskKey]);
             } else {
