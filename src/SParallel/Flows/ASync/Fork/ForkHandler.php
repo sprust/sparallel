@@ -44,13 +44,14 @@ readonly class ForkHandler
         $this->eventsBus->processCreated(pid: $myPid);
 
         // TODO: it doesnt work at hybrid usage
-        $this->processService->registerShutdownFunction(
-            function () use ($myPid) {
-                $this->eventsBus->processFinished(pid: $myPid);
+        $exitHandler = function () use ($myPid) {
+            $this->eventsBus->processFinished(pid: $myPid);
 
-                exit(0);
-            }
-        );
+            posix_kill($myPid, SIGKILL);
+        };
+
+        $this->processService->registerShutdownFunction($exitHandler);
+        $this->processService->registerExitSignals($exitHandler);
 
         try {
             // TODO: crushing sometimes
@@ -113,7 +114,7 @@ readonly class ForkHandler
                 // no action needed
             }
         } finally {
-            exit(0);
+            posix_kill($myPid, SIGTERM);
         }
     }
 }

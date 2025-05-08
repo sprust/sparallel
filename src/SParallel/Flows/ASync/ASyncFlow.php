@@ -104,6 +104,8 @@ class ASyncFlow implements FlowInterface
                 $task = $this->activeTasks[$taskKey];
 
                 if ($task->isFinished()) {
+                    $task->finish();
+
                     unset($this->activeTasks[$taskKey]);
                 }
             }

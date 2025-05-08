@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Flows\ASync\Hybrid;
 
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\FlowInterface;
 use SParallel\Entities\Timer;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\InvalidValueException;
@@ -21,6 +22,8 @@ use SParallel\Transport\ResultTransport;
 
 class HybridProcessHandler
 {
+    private ?FlowInterface $flow = null;
+
     public function __construct(
         protected ContextTransport $contextTransport,
         protected EventsBusInterface $eventsBus,
@@ -40,17 +43,20 @@ class HybridProcessHandler
      */
     public function handle(): void
     {
-        $pid = getmypid();
+        $myPid = getmypid();
 
-        $this->eventsBus->processCreated($pid);
+        $this->eventsBus->processCreated($myPid);
 
-        $this->processService->registerShutdownFunction(
-            function () use ($pid) {
-                $this->eventsBus->processFinished(pid: $pid);
+        $exitHandler = function () use ($myPid) {
+            $this->flow?->break();
 
-                exit(0);
-            }
-        );
+            $this->eventsBus->processFinished(pid: $myPid);
+
+            exit(0);
+        };
+
+        $this->processService->registerShutdownFunction($exitHandler);
+        $this->processService->registerExitSignals($exitHandler);
 
         $parentSocketPath = $_SERVER[HybridTaskManager::PARAM_PARENT_SOCKET_PATH] ?? null;
 
@@ -89,7 +95,7 @@ class HybridProcessHandler
         $initContext = new Context();
 
         $response = $this->socketService->readSocket(
-            context: $initContext->addChecker(new Timer(timeoutSeconds: 2)),
+            context: $initContext->setChecker(new Timer(timeoutSeconds: 2)),
             socket: $parentSocketClient->socket
         );
 
@@ -102,7 +108,7 @@ class HybridProcessHandler
             $responseData['cbs']
         );
 
-        $flow = $this->flowFactory->create(
+        $this->flow = $this->flowFactory->create(
             callbacks: $callbacks,
             context: $context,
             workersLimit: $workersLimit,
@@ -112,13 +118,13 @@ class HybridProcessHandler
             )
         );
 
-        foreach ($flow->get() as $taskResult) {
+        foreach ($this->flow->get() as $taskResult) {
             $parentSocketClient = $this->socketService->createClient($parentSocketPath);
 
             if ($taskResult->error) {
                 fwrite(STDERR, "$taskResult->taskKey: ERROR: {$taskResult->error->message}\n");
             } else {
-                fwrite(STDOUT, "$taskResult->taskKey: SUCCESS: {$taskResult->error->message}\n");
+                fwrite(STDOUT, "$taskResult->taskKey: SUCCESS\n");
             }
 
             $this->socketService->writeToSocket(
@@ -128,6 +134,6 @@ class HybridProcessHandler
             );
         }
 
-        $flow->break();
+        $this->flow->break();
     }
 }

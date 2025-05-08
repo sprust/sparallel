@@ -120,18 +120,18 @@ class SParallelService
             $context = new Context();
         }
 
-        $context->addChecker(
-            new Timer(
-                timeoutSeconds: $timeoutSeconds
-            )
-        );
+        if (!$context->hasChecker(Timer::class)) {
+            $context->setChecker(
+                new Timer(timeoutSeconds: $timeoutSeconds)
+            );
+        }
 
         $this->eventsBus->flowStarting(
             context: $context
         );
 
         try {
-            $waitGroup = $this->flowFactory->create(
+            $flow = $this->flowFactory->create(
                 callbacks: $callbacks,
                 context: $context,
                 workersLimit: $workersLimit
@@ -139,11 +139,11 @@ class SParallelService
 
             $brokeResult = null;
 
-            foreach ($waitGroup->get() as $result) {
+            foreach ($flow->get() as $result) {
                 $context->check();
 
                 if ($breakAtFirstError && $result->error) {
-                    $waitGroup->break();
+                    $flow->break();
 
                     $brokeResult = $result;
 

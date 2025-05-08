@@ -39,17 +39,18 @@ class ProcessHandler
      */
     public function handle(): void
     {
-        $pid = getmypid();
+        $myPid = getmypid();
 
-        $this->eventsBus->processCreated(pid: $pid);
+        $this->eventsBus->processCreated(pid: $myPid);
 
-        $this->processService->registerShutdownFunction(
-            function () use ($pid) {
-                $this->eventsBus->processFinished(pid: $pid);
+        $exitHandler = function () use ($myPid) {
+            $this->eventsBus->processFinished(pid: $myPid);
 
-                exit(0);
-            }
-        );
+            posix_kill($myPid, SIGKILL);
+        };
+
+        $this->processService->registerShutdownFunction($exitHandler);
+        $this->processService->registerExitSignals($exitHandler);
 
         $this->onHandle();
     }
@@ -81,7 +82,7 @@ class ProcessHandler
         $initContext = new Context();
 
         $this->socketService->writeToSocket(
-            context: $initContext->addChecker(new Timer(timeoutSeconds: 2)),
+            context: $initContext->setChecker(new Timer(timeoutSeconds: 2)),
             socket: $socketClient->socket,
             data: $this->messageTransport->serialize(
                 new Message(
@@ -94,7 +95,7 @@ class ProcessHandler
         $initContext->clear();
 
         $response = $this->socketService->readSocket(
-            context: $initContext->addChecker(new Timer(timeoutSeconds: 2)),
+            context: $initContext->setChecker(new Timer(timeoutSeconds: 2)),
             socket: $socketClient->socket
         );
 
