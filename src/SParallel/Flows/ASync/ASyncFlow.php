@@ -116,7 +116,7 @@ class ASyncFlow implements FlowInterface
                 if ($childClient === false) {
                     $this->context->check();
 
-                    usleep(1000);
+                    usleep(100);
 
                     break;
                 }
