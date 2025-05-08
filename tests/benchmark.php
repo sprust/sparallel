@@ -27,7 +27,17 @@ $callbacks = [
     ...makeCaseThrow(1),
 ];
 
-shuffle($callbacks);
+$keys = array_keys($callbacks);
+
+shuffle($keys);
+
+$shuffled = [];
+
+foreach ($keys as $key) {
+    $shuffled[$key] = $callbacks[$key];
+}
+
+$callbacks = $shuffled;
 
 $callbacksCount = count($callbacks);
 
