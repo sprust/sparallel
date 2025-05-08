@@ -53,9 +53,9 @@ readonly class SocketService
             throw new CouldNotCreateSocketServerException($socketPath);
         }
 
-        socket_bind($socket, $socketPath);
-        socket_listen($socket, SOMAXCONN);
-        socket_set_nonblock($socket);
+        @socket_bind($socket, $socketPath);
+        @socket_listen($socket, SOMAXCONN);
+        @socket_set_nonblock($socket);
 
         return new SocketServer(
             path: $socketPath,

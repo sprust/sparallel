@@ -27,7 +27,11 @@ readonly class TestProcessesRepository
 
     public function deleteByPid(int $pid): void
     {
-        @unlink("$this->dirPath/$pid");
+        $path = "$this->dirPath/$pid";
+
+        if (file_exists($path)) {
+            @unlink($path);
+        }
     }
 
     public function getActiveCount(): int

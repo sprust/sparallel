@@ -43,7 +43,7 @@ readonly class ForkHandler
 
         $this->eventsBus->processCreated(pid: $myPid);
 
-        // TODO: it doesnt work at hybrid usage
+        // TODO: it doesnt work at hybrid usage with 'Allowed memory size' error
         $exitHandler = function () use ($myPid) {
             $this->eventsBus->processFinished(pid: $myPid);
 

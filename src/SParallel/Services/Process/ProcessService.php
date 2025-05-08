@@ -39,6 +39,5 @@ class ProcessService
 
         pcntl_signal(SIGTERM, $callback);
         pcntl_signal(SIGINT, $callback);
-        pcntl_signal(SIGCHLD, $callback);
     }
 }
