@@ -124,6 +124,7 @@ class TestContainer implements ContainerInterface
                 callbackTransport: $this->get(CallbackTransport::class),
                 contextTransport: $this->get(ContextTransport::class),
                 socketService: $this->get(SocketService::class),
+                messageTransport: $this->get(MessageTransport::class),
             ),
 
             MessageTransport::class => fn() => new MessageTransport(
@@ -169,6 +170,7 @@ class TestContainer implements ContainerInterface
                 flowFactory: $this->get(FlowFactory::class),
                 forkTaskManager: $this->get(ForkTaskManager::class),
                 processService: $this->get(ProcessService::class),
+                messageTransport: $this->get(MessageTransport::class),
             ),
 
             SocketService::class => fn() => new SocketService(

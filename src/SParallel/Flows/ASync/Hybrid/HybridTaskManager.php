@@ -8,22 +8,25 @@ use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\TaskInterface;
 use SParallel\Contracts\TaskManagerInterface;
 use SParallel\Entities\SocketServer;
+use SParallel\Enum\MessageOperationTypeEnum;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\ProcessIsNotRunningException;
+use SParallel\Exceptions\UnexpectedTaskOperationException;
+use SParallel\Objects\Message;
 use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
+use SParallel\Transport\MessageTransport;
 use Symfony\Component\Process\Process;
 
 class HybridTaskManager implements TaskManagerInterface
 {
     public const DRIVER_NAME = 'hybrid';
 
-    public const PARAM_PARENT_SOCKET_PATH = 'PARAM_PARENT_SOCKET_PATH';
-    public const PARAM_FLOW_SOCKET_PATH   = 'PARAM_FLOW_SOCKET_PATH';
-    public const PARAM_WORKERS_LIMIT      = 'SPARALLEL_WORKERS_LIMIT';
+    public const PARAM_MANAGER_SOCKET_PATH = 'PARAM_PARENT_SOCKET_PATH';
+    public const PARAM_FLOW_SOCKET_PATH    = 'PARAM_FLOW_SOCKET_PATH';
 
     protected ?Process $process;
 
@@ -33,6 +36,7 @@ class HybridTaskManager implements TaskManagerInterface
     protected array $finishedTaskKeys;
 
     protected SocketServer $socketServer;
+    protected SocketServer $processSocketServer;
 
     public function __construct(
         protected HybridProcessCommandResolverInterface $processCommandResolver,
@@ -40,6 +44,7 @@ class HybridTaskManager implements TaskManagerInterface
         protected CallbackTransport $callbackTransport,
         protected ContextTransport $contextTransport,
         protected SocketService $socketService,
+        protected MessageTransport $messageTransport
     ) {
     }
 
@@ -71,9 +76,8 @@ class HybridTaskManager implements TaskManagerInterface
         $this->process = Process::fromShellCommandline(command: $this->processCommandResolver->get())
             ->setTimeout(null)
             ->setEnv([
-                static::PARAM_PARENT_SOCKET_PATH => $socketPath,
-                static::PARAM_FLOW_SOCKET_PATH   => $socketServer->path,
-                static::PARAM_WORKERS_LIMIT      => $workersLimit,
+                static::PARAM_MANAGER_SOCKET_PATH => $socketPath,
+                static::PARAM_FLOW_SOCKET_PATH    => $socketServer->path,
             ]);
 
         $this->process->start();
@@ -110,14 +114,61 @@ class HybridTaskManager implements TaskManagerInterface
 
             break;
         }
+
+        // get socket server for task messages
+        while (true) {
+            if (!$this->process->isRunning()) {
+                throw new ProcessIsNotRunningException(
+                    pid: $this->process->getPid(),
+                    description: $this->processService->getOutput($this->process)
+                );
+            }
+
+            $processClient = $this->socketService->accept($this->socketServer->socket);
+
+            if ($processClient === false) {
+                $context->check();
+
+                usleep(100);
+
+                continue;
+            }
+
+            $response = $this->socketService->readSocket(
+                context: $context,
+                socket: $processClient,
+            );
+
+            $this->processSocketServer = $this->socketService->createServer(
+                socketPath: $response
+            );
+
+            break;
+        }
     }
 
+    /**
+     * @throws ContextCheckerException
+     */
     public function create(
         Context $context,
         SocketServer $socketServer,
         int|string $key,
         callable $callback
     ): TaskInterface {
+        $client = $this->socketService->createClient($this->processSocketServer->path);
+
+        $this->socketService->writeToSocket(
+            context: $context,
+            socket: $client->socket,
+            data: $this->messageTransport->serialize(
+                new Message(
+                    operation: MessageOperationTypeEnum::TaskStart,
+                    taskKey: $key,
+                )
+            )
+        );
+
         return new HybridTask(
             context: $context,
             pid: mt_rand(),
@@ -146,7 +197,16 @@ class HybridTaskManager implements TaskManagerInterface
                 socket: $client
             );
 
-            $this->finishedTaskKeys[] = unserialize($response);
+            $message = $this->messageTransport->unserialize($response);
+
+            if ($message->operation === MessageOperationTypeEnum::TaskFinished) {
+                $this->finishedTaskKeys[] = $message->taskKey;
+            } else {
+                throw new UnexpectedTaskOperationException(
+                    taskKey: $taskKey,
+                    operation: $message->operation->value,
+                );
+            }
         }
 
         return in_array($taskKey, $this->finishedTaskKeys);

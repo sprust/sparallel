@@ -7,17 +7,22 @@ namespace SParallel\Flows\ASync\Hybrid;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\FlowInterface;
 use SParallel\Entities\Timer;
+use SParallel\Enum\MessageOperationTypeEnum;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\InvalidValueException;
+use SParallel\Exceptions\UnexpectedTaskException;
+use SParallel\Exceptions\UnexpectedTaskOperationException;
 use SParallel\Flows\ASync\Fork\Forker;
 use SParallel\Flows\ASync\Fork\ForkService;
 use SParallel\Flows\ASync\Fork\ForkTaskManager;
 use SParallel\Flows\FlowFactory;
+use SParallel\Objects\Message;
 use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
+use SParallel\Transport\MessageTransport;
 use SParallel\Transport\ResultTransport;
 
 class HybridProcessHandler
@@ -35,6 +40,7 @@ class HybridProcessHandler
         protected FlowFactory $flowFactory,
         protected ForkTaskManager $forkTaskManager,
         protected ProcessService $processService,
+        protected MessageTransport $messageTransport,
     ) {
     }
 
@@ -58,9 +64,9 @@ class HybridProcessHandler
         $this->processService->registerShutdownFunction($exitHandler);
         $this->processService->registerExitSignals($exitHandler);
 
-        $parentSocketPath = $_SERVER[HybridTaskManager::PARAM_PARENT_SOCKET_PATH] ?? null;
+        $managerSocketPath = $_SERVER[HybridTaskManager::PARAM_MANAGER_SOCKET_PATH] ?? null;
 
-        if (!$parentSocketPath || !is_string($parentSocketPath)) {
+        if (!$managerSocketPath || !is_string($managerSocketPath)) {
             throw new InvalidValueException(
                 'Parent socket path is not set or is not a string.'
             );
@@ -74,29 +80,13 @@ class HybridProcessHandler
             );
         }
 
-        $workersLimit = $_SERVER[HybridTaskManager::PARAM_WORKERS_LIMIT] ?? null;
-
-        if (is_null($workersLimit)) {
-            throw new InvalidValueException(
-                'Workers limit is not set.'
-            );
-        }
-
-        if (!is_numeric($workersLimit)) {
-            throw new InvalidValueException(
-                'Workers limit is not a number.'
-            );
-        }
-
-        $workersLimit = (int) $workersLimit;
-
-        $parentSocketClient = $this->socketService->createClient($parentSocketPath);
+        $client = $this->socketService->createClient($managerSocketPath);
 
         $initContext = new Context();
 
         $response = $this->socketService->readSocket(
             context: $initContext->setChecker(new Timer(timeoutSeconds: 2)),
-            socket: $parentSocketClient->socket
+            socket: $client->socket
         );
 
         $responseData = json_decode($response, true);
@@ -108,32 +98,96 @@ class HybridProcessHandler
             $responseData['cbs']
         );
 
-        $this->flow = $this->flowFactory->create(
-            callbacks: $callbacks,
-            context: $context,
-            workersLimit: $workersLimit,
-            taskManager: $this->forkTaskManager,
-            socketServer: $this->socketService->createServer(
-                socketPath: $flowSocketPath,
-            )
+        $socketServer = $this->socketService->createServer(
+            $this->socketService->makeSocketPath()
         );
 
-        foreach ($this->flow->get() as $taskResult) {
-            $parentSocketClient = $this->socketService->createClient($parentSocketPath);
+        $client = $this->socketService->createClient($managerSocketPath);
 
-            if ($taskResult->error) {
-                fwrite(STDERR, "$taskResult->taskKey: ERROR: {$taskResult->error->message}\n");
-            } else {
-                fwrite(STDOUT, "$taskResult->taskKey: SUCCESS\n");
+        $this->socketService->writeToSocket(
+            context: $initContext->setChecker(new Timer(timeoutSeconds: 2)),
+            socket: $client->socket,
+            data: $socketServer->path
+        );
+
+        /**
+         * @var array<int|string, int> $activeTaskPids
+         */
+        $activeTaskPids = [];
+
+        while (count($callbacks) > 0 || count($activeTaskPids) > 0) {
+            $activeTaskKeys = array_keys($activeTaskPids);
+
+            foreach ($activeTaskKeys as $activeTaskKey) {
+                $taskPid = $activeTaskPids[$activeTaskKey];
+
+                if (!$this->forkService->isFinished($taskPid)) {
+                    continue;
+                }
+
+                $this->forkService->finish($taskPid);
+
+                unset($activeTaskPids[$activeTaskKey]);
+
+                $client = $this->socketService->createClient($managerSocketPath);
+
+                $this->socketService->writeToSocket(
+                    context: $context,
+                    socket: $client->socket,
+                    data: $this->messageTransport->serialize(
+                        new Message(
+                            operation: MessageOperationTypeEnum::TaskFinished,
+                            taskKey: $activeTaskKey,
+                        )
+                    )
+                );
             }
 
-            $this->socketService->writeToSocket(
-                context: $context,
-                socket: $parentSocketClient->socket,
-                data: serialize($taskResult->taskKey)
+            $client = $this->socketService->accept(
+                socket: $socketServer->socket
             );
-        }
 
-        $this->flow->break();
+            if ($client === false) {
+                $context->check();
+
+                usleep(100);
+
+                continue;
+            }
+
+            $response = $this->socketService->readSocket(
+                context: $context,
+                socket: $client
+            );
+
+            $message = $this->messageTransport->unserialize($response);
+
+            $taskKey = $message->taskKey;
+
+            if ($message->operation === MessageOperationTypeEnum::TaskStart) {
+                if (!array_key_exists($taskKey, $callbacks)) {
+                    throw new UnexpectedTaskException(
+                        unexpectedTaskKey: $taskKey
+                    );
+                }
+
+                $taskPid = $this->forkExecutor->fork(
+                    context: $context,
+                    driverName: HybridTaskManager::DRIVER_NAME,
+                    socketPath: $flowSocketPath,
+                    taskKey: $taskKey,
+                    callback: $callbacks[$taskKey],
+                );
+
+                $activeTaskPids[$taskKey] = $taskPid;
+
+                unset($callbacks[$taskKey]);
+            } else {
+                throw new UnexpectedTaskOperationException(
+                    taskKey: $taskKey,
+                    operation: $message->operation->value,
+                );
+            }
+        }
     }
 }
