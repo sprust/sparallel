@@ -9,6 +9,7 @@ use SParallel\Flows\ASync\Fork\ForkTaskManager;
 use SParallel\Flows\ASync\Hybrid\HybridTaskManager;
 use SParallel\Flows\ASync\Process\ProcessTaskManager;
 use SParallel\Services\SParallelService;
+use SParallel\TestCases\TestLogger;
 use SParallel\Tests\TestContainer;
 use SParallel\Tests\TestEventsRepository;
 use SParallel\Tests\TestProcessesRepository;
@@ -20,11 +21,11 @@ require_once __DIR__ . '/../vendor/autoload.php';
  * @var array<mixed, Closure> $callbacks
  */
 $callbacks = [
-    // ...makeCaseUnique(1),
-    // ...makeCaseBigResponse(1),
-    ...makeCaseMemoryLimit(1),
-    // ...makeCaseSleep(count: 1, sec: 1),
-    ...makeCaseThrow(1),
+    ...makeCaseUnique(5),
+    //...makeCaseBigResponse(5),
+    //...makeCaseSleep(count: 10, sec: 1),
+    //...makeCaseMemoryLimit(10),
+    //...makeCaseThrow(300),
 ];
 
 $keys = array_keys($callbacks);
@@ -43,8 +44,8 @@ $callbacksCount = count($callbacks);
 
 /** @var array<class-string<\SParallel\Contracts\TaskManagerInterface>> $taskManagerClasses */
 $taskManagerClasses = [
-    // ProcessTaskManager::class,
-    // ForkTaskManager::class,
+    ProcessTaskManager::class,
+    ForkTaskManager::class,
     HybridTaskManager::class,
 ];
 
@@ -108,11 +109,12 @@ foreach ($taskManagerClasses as $taskManagerClass) {
     $executionTime = $end - $start;
 
     $metrics[$taskManagerClass] = [
-        'memory' => memory_get_peak_usage(true) / 1024 / 1024,
+        'memory'         => memory_get_peak_usage(true) / 1024 / 1024,
         'execution_time' => $executionTime,
-        'count' => $counter,
+        'count'          => $counter,
     ];
 }
+//}
 
 echo '------------------------------------------' . PHP_EOL;
 
@@ -137,7 +139,7 @@ function makeCaseUnique(int $count): array
     $result = [];
 
     while ($count--) {
-        $result[__FUNCTION__ . '-' . $count] = static fn() => uniqid(more_entropy: true);
+        $result[__FUNCTION__ . '-' . $count] = static fn() => $count . ': ' . uniqid(more_entropy: true);
     }
 
     return $result;
@@ -151,10 +153,10 @@ function makeCaseBigResponse(int $count): array
     $result = [];
 
     while ($count--) {
-        $result[__FUNCTION__ . '-' . $count] = static fn() => str_repeat(
-            uniqid(more_entropy: true),
-            2000000
-        );
+        $result[__FUNCTION__ . '-' . $count] = static fn() => $count . ': ' . str_repeat(
+                uniqid(more_entropy: true),
+                2000000
+            );
     }
 
     return $result;
@@ -168,10 +170,10 @@ function makeCaseMemoryLimit(int $count): array
     $result = [];
 
     while ($count--) {
-        $result[__FUNCTION__ . '-' . $count] = static fn() => str_repeat(
-            uniqid(more_entropy: true),
-            3000000000
-        );
+        $result[__FUNCTION__ . '-' . $count] = static fn() => $count . ': ' . str_repeat(
+                uniqid(more_entropy: true),
+                3000000000
+            );
     }
 
     return $result;
@@ -185,10 +187,10 @@ function makeCaseSleep(int $count, int $sec): array
     $result = [];
 
     while ($count--) {
-        $result[__FUNCTION__ . '-' . $count] = static function () use ($sec) {
+        $result[__FUNCTION__ . '-' . $count] = static function () use ($count, $sec) {
             sleep($sec);
 
-            return "sleep $sec";
+            return "$count: sleep $sec";
         };
     }
 
@@ -204,7 +206,7 @@ function makeCaseThrow(int $count): array
 
     while ($count--) {
         $result[__FUNCTION__ . '-' . $count] = static fn() => throw new RuntimeException(
-            "exception: $count " . uniqid(more_entropy: true)
+            "$count: exception: " . uniqid(more_entropy: true)
         );
     }
 
