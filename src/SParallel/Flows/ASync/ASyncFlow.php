@@ -10,7 +10,6 @@ use SParallel\Contracts\TaskInterface;
 use SParallel\Contracts\TaskManagerInterface;
 use SParallel\Entities\SocketServer;
 use SParallel\Enum\MessageOperationTypeEnum;
-use SParallel\Exceptions\UnexpectedTaskException;
 use SParallel\Exceptions\UnexpectedTaskOperationException;
 use SParallel\Exceptions\UnexpectedTaskTerminationException;
 use SParallel\Objects\Message;
@@ -35,6 +34,11 @@ class ASyncFlow implements FlowInterface
      * @var array<int|string, TaskInterface>
      */
     protected array $activeTasks;
+
+    /**
+     * @var array<int|string, Message>
+     */
+    protected array $unknownMessages;
 
     /**
      * @var array<int|string>
@@ -67,7 +71,8 @@ class ASyncFlow implements FlowInterface
 
         $this->socketServer = $socketServer;
 
-        $this->activeTasks = [];
+        $this->activeTasks     = [];
+        $this->unknownMessages = [];
 
         $this->remainTaskKeys = array_keys($this->callbacks);
 
@@ -114,9 +119,47 @@ class ASyncFlow implements FlowInterface
             }
 
             while (true) {
+                /**
+                 * @var array{0: Message, 1: TaskInterface} $taskMessages
+                 */
+                $taskMessages = [];
+
+                $unknownMessagesTaskKeys = array_keys($this->unknownMessages);
+
+                foreach ($unknownMessagesTaskKeys as $taskKey) {
+                    if (array_key_exists($taskKey, $currentActiveTasks)) {
+                        $taskMessages[] = [
+                            $this->unknownMessages[$taskKey],
+                            $currentActiveTasks[$taskKey],
+                        ];
+
+                        unset($this->unknownMessages[$taskKey]);
+                    }
+                }
+
                 $childClient = $this->socketService->accept($this->socketServer->socket);
 
-                if ($childClient === false) {
+                if ($childClient !== false) {
+                    $response = $this->socketService->readSocket(
+                        context: $this->context,
+                        socket: $childClient
+                    );
+
+                    $message = $this->messageTransport->unserialize($response);
+
+                    $task = $currentActiveTasks[$message->taskKey] ?? null;
+
+                    if (!$task) {
+                        $this->unknownMessages[$message->taskKey] = $message;
+                    } else {
+                        $taskMessages[] = [
+                            $message,
+                            $task,
+                        ];
+                    }
+                }
+
+                if (!count($taskMessages)) {
                     $this->context->check();
 
                     usleep(100);
@@ -124,47 +167,42 @@ class ASyncFlow implements FlowInterface
                     break;
                 }
 
-                $response = $this->socketService->readSocket(
-                    context: $this->context,
-                    socket: $childClient
-                );
+                foreach ($taskMessages as $taskMessage) {
+                    /** @var Message $message */
+                    $message = $taskMessage[0];
 
-                $message = $this->messageTransport->unserialize($response);
+                    /** @var TaskInterface $task */
+                    $task = $taskMessage[1];
 
-                $task = $currentActiveTasks[$message->taskKey] ?? null;
-
-                if (!$task) {
-                    throw new UnexpectedTaskException($message->taskKey);
-                }
-
-                if ($message->operation === MessageOperationTypeEnum::GetJob) {
-                    $this->socketService->writeToSocket(
-                        context: $this->context,
-                        socket: $childClient,
-                        data: $this->messageTransport->serialize(
-                            new Message(
-                                operation: MessageOperationTypeEnum::Job,
-                                taskKey: $message->taskKey,
-                                serializedContext: $serializedContext,
-                                payload: $this->callbackTransport->serialize(
-                                    callback: $task->getCallback()
+                    if ($message->operation === MessageOperationTypeEnum::GetJob) {
+                        $this->socketService->writeToSocket(
+                            context: $this->context,
+                            socket: $childClient,
+                            data: $this->messageTransport->serialize(
+                                new Message(
+                                    operation: MessageOperationTypeEnum::Job,
+                                    taskKey: $message->taskKey,
+                                    serializedContext: $serializedContext,
+                                    payload: $this->callbackTransport->serialize(
+                                        callback: $task->getCallback()
+                                    )
                                 )
                             )
-                        )
-                    );
-                } elseif ($message->operation === MessageOperationTypeEnum::Response) {
-                    $result = $this->resultTransport->unserialize($message->payload);
+                        );
+                    } elseif ($message->operation === MessageOperationTypeEnum::Response) {
+                        $result = $this->resultTransport->unserialize($message->payload);
 
-                    $this->deleteRemainTaskKeys($result->taskKey);
+                        $this->deleteRemainTaskKeys($result->taskKey);
 
-                    $task->finish();
+                        $task->finish();
 
-                    yield $result;
-                } else {
-                    throw new UnexpectedTaskOperationException(
-                        taskKey: $message->taskKey,
-                        operation: $message->operation->value,
-                    );
+                        yield $result;
+                    } else {
+                        throw new UnexpectedTaskOperationException(
+                            taskKey: $message->taskKey,
+                            operation: $message->operation->value,
+                        );
+                    }
                 }
             }
         }
