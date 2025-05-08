@@ -28,6 +28,13 @@ class ProcessService
         return null;
     }
 
+    public function printOutput(Process $process): void
+    {
+        if ($output = $this->getOutput($process)) {
+            echo "PROCESS OUTPUT {$process->getPid()}:\n$output\n";
+        }
+    }
+
     public function registerShutdownFunction(Closure $callback): void
     {
         register_shutdown_function($callback);

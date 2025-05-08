@@ -260,7 +260,7 @@ class ASyncFlow implements FlowInterface
     {
         $activeTasksCount = count($this->activeTasks);
 
-        if ($activeTasksCount >= $this->workersLimit) {
+        if ($activeTasksCount >= $this->workersLimit || $activeTasksCount >= count($this->remainTaskKeys)) {
             return;
         }
 
