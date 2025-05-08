@@ -78,6 +78,9 @@ class ASyncFlow implements FlowInterface
             socketServer: $socketServer
         );
 
+        // TODO: do pretty
+        $callbacks = [];
+
         $this->shiftWorkers();
 
         return $this;
