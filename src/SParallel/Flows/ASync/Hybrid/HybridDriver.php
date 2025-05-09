@@ -89,9 +89,9 @@ class HybridDriver implements DriverInterface
         while (true) {
             $this->checkProcess();
 
-            $processClient = $this->socketService->accept($this->socketServer->socket);
+            $client = $this->socketService->accept($this->socketServer->socket);
 
-            if ($processClient === false) {
+            if ($client === false) {
                 $context->check();
 
                 usleep(100);
@@ -106,9 +106,11 @@ class HybridDriver implements DriverInterface
 
             $this->socketService->writeToSocket(
                 context: $context,
-                socket: $processClient,
+                socket: $client,
                 data: $data
             );
+
+            unset($client);
 
             break;
         }
@@ -117,9 +119,9 @@ class HybridDriver implements DriverInterface
         while (true) {
             $this->checkProcess();
 
-            $processClient = $this->socketService->accept($this->socketServer->socket);
+            $client = $this->socketService->accept($this->socketServer->socket);
 
-            if ($processClient === false) {
+            if ($client === false) {
                 $context->check();
 
                 usleep(100);
@@ -129,8 +131,10 @@ class HybridDriver implements DriverInterface
 
             $response = $this->socketService->readSocket(
                 context: $context,
-                socket: $processClient,
+                socket: $client,
             );
+
+            unset($client);
 
             $this->processSocketServer = $this->socketService->createServer(
                 socketPath: $response
@@ -189,6 +193,8 @@ class HybridDriver implements DriverInterface
                 context: $context,
                 socket: $client
             );
+
+            unset($client);
 
             $message = $this->messageTransport->unserialize($response);
 

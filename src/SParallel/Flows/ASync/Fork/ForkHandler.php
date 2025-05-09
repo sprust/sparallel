@@ -9,6 +9,7 @@ use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Enum\MessageOperationTypeEnum;
 use SParallel\Exceptions\ContextCheckerException;
+use SParallel\Exceptions\CouldNotOpenDevNullException;
 use SParallel\Objects\Message;
 use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
@@ -54,16 +55,16 @@ readonly class ForkHandler
         $this->processService->registerExitSignals($exitHandler);
 
         try {
-            // TODO: crushing sometimes
-            //$stdout = fopen('/dev/null', 'w');
-            //
-            //if ($stdout === false) {
-            //    throw new CouldNotOpenDevNullException();
-            //}
-            //
-            //fclose(STDOUT);
-            //
-            //$GLOBALS['STDOUT'] = $stdout;
+            // TODO: WARNING: crushing sometimes
+            $stdout = fopen('/dev/null', 'w');
+
+            if ($stdout === false) {
+                throw new CouldNotOpenDevNullException();
+            }
+
+            fclose(STDOUT);
+
+            $GLOBALS['STDOUT'] = $stdout;
 
             $this->eventsBus->taskStarting(
                 driverName: $driverName,
@@ -96,12 +97,12 @@ readonly class ForkHandler
                 );
             }
 
-            $socketClient = $this->socketService->createClient($socketPath);
+            $client = $this->socketService->createClient($socketPath);
 
             try {
                 $this->socketService->writeToSocket(
                     context: $context,
-                    socket: $socketClient->socket,
+                    socket: $client->socket,
                     data: $this->messageTransport->serialize(
                         new Message(
                             operation: MessageOperationTypeEnum::Response,
@@ -113,6 +114,8 @@ readonly class ForkHandler
             } catch (ContextCheckerException) {
                 // no action needed
             }
+
+            unset($client);
         } finally {
             posix_kill($myPid, SIGTERM);
         }

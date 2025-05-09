@@ -5,16 +5,15 @@ declare(strict_types=1);
 namespace SParallel\Flows\ASync\Hybrid;
 
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\FlowInterface;
 use SParallel\Entities\Timer;
 use SParallel\Enum\MessageOperationTypeEnum;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\InvalidValueException;
 use SParallel\Exceptions\UnexpectedTaskException;
 use SParallel\Exceptions\UnexpectedTaskOperationException;
+use SParallel\Flows\ASync\Fork\ForkDriver;
 use SParallel\Flows\ASync\Fork\Forker;
 use SParallel\Flows\ASync\Fork\ForkService;
-use SParallel\Flows\ASync\Fork\ForkDriver;
 use SParallel\Flows\FlowFactory;
 use SParallel\Objects\Message;
 use SParallel\Services\Context;
@@ -96,6 +95,8 @@ class HybridProcessHandler
             socket: $client->socket
         );
 
+        unset($client);
+
         $responseData = json_decode($response, true);
 
         $context = $this->contextTransport->unserialize($responseData['ctx']);
@@ -116,6 +117,8 @@ class HybridProcessHandler
             socket: $client->socket,
             data: $socketServer->path
         );
+
+        unset($client);
 
         while (count($callbacks) > 0 || count($this->activeTaskPids) > 0) {
             $activeTaskKeys = array_keys($this->activeTaskPids);
@@ -143,6 +146,8 @@ class HybridProcessHandler
                         )
                     )
                 );
+
+                unset($client);
             }
 
             $client = $this->socketService->accept(
@@ -161,6 +166,8 @@ class HybridProcessHandler
                 context: $context,
                 socket: $client
             );
+
+            unset($client);
 
             $message = $this->messageTransport->unserialize($response);
 
