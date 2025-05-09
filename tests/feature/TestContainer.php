@@ -6,34 +6,23 @@ namespace SParallel\Tests;
 
 use Closure;
 use Psr\Container\ContainerInterface;
+use ReflectionClass;
+use ReflectionException;
 use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
+use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\FlowInterface;
 use SParallel\Contracts\ForkStarterInterface;
 use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\SerializerInterface;
-use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Flows\ASync\ASyncFlow;
-use SParallel\Flows\ASync\Fork\Forker;
 use SParallel\Flows\ASync\Fork\ForkHandler;
-use SParallel\Flows\ASync\Fork\ForkService;
-use SParallel\Flows\ASync\Fork\ForkDriver;
-use SParallel\Flows\ASync\Hybrid\HybridProcessHandler;
-use SParallel\Flows\ASync\Hybrid\HybridDriver;
-use SParallel\Flows\ASync\Process\ProcessHandler;
-use SParallel\Flows\ASync\Process\ProcessDriver;
-use SParallel\Flows\FlowFactory;
 use SParallel\Flows\DriverFactory;
 use SParallel\Services\Callback\CallbackCaller;
-use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
-use SParallel\Services\SParallelService;
-use SParallel\Transport\CallbackTransport;
-use SParallel\Transport\ContextTransport;
-use SParallel\Transport\MessageTransport;
 use SParallel\Transport\OpisSerializer;
-use SParallel\Transport\ResultTransport;
 
 class TestContainer implements ContainerInterface
 {
@@ -57,24 +46,7 @@ class TestContainer implements ContainerInterface
     private function __construct()
     {
         $this->resolvers = [
-            SParallelService::class => fn() => new SParallelService(
-                eventsBus: $this->get(EventsBusInterface::class),
-                flowFactory: $this->get(FlowFactory::class)
-            ),
-
             SerializerInterface::class => fn() => new OpisSerializer(),
-
-            ContextTransport::class => fn() => new ContextTransport(
-                serializer: $this->get(SerializerInterface::class)
-            ),
-
-            ResultTransport::class => fn() => new ResultTransport(
-                serializer: $this->get(SerializerInterface::class)
-            ),
-
-            CallbackTransport::class => fn() => new CallbackTransport(
-                serializer: $this->get(SerializerInterface::class)
-            ),
 
             CallbackCallerInterface::class => fn() => new CallbackCaller(
                 container: $this
@@ -85,21 +57,6 @@ class TestContainer implements ContainerInterface
                 eventsRepository: $this->get(TestEventsRepository::class),
             ),
 
-            ProcessService::class => fn() => new ProcessService(),
-
-            TestProcessesRepository::class   => fn() => new TestProcessesRepository(),
-            TestSocketFilesRepository::class => fn() => new TestSocketFilesRepository(),
-            TestEventsRepository::class      => fn() => new TestEventsRepository(),
-
-            ForkHandler::class => fn() => new ForkHandler(
-                resultTransport: $this->get(ResultTransport::class),
-                socketService: $this->get(SocketService::class),
-                callbackCaller: $this->get(CallbackCallerInterface::class),
-                eventsBus: $this->get(EventsBusInterface::class),
-                messageTransport: $this->get(MessageTransport::class),
-                processService: $this->get(ProcessService::class),
-            ),
-
             ForkStarterInterface::class => fn() => new TestForkStarter(
                 forkHandler: $this->get(ForkHandler::class)
             ),
@@ -108,85 +65,15 @@ class TestContainer implements ContainerInterface
                 container: $this,
             ),
 
-            ProcessDriver::class => fn() => new ProcessDriver(
-                processCommandResolver: $this->get(ProcessCommandResolverInterface::class),
-                processService: $this->get(ProcessService::class),
-            ),
-
-            ForkDriver::class => fn() => new ForkDriver(
-                forker: $this->get(Forker::class),
-                forkService: $this->get(ForkService::class),
-            ),
-
-            HybridDriver::class => fn() => new HybridDriver(
-                processCommandResolver: $this->get(HybridProcessCommandResolverInterface::class),
-                processService: $this->get(ProcessService::class),
-                callbackTransport: $this->get(CallbackTransport::class),
-                contextTransport: $this->get(ContextTransport::class),
-                socketService: $this->get(SocketService::class),
-                messageTransport: $this->get(MessageTransport::class),
-            ),
-
-            MessageTransport::class => fn() => new MessageTransport(
-                serializer: $this->get(SerializerInterface::class)
-            ),
-
-            FlowFactory::class => fn() => new FlowFactory(
-                socketService: $this->get(SocketService::class),
-                driverFactory: $this->get(DriverFactoryInterface::class),
-                flow: $this->get(ASyncFlow::class),
-            ),
-
-            ASyncFlow::class => fn() => new AsyncFlow(
-                socketService: $this->get(SocketService::class),
-                contextTransport: $this->get(ContextTransport::class),
-                callbackTransport: $this->get(CallbackTransport::class),
-                resultTransport: $this->get(ResultTransport::class),
-                messageTransport: $this->get(MessageTransport::class),
-            ),
-
             ProcessCommandResolverInterface::class => fn() => new ProcessCommandResolver(),
 
             HybridProcessCommandResolverInterface::class => fn() => new HybridProcessCommandResolver(),
-
-            Forker::class => fn() => new Forker(
-                resultTransport: $this->get(ResultTransport::class),
-                socketService: $this->get(SocketService::class),
-                callbackCaller: $this->get(CallbackCallerInterface::class),
-                eventsBus: $this->get(EventsBusInterface::class),
-                forkStarter: $this->get(ForkStarterInterface::class),
-            ),
-
-            ForkService::class => fn() => new ForkService(),
-
-            HybridProcessHandler::class => fn() => new HybridProcessHandler(
-                contextTransport: $this->get(ContextTransport::class),
-                eventsBus: $this->get(EventsBusInterface::class),
-                callbackTransport: $this->get(CallbackTransport::class),
-                resultTransport: $this->get(ResultTransport::class),
-                socketService: $this->get(SocketService::class),
-                forkExecutor: $this->get(Forker::class),
-                forkService: $this->get(ForkService::class),
-                flowFactory: $this->get(FlowFactory::class),
-                forkDriver: $this->get(ForkDriver::class),
-                processService: $this->get(ProcessService::class),
-                messageTransport: $this->get(MessageTransport::class),
-            ),
 
             SocketService::class => fn() => new SocketService(
                 socketPathDirectory: __DIR__ . '/../storage/sockets',
             ),
 
-            ProcessHandler::class => fn() => new ProcessHandler(
-                socketService: $this->get(SocketService::class),
-                messageTransport: $this->get(MessageTransport::class),
-                callbackTransport: $this->get(CallbackTransport::class),
-                contextTransport: $this->get(ContextTransport::class),
-                callbackCaller: $this->get(CallbackCallerInterface::class),
-                resultTransport: $this->get(ResultTransport::class),
-                eventsBus: $this->get(EventsBusInterface::class),
-                processService: $this->get(ProcessService::class),
-            ),
+            FlowInterface::class => fn() => $this->get(ASyncFlow::class),
         ];
     }
 
@@ -199,11 +86,54 @@ class TestContainer implements ContainerInterface
      */
     public function get(string $id)
     {
-        if (!$this->has($id)) {
+        if ($this->has($id)) {
+            return self::$cache[$id] ??= $this->resolvers[$id]();
+        }
+
+        if (interface_exists($id)) {
             throw new RuntimeException("No entry found for $id");
         }
 
-        return self::$cache[$id] ??= $this->resolvers[$id]();
+        if (!class_exists($id)) {
+            throw new RuntimeException("Class [$id] not found");
+        }
+
+        try {
+            $reflection = new ReflectionClass($id);
+
+            if (!$reflection->isInstantiable()) {
+                throw new RuntimeException("Class [$id] is not instantiable");
+            }
+
+            $constructor = $reflection->getConstructor();
+
+            if (is_null($constructor) || $constructor->getNumberOfParameters() === 0) {
+                return self::$cache[$id] ??= $reflection->newInstance();
+            }
+
+            $params = [];
+
+            foreach ($constructor->getParameters() as $param) {
+                $type = $param->getType();
+
+                $isDefaultValueAvailable = $param->isDefaultValueAvailable();
+
+                if ($type && !$isDefaultValueAvailable && !$type->isBuiltin()) {
+                    $params[] = $this->get($type->getName());
+                } elseif ($isDefaultValueAvailable) {
+                    $params[] = $param->getDefaultValue();
+                } else {
+                    throw new RuntimeException("Cannot resolve parameter \${$param->getName()} for [$id]");
+                }
+            }
+
+            return self::$cache[$id] ??= $reflection->newInstanceArgs($params);
+        } catch (ReflectionException $exception) {
+            throw new RuntimeException(
+                message: "Failed to instantiate [$id]: " . $exception->getMessage(),
+                previous: $exception
+            );
+        }
     }
 
     /**
