@@ -6,6 +6,7 @@ namespace SParallel\Tests;
 
 use Closure;
 use Psr\Container\ContainerInterface;
+use Psr\Log\LoggerInterface;
 use ReflectionClass;
 use ReflectionException;
 use RuntimeException;
@@ -18,7 +19,6 @@ use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Flows\ASync\ASyncFlow;
-use SParallel\Flows\ASync\Fork\ForkHandler;
 use SParallel\Flows\DriverFactory;
 use SParallel\Services\Callback\CallbackCaller;
 use SParallel\Services\Socket\SocketService;
@@ -46,34 +46,21 @@ class TestContainer implements ContainerInterface
     private function __construct()
     {
         $this->resolvers = [
-            SerializerInterface::class => fn() => new OpisSerializer(),
+            ContainerInterface::class => fn() => $this,
 
-            CallbackCallerInterface::class => fn() => new CallbackCaller(
-                container: $this
-            ),
-
-            EventsBusInterface::class => fn() => new TestEventsBus(
-                processesRepository: $this->get(TestProcessesRepository::class),
-                eventsRepository: $this->get(TestEventsRepository::class),
-            ),
-
-            ForkStarterInterface::class => fn() => new TestForkStarter(
-                forkHandler: $this->get(ForkHandler::class)
-            ),
-
-            DriverFactoryInterface::class => fn() => new DriverFactory(
-                container: $this,
-            ),
-
-            ProcessCommandResolverInterface::class => fn() => new ProcessCommandResolver(),
-
-            HybridProcessCommandResolverInterface::class => fn() => new HybridProcessCommandResolver(),
+            SerializerInterface::class                   => fn() => $this->get(OpisSerializer::class),
+            CallbackCallerInterface::class               => fn() => $this->get(CallbackCaller::class),
+            EventsBusInterface::class                    => fn() => $this->get(TestEventsBus::class),
+            ForkStarterInterface::class                  => fn() => $this->get(TestForkStarter::class),
+            DriverFactoryInterface::class                => fn() => $this->get(DriverFactory::class),
+            FlowInterface::class                         => fn() => $this->get(ASyncFlow::class),
+            LoggerInterface::class                       => fn() => $this->get(TestLogger::class),
+            ProcessCommandResolverInterface::class       => fn() => $this->get(ProcessCommandResolver::class),
+            HybridProcessCommandResolverInterface::class => fn() => $this->get(HybridProcessCommandResolver::class),
 
             SocketService::class => fn() => new SocketService(
                 socketPathDirectory: __DIR__ . '/../storage/sockets',
             ),
-
-            FlowInterface::class => fn() => $this->get(ASyncFlow::class),
         ];
     }
 
