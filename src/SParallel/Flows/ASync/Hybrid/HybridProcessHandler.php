@@ -83,7 +83,8 @@ class HybridProcessHandler
             exit(0);
         };
 
-        $this->processService->registerShutdownFunction($exitHandler);
+        // TODO: i cant redefine this in fork
+        //$this->processService->registerShutdownFunction($exitHandler);
         $this->processService->registerExitSignals($exitHandler);
 
         $driverSocketPath = $_SERVER[HybridDriver::PARAM_DRIVER_SOCKET_PATH] ?? null;
@@ -256,5 +257,14 @@ class HybridProcessHandler
                 );
             }
         }
+
+        $this->forkService->waitAllChildren();
+
+        $this->logger->debug(
+            sprintf(
+                "hybrid handler finished [hPid: %s]",
+                $myPid
+            )
+        );
     }
 }

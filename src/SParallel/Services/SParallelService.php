@@ -161,7 +161,8 @@ class SParallelService
         } catch (ContextCheckerException $exception) {
             $this->logger->error(
                 sprintf(
-                    "service got context checker exception\n%s",
+                    "service got context checker exception: %s\n%s",
+                    $exception->getMessage(),
                     $exception
                 )
             );
@@ -175,7 +176,8 @@ class SParallelService
         } catch (Throwable $exception) {
             $this->logger->error(
                 sprintf(
-                    "service got exception\n%s",
+                    "service got exception: %s\n%s",
+                    $exception->getMessage(),
                     $exception
                 )
             );

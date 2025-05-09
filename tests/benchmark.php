@@ -25,7 +25,7 @@ $callbacks = [
     ...makeCaseUnique(5),
     ...makeCaseBigResponse(5),
     ...makeCaseSleep(count: 5, sec: 1),
-    //...makeCaseMemoryLimit(5), // TODO: problem with hybrid driver
+    ...makeCaseMemoryLimit(5),
     ...makeCaseThrow(5),
 ];
 
@@ -37,7 +37,7 @@ $driverClasses = [
 ];
 
 $timeoutSeconds = 5;
-$workersLimit   = 0;
+$workersLimit   = 10;
 
 $keys = array_keys($callbacks);
 

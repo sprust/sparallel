@@ -21,6 +21,13 @@ readonly class ForkService
         return false;
     }
 
+    public function waitAllChildren(): void
+    {
+        while (pcntl_waitpid(0, $status) != -1) {
+            // just wait
+        }
+    }
+
     public function finish(int $pid): void
     {
         posix_kill($pid, SIGTERM);

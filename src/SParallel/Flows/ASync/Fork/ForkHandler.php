@@ -61,11 +61,11 @@ readonly class ForkHandler
             if ($lastError = error_get_last()) {
                 $this->logger->error(
                     sprintf(
-                        "fork got error in closing handler [fPid: %d]\n%s:%s\n%s",
+                        "fork got error in closing handler [fPid: %d]: %s\n%s:%s",
                         $myPid,
+                        $lastError['message'],
                         $lastError['file'],
                         $lastError['line'],
-                        $lastError['message'],
                     )
                 );
             }
@@ -119,9 +119,10 @@ readonly class ForkHandler
             } catch (Throwable $exception) {
                 $this->logger->error(
                     sprintf(
-                        "fork got error at handling [fPid: %d, tKey: %s]\n%s",
+                        "fork got error at handling [fPid: %d, tKey: %s]: %s\n%s",
                         $myPid,
                         $taskKey,
+                        $exception->getMessage(),
                         $exception
                     )
                 );
@@ -168,9 +169,10 @@ readonly class ForkHandler
             } catch (ContextCheckerException $exception) {
                 $this->logger->error(
                     sprintf(
-                        "fork got error at answering to flow [fPid: %d, tKey: %s]\n%s",
+                        "fork got error at answering to flow [fPid: %d, tKey: %s]: %s\n%s",
                         $myPid,
                         $taskKey,
+                        $exception->getMessage(),
                         $exception
                     )
                 );

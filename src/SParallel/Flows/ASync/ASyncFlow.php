@@ -126,6 +126,14 @@ class ASyncFlow implements FlowInterface
                     $task->finish();
 
                     unset($this->activeTasks[$taskKey]);
+
+                    $this->logger->debug(
+                        sprintf(
+                            "async flow deleted task from active [tKey: %s, tPid: %d]",
+                            $task->getKey(),
+                            $task->getPid()
+                        )
+                    );
                 }
             }
 
