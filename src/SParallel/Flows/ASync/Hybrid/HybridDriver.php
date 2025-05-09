@@ -7,7 +7,7 @@ namespace SParallel\Flows\ASync\Hybrid;
 use Closure;
 use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\TaskInterface;
-use SParallel\Contracts\TaskManagerInterface;
+use SParallel\Contracts\DriverInterface;
 use SParallel\Entities\SocketServer;
 use SParallel\Enum\MessageOperationTypeEnum;
 use SParallel\Exceptions\ContextCheckerException;
@@ -22,12 +22,12 @@ use SParallel\Transport\ContextTransport;
 use SParallel\Transport\MessageTransport;
 use Symfony\Component\Process\Process;
 
-class HybridTaskManager implements TaskManagerInterface
+class HybridDriver implements DriverInterface
 {
     public const DRIVER_NAME = 'hybrid';
 
-    public const PARAM_MANAGER_SOCKET_PATH = 'PARAM_PARENT_SOCKET_PATH';
-    public const PARAM_FLOW_SOCKET_PATH    = 'PARAM_FLOW_SOCKET_PATH';
+    public const PARAM_DRIVER_SOCKET_PATH = 'SPARALLEL_DRIVER_SOCKET_PATH';
+    public const PARAM_FLOW_SOCKET_PATH   = 'SPARALLEL_FLOW_SOCKET_PATH';
 
     protected ?Process $process;
 
@@ -79,8 +79,8 @@ class HybridTaskManager implements TaskManagerInterface
         $this->process = Process::fromShellCommandline(command: $this->processCommandResolver->get())
             ->setTimeout(null)
             ->setEnv([
-                static::PARAM_MANAGER_SOCKET_PATH => $socketPath,
-                static::PARAM_FLOW_SOCKET_PATH    => $socketServer->path,
+                static::PARAM_DRIVER_SOCKET_PATH => $socketPath,
+                static::PARAM_FLOW_SOCKET_PATH   => $socketServer->path,
             ]);
 
         $this->process->start();
@@ -169,7 +169,7 @@ class HybridTaskManager implements TaskManagerInterface
             callback: $callback,
             process: $this->process,
             processService: $this->processService,
-            hybridTaskManager: $this
+            hybridDriver: $this
         );
     }
 

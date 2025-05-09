@@ -8,7 +8,7 @@ use Closure;
 use SParallel\Entities\SocketServer;
 use SParallel\Services\Context;
 
-interface TaskManagerInterface
+interface DriverInterface
 {
     /**
      * @param array<int|string, Closure> $callbacks

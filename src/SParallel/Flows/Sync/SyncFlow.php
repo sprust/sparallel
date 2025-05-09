@@ -9,7 +9,7 @@ use Generator;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\FlowInterface;
-use SParallel\Contracts\TaskManagerInterface;
+use SParallel\Contracts\DriverInterface;
 use SParallel\Entities\SocketServer;
 use SParallel\Objects\TaskResult;
 use SParallel\Services\Context;
@@ -34,7 +34,7 @@ class SyncFlow implements FlowInterface
 
     public function start(
         Context $context,
-        TaskManagerInterface $taskManager,
+        DriverInterface $driver,
         array &$callbacks,
         int $workersLimit,
         SocketServer $socketServer

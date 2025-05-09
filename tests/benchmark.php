@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 ini_set('memory_limit', '1G');
 
-use SParallel\Contracts\TaskManagerFactoryInterface;
-use SParallel\Contracts\TaskManagerInterface;
-use SParallel\Flows\ASync\Fork\ForkTaskManager;
-use SParallel\Flows\ASync\Hybrid\HybridTaskManager;
-use SParallel\Flows\ASync\Process\ProcessTaskManager;
+use SParallel\Contracts\DriverFactoryInterface;
+use SParallel\Contracts\DriverInterface;
+use SParallel\Flows\ASync\Fork\ForkDriver;
+use SParallel\Flows\ASync\Hybrid\HybridDriver;
+use SParallel\Flows\ASync\Process\ProcessDriver;
 use SParallel\Services\SParallelService;
 use SParallel\Tests\TestContainer;
 use SParallel\Tests\TestEventsRepository;
@@ -21,11 +21,11 @@ require_once __DIR__ . '/../vendor/autoload.php';
  * @var array<mixed, Closure> $callbacks
  */
 $callbacks = [
-    ...makeCaseUnique(5),
-    ...makeCaseBigResponse(5),
-    ...makeCaseSleep(count: 5, sec: 1),
-    ...makeCaseMemoryLimit(5),
-    ...makeCaseThrow(5),
+    //...makeCaseUnique(5),
+    //...makeCaseBigResponse(5),
+    //...makeCaseSleep(count: 5, sec: 1),
+    ...makeCaseMemoryLimit(50),
+    //...makeCaseThrow(5),
 ];
 
 $keys = array_keys($callbacks);
@@ -42,11 +42,11 @@ $callbacks = $shuffled;
 
 $callbacksCount = count($callbacks);
 
-/** @var array<class-string<TaskManagerInterface>> $taskManagerClasses */
-$taskManagerClasses = [
-    ProcessTaskManager::class,
-    ForkTaskManager::class,
-    HybridTaskManager::class,
+/** @var array<class-string<DriverInterface>> $driverClasses */
+$driverClasses = [
+    //ProcessDriver::class,
+    //ForkDriver::class,
+    HybridDriver::class,
 ];
 
 $metrics = [];
@@ -57,17 +57,17 @@ $container->get(TestProcessesRepository::class)->flush();
 $container->get(TestSocketFilesRepository::class)->flush();
 $container->get(TestEventsRepository::class)->flush();
 
-foreach ($taskManagerClasses as $taskManagerClass) {
+foreach ($driverClasses as $driverClass) {
     echo '------------------------------------------' . PHP_EOL;
-    echo 'Driver: ' . $taskManagerClass . PHP_EOL;
+    echo 'Driver: ' . $driverClass . PHP_EOL;
     echo '------------------------------------------' . PHP_EOL;
 
     $start = microtime(true);
 
     $clonedCallbacks = array_merge($callbacks);
 
-    $container->get(TaskManagerFactoryInterface::class)->forceDriver(
-        $container->get($taskManagerClass),
+    $container->get(DriverFactoryInterface::class)->forceDriver(
+        $container->get($driverClass),
     );
 
     $service = $container->get(SParallelService::class);
@@ -110,7 +110,7 @@ foreach ($taskManagerClasses as $taskManagerClass) {
 
     $executionTime = $end - $start;
 
-    $metrics[$taskManagerClass] = [
+    $metrics[$driverClass] = [
         'memory'         => memory_get_peak_usage(true) / 1024 / 1024,
         'execution_time' => $executionTime,
         'count'          => $counter,
@@ -120,10 +120,10 @@ foreach ($taskManagerClasses as $taskManagerClass) {
 
 echo '------------------------------------------' . PHP_EOL;
 
-foreach ($metrics as $taskManagerClass => $metric) {
+foreach ($metrics as $driverClass => $metric) {
     echo sprintf(
             "%s\tmemPeak:%f\ttime:%f\tcount:%d/%d",
-            $taskManagerClass,
+            $driverClass,
             $metric['memory'],
             $metric['execution_time'],
             $metric['count'],

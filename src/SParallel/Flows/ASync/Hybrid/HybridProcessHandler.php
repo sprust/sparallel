@@ -14,7 +14,7 @@ use SParallel\Exceptions\UnexpectedTaskException;
 use SParallel\Exceptions\UnexpectedTaskOperationException;
 use SParallel\Flows\ASync\Fork\Forker;
 use SParallel\Flows\ASync\Fork\ForkService;
-use SParallel\Flows\ASync\Fork\ForkTaskManager;
+use SParallel\Flows\ASync\Fork\ForkDriver;
 use SParallel\Flows\FlowFactory;
 use SParallel\Objects\Message;
 use SParallel\Services\Context;
@@ -41,7 +41,7 @@ class HybridProcessHandler
         protected Forker $forkExecutor,
         protected ForkService $forkService,
         protected FlowFactory $flowFactory,
-        protected ForkTaskManager $forkTaskManager,
+        protected ForkDriver $forkDriver,
         protected ProcessService $processService,
         protected MessageTransport $messageTransport,
     ) {
@@ -71,15 +71,15 @@ class HybridProcessHandler
         $this->processService->registerShutdownFunction($exitHandler);
         $this->processService->registerExitSignals($exitHandler);
 
-        $managerSocketPath = $_SERVER[HybridTaskManager::PARAM_MANAGER_SOCKET_PATH] ?? null;
+        $driverSocketPath = $_SERVER[HybridDriver::PARAM_DRIVER_SOCKET_PATH] ?? null;
 
-        if (!$managerSocketPath || !is_string($managerSocketPath)) {
+        if (!$driverSocketPath || !is_string($driverSocketPath)) {
             throw new InvalidValueException(
-                'Parent socket path is not set or is not a string.'
+                'Driver socket path is not set or is not a string.'
             );
         }
 
-        $flowSocketPath = $_SERVER[HybridTaskManager::PARAM_FLOW_SOCKET_PATH] ?? null;
+        $flowSocketPath = $_SERVER[HybridDriver::PARAM_FLOW_SOCKET_PATH] ?? null;
 
         if (!$flowSocketPath || !is_string($flowSocketPath)) {
             throw new InvalidValueException(
@@ -87,7 +87,7 @@ class HybridProcessHandler
             );
         }
 
-        $client = $this->socketService->createClient($managerSocketPath);
+        $client = $this->socketService->createClient($driverSocketPath);
 
         $initContext = new Context();
 
@@ -109,7 +109,7 @@ class HybridProcessHandler
             $this->socketService->makeSocketPath()
         );
 
-        $client = $this->socketService->createClient($managerSocketPath);
+        $client = $this->socketService->createClient($driverSocketPath);
 
         $this->socketService->writeToSocket(
             context: $initContext->setChecker(new Timer(timeoutSeconds: 2)),
@@ -131,7 +131,7 @@ class HybridProcessHandler
 
                 unset($this->activeTaskPids[$activeTaskKey]);
 
-                $client = $this->socketService->createClient($managerSocketPath);
+                $client = $this->socketService->createClient($driverSocketPath);
 
                 $this->socketService->writeToSocket(
                     context: $context,
@@ -175,7 +175,7 @@ class HybridProcessHandler
 
                 $taskPid = $this->forkExecutor->fork(
                     context: $context,
-                    driverName: HybridTaskManager::DRIVER_NAME,
+                    driverName: HybridDriver::DRIVER_NAME,
                     socketPath: $flowSocketPath,
                     taskKey: $taskKey,
                     callback: $callbacks[$taskKey],

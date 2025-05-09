@@ -18,7 +18,7 @@ interface FlowInterface
      */
     public function start(
         Context $context,
-        TaskManagerInterface $taskManager,
+        DriverInterface $driver,
         array &$callbacks,
         int $workersLimit,
         SocketServer $socketServer

@@ -7,13 +7,13 @@ namespace SParallel\Flows\ASync\Process;
 use Closure;
 use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\TaskInterface;
-use SParallel\Contracts\TaskManagerInterface;
+use SParallel\Contracts\DriverInterface;
 use SParallel\Entities\SocketServer;
 use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use Symfony\Component\Process\Process;
 
-class ProcessTaskManager implements TaskManagerInterface
+class ProcessDriver implements DriverInterface
 {
     public const DRIVER_NAME = 'process';
 
@@ -47,8 +47,8 @@ class ProcessTaskManager implements TaskManagerInterface
         $process = Process::fromShellCommandline(command: $this->command)
             ->setTimeout(null)
             ->setEnv([
-                ProcessTaskManager::PARAM_TASK_KEY    => serialize($key),
-                ProcessTaskManager::PARAM_SOCKET_PATH => $socketServer->path,
+                ProcessDriver::PARAM_TASK_KEY    => serialize($key),
+                ProcessDriver::PARAM_SOCKET_PATH => $socketServer->path,
             ]);
 
         $process->start();

@@ -10,11 +10,10 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Drivers\Fork\ForkDriver;
-use SParallel\Drivers\Hybrid\HybridDriver;
-use SParallel\Drivers\Process\ProcessDriver;
-use SParallel\Drivers\Sync\SyncDriver;
-use SParallel\Exceptions\ContextCheckerException;
+use SParallel\Flows\ASync\Fork\ForkDriver;
+use SParallel\Flows\ASync\Hybrid\HybridDriver;
+use SParallel\Flows\ASync\Process\ProcessDriver;
+use SParallel\Flows\DriverFactory;
 use SParallel\Services\Context;
 use SParallel\Services\SParallelService;
 use SParallel\TestCases\SParallelServiceTestCasesTrait;
@@ -389,10 +388,10 @@ class SParallelServiceTest extends TestCase
 
     private function makeServiceByDriver(DriverInterface $driver): SParallelService
     {
-        return new SParallelService(
-            driver: $driver,
-            eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
-        );
+        TestContainer::resolve()->get(DriverFactory::class)
+            ->forceDriver($driver);
+
+        return TestContainer::resolve()->get(SParallelService::class);
     }
 
     private function assertActiveProcessesCount(int $expectedCount): void

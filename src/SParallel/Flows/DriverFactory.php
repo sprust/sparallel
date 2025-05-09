@@ -7,42 +7,42 @@ namespace SParallel\Flows;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
-use SParallel\Contracts\TaskManagerFactoryInterface;
-use SParallel\Contracts\TaskManagerInterface;
-use SParallel\Flows\ASync\Fork\ForkTaskManager;
-use SParallel\Flows\ASync\Process\ProcessTaskManager;
+use SParallel\Contracts\DriverFactoryInterface;
+use SParallel\Contracts\DriverInterface;
+use SParallel\Flows\ASync\Fork\ForkDriver;
+use SParallel\Flows\ASync\Process\ProcessDriver;
 
-class TaskManagerFactory implements TaskManagerFactoryInterface
+class DriverFactory implements DriverFactoryInterface
 {
     public function __construct(
         protected ContainerInterface $container,
         protected ?bool $isRunningInConsole = null,
-        protected ?TaskManagerInterface $taskManager = null,
+        protected ?DriverInterface $driver = null,
     ) {
     }
 
-    public function forceDriver(?TaskManagerInterface $taskManager): void
+    public function forceDriver(?DriverInterface $driver): void
     {
-        $this->taskManager = $taskManager;
+        $this->driver = $driver;
     }
 
     /**
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
-    public function detect(): TaskManagerInterface
+    public function detect(): DriverInterface
     {
-        if ($this->taskManager) {
-            return $this->taskManager;
+        if ($this->driver) {
+            return $this->driver;
         }
 
         if ($this->runningInConsole()) {
-            $taskManager = $this->container->get(ForkTaskManager::class);
+            $driver = $this->container->get(ForkDriver::class);
         } else {
-            $taskManager = $this->container->get(ProcessTaskManager::class);
+            $driver = $this->container->get(ProcessDriver::class);
         }
 
-        return $this->taskManager = $taskManager;
+        return $this->driver = $driver;
     }
 
     private function runningInConsole(): bool

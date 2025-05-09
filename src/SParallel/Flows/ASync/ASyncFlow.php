@@ -8,7 +8,7 @@ use Closure;
 use Generator;
 use SParallel\Contracts\FlowInterface;
 use SParallel\Contracts\TaskInterface;
-use SParallel\Contracts\TaskManagerInterface;
+use SParallel\Contracts\DriverInterface;
 use SParallel\Entities\SocketServer;
 use SParallel\Enum\MessageOperationTypeEnum;
 use SParallel\Exceptions\UnexpectedTaskException;
@@ -34,7 +34,7 @@ class ASyncFlow implements FlowInterface
 
     protected int $workersLimit;
 
-    protected TaskManagerInterface $taskManager;
+    protected DriverInterface $driver;
 
     protected SocketServer $socketServer;
 
@@ -62,7 +62,7 @@ class ASyncFlow implements FlowInterface
      */
     public function start(
         Context $context,
-        TaskManagerInterface $taskManager,
+        DriverInterface $driver,
         array &$callbacks,
         int $workersLimit,
         SocketServer $socketServer
@@ -70,7 +70,7 @@ class ASyncFlow implements FlowInterface
         $this->context      = $context;
         $this->callbacks    = $callbacks;
         $this->workersLimit = $workersLimit;
-        $this->taskManager  = $taskManager;
+        $this->driver  = $driver;
 
         $this->socketServer = $socketServer;
 
@@ -78,7 +78,7 @@ class ASyncFlow implements FlowInterface
 
         $this->remainTaskKeys = array_keys($this->callbacks);
 
-        $this->taskManager->init(
+        $this->driver->init(
             context: $context,
             callbacks: $callbacks,
             workersLimit: $workersLimit,
@@ -244,7 +244,7 @@ class ASyncFlow implements FlowInterface
         foreach ($taskKeys as $taskKey) {
             $callback = $this->callbacks[$taskKey];
 
-            $task = $this->taskManager->create(
+            $task = $this->driver->create(
                 context: $this->context,
                 socketServer: $this->socketServer,
                 key: $taskKey,

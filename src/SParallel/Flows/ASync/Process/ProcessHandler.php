@@ -60,8 +60,8 @@ class ProcessHandler
      */
     protected function onHandle(): void
     {
-        $taskKey    = $_SERVER[ProcessTaskManager::PARAM_TASK_KEY] ?? null;
-        $socketPath = $_SERVER[ProcessTaskManager::PARAM_SOCKET_PATH] ?? null;
+        $taskKey    = $_SERVER[ProcessDriver::PARAM_TASK_KEY] ?? null;
+        $socketPath = $_SERVER[ProcessDriver::PARAM_SOCKET_PATH] ?? null;
 
         if (is_null($taskKey)) {
             throw new InvalidValueException(
@@ -105,7 +105,7 @@ class ProcessHandler
 
         $context = $this->contextTransport->unserialize($message->serializedContext);
 
-        $driverName = ProcessTaskManager::DRIVER_NAME;
+        $driverName = ProcessDriver::DRIVER_NAME;
 
         $this->eventsBus->taskStarting(
             driverName: $driverName,

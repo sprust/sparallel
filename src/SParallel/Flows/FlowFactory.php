@@ -6,8 +6,8 @@ namespace SParallel\Flows;
 
 use Closure;
 use SParallel\Contracts\FlowInterface;
-use SParallel\Contracts\TaskManagerFactoryInterface;
-use SParallel\Contracts\TaskManagerInterface;
+use SParallel\Contracts\DriverFactoryInterface;
+use SParallel\Contracts\DriverInterface;
 use SParallel\Entities\SocketServer;
 use SParallel\Services\Context;
 use SParallel\Services\Socket\SocketService;
@@ -16,7 +16,7 @@ readonly class FlowFactory
 {
     public function __construct(
         protected SocketService $socketService,
-        protected TaskManagerFactoryInterface $taskManagerFactory,
+        protected DriverFactoryInterface $driverFactory,
         protected FlowInterface $flow,
     ) {
     }
@@ -28,12 +28,12 @@ readonly class FlowFactory
         array &$callbacks,
         Context $context,
         int $workersLimit,
-        ?TaskManagerInterface $taskManager = null,
+        ?DriverInterface $driver = null,
         ?SocketServer $socketServer = null
     ): FlowInterface {
         return $this->flow->start(
             context: $context,
-            taskManager: $taskManager ?: $this->taskManagerFactory->detect(),
+            driver: $driver ?: $this->driverFactory->detect(),
             callbacks: $callbacks,
             workersLimit: $workersLimit,
             socketServer: $socketServer

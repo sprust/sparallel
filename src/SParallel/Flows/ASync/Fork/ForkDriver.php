@@ -6,11 +6,11 @@ namespace SParallel\Flows\ASync\Fork;
 
 use Closure;
 use SParallel\Contracts\TaskInterface;
-use SParallel\Contracts\TaskManagerInterface;
+use SParallel\Contracts\DriverInterface;
 use SParallel\Entities\SocketServer;
 use SParallel\Services\Context;
 
-class ForkTaskManager implements TaskManagerInterface
+class ForkDriver implements DriverInterface
 {
     public const DRIVER_NAME = 'fork';
 
@@ -37,7 +37,7 @@ class ForkTaskManager implements TaskManagerInterface
     ): TaskInterface {
         $forkId = $this->forker->fork(
             context: $context,
-            driverName: ForkTaskManager::DRIVER_NAME,
+            driverName: ForkDriver::DRIVER_NAME,
             socketPath: $socketServer->path,
             taskKey: $key,
             callback: $callback

@@ -20,7 +20,7 @@ readonly class HybridTask implements TaskInterface
         protected Closure $callback,
         protected Process $process,
         protected ProcessService $processService,
-        protected HybridTaskManager $hybridTaskManager,
+        protected HybridDriver $hybridDriver,
     ) {
     }
 
@@ -44,7 +44,7 @@ readonly class HybridTask implements TaskInterface
         //    return true;
         //}
 
-        return $this->hybridTaskManager->isTaskFinished(
+        return $this->hybridDriver->isTaskFinished(
             context: $this->context,
             taskKey: $this->taskKey,
         );
