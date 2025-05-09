@@ -55,12 +55,24 @@ readonly class ForkHandler
         $this->eventsBus->processCreated(pid: $myPid);
 
         // TODO: it doesnt work at hybrid usage with 'Allowed memory size' error
-        $exitHandler = function () use ($myPid) {
+        $exitHandler = function (string $method) use ($myPid) {
             $this->eventsBus->processFinished(pid: $myPid);
+
+            if ($lastError = error_get_last()) {
+                $this->logger->error(
+                    sprintf(
+                        "fork got error in closing handler [fPid: %d]\n%s:%s\n%s",
+                        $myPid,
+                        $lastError['file'],
+                        $lastError['line'],
+                        $lastError['message'],
+                    )
+                );
+            }
 
             $this->logger->debug(
                 sprintf(
-                    "fork closing by handler [fPid: %s]",
+                    "fork closing by handler [$method] [fPid: %s]",
                     $myPid
                 )
             );

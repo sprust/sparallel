@@ -66,7 +66,7 @@ class HybridProcessHandler
 
         $this->eventsBus->processCreated($myPid);
 
-        $exitHandler = function () use ($myPid) {
+        $exitHandler = function (string $method) use ($myPid) {
             foreach ($this->activeTaskPids as $activeTaskPid) {
                 $this->forkService->finish($activeTaskPid);
             }
@@ -75,7 +75,7 @@ class HybridProcessHandler
 
             $this->logger->debug(
                 sprintf(
-                    "hybrid handler closing by handler [hPid: %s]",
+                    "hybrid handler closing by handler [$method] [hPid: %s]",
                     $myPid
                 )
             );
@@ -212,7 +212,7 @@ class HybridProcessHandler
 
             $this->logger->debug(
                 sprintf(
-                    "hybrid handler got message from driver [hPid: %s, mTKey: %s, mOp: %d]",
+                    "hybrid handler got message from driver [hPid: %s, mTKey: %s, mOp: %s]",
                     $myPid,
                     $message->taskKey,
                     $message->operation->name,
@@ -238,7 +238,7 @@ class HybridProcessHandler
 
                 $this->logger->debug(
                     sprintf(
-                        "hybrid handler forked task [hPid: %s, mTKey: %s, mOp: %d, tPid: %d]",
+                        "hybrid handler forked task [hPid: %s, mTKey: %s, mOp: %s, tPid: %d]",
                         $myPid,
                         $message->taskKey,
                         $message->operation->name,

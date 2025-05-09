@@ -37,14 +37,14 @@ class ProcessService
 
     public function registerShutdownFunction(Closure $callback): void
     {
-        register_shutdown_function($callback);
+        register_shutdown_function(fn() => $callback('shutdown'));
     }
 
     public function registerExitSignals(Closure $callback): void
     {
         pcntl_async_signals(true);
 
-        pcntl_signal(SIGTERM, $callback);
-        pcntl_signal(SIGINT, $callback);
+        pcntl_signal(SIGTERM, fn() => $callback('signal-SIGTERM'));
+        pcntl_signal(SIGINT, fn() => $callback('signal-SIGINT'));
     }
 }

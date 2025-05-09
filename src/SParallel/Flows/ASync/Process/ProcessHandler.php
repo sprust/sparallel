@@ -43,7 +43,7 @@ class ProcessHandler
 
         $this->eventsBus->processCreated(pid: $myPid);
 
-        $exitHandler = function () use ($myPid) {
+        $exitHandler = function (string $method) use ($myPid) {
             $this->eventsBus->processFinished(pid: $myPid);
 
             posix_kill($myPid, SIGKILL);

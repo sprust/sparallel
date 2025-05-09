@@ -60,15 +60,22 @@ class TestLogger implements LoggerInterface
             ? ("\t" . json_encode($context, JSON_PRETTY_PRINT))
             : '';
 
+        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2] ?? '';
+
+        if ($caller) {
+            $caller = "\t--------->\t" . $caller['class'] . '::' . $caller['function'];
+        }
+
         file_put_contents(
             filename: self::getLogFilePath(),
             data: sprintf(
-                "%s %s pid: %d %s%s\n",
+                "%s %s pid: %d %s%s%s\n",
                 $time,
                 strtoupper($level),
                 getmypid(),
                 $message,
-                $contextText
+                $contextText,
+                $caller,
             ),
             flags: FILE_APPEND
         );
