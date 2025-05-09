@@ -6,6 +6,7 @@ namespace SParallel\Flows\ASync;
 
 use Closure;
 use Generator;
+use Psr\Log\LoggerInterface;
 use SParallel\Contracts\FlowInterface;
 use SParallel\Contracts\TaskInterface;
 use SParallel\Contracts\DriverInterface;
@@ -54,6 +55,7 @@ class ASyncFlow implements FlowInterface
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected MessageTransport $messageTransport,
+        protected LoggerInterface $logger
     ) {
     }
 
@@ -67,10 +69,17 @@ class ASyncFlow implements FlowInterface
         int $workersLimit,
         SocketServer $socketServer
     ): static {
+        $this->logger->debug(
+            sprintf(
+                "async flow started [dr: %s]",
+                $driver::class
+            )
+        );
+
         $this->context      = $context;
         $this->callbacks    = $callbacks;
         $this->workersLimit = $workersLimit;
-        $this->driver  = $driver;
+        $this->driver       = $driver;
 
         $this->socketServer = $socketServer;
 
@@ -145,6 +154,16 @@ class ASyncFlow implements FlowInterface
                         unexpectedTaskKey: $message->taskKey,
                     );
                 }
+
+                $this->logger->debug(
+                    sprintf(
+                        "async flow got message from task [mOp: %s, mTKey: %s tKey: %s, tPid: %d]",
+                        $message->operation->name,
+                        $message->taskKey,
+                        $task->getKey(),
+                        $task->getPid()
+                    )
+                );
 
                 if ($message->operation === MessageOperationTypeEnum::GetJob) {
                     $this->socketService->writeToSocket(
@@ -249,6 +268,14 @@ class ASyncFlow implements FlowInterface
                 socketServer: $this->socketServer,
                 key: $taskKey,
                 callback: $callback
+            );
+
+            $this->logger->debug(
+                sprintf(
+                    "async flow created task [tKey: %s, tPid: %s]",
+                    $taskKey,
+                    $task->getPid()
+                )
             );
 
             $this->activeTasks[$taskKey] = $task;

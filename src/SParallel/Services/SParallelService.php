@@ -6,6 +6,7 @@ namespace SParallel\Services;
 
 use Closure;
 use Generator;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Entities\Timer;
@@ -20,6 +21,7 @@ class SParallelService
     public function __construct(
         protected EventsBusInterface $eventsBus,
         protected FlowFactory $flowFactory,
+        protected LoggerInterface $logger
     ) {
     }
 
@@ -157,6 +159,13 @@ class SParallelService
                 yield $brokeResult;
             }
         } catch (ContextCheckerException $exception) {
+            $this->logger->error(
+                sprintf(
+                    "service got context checker exception\n%s",
+                    $exception
+                )
+            );
+
             $this->eventsBus->flowFailed(
                 context: $context,
                 exception: $exception
@@ -164,6 +173,13 @@ class SParallelService
 
             throw $exception;
         } catch (Throwable $exception) {
+            $this->logger->error(
+                sprintf(
+                    "service got exception\n%s",
+                    $exception
+                )
+            );
+
             $this->eventsBus->flowFailed(
                 context: $context,
                 exception: $exception

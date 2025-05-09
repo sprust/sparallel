@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Tests;
 
+use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
 use Stringable;
 
@@ -53,25 +54,19 @@ class TestLogger implements LoggerInterface
 
     public function log($level, Stringable|string $message, array $context = []): void
     {
-        $time = date('Y-m-d H:i:s:u');
-
-        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1] ?? null;
-
-        if ($caller) {
-            $caller = $caller['class'] . ':' . $caller['function'];
-        }
+        $time = (new DateTimeImmutable())->format('Y-m-d H:i:s.u');
 
         $contextText = count($context)
-            ? ("\n" . json_encode($context, JSON_PRETTY_PRINT))
+            ? ("\t" . json_encode($context, JSON_PRETTY_PRINT))
             : '';
 
         file_put_contents(
             filename: self::getLogFilePath(),
             data: sprintf(
-                "%s\n%d%s\n%s%s\n",
+                "%s %s pid: %d %s%s\n",
                 $time,
+                strtoupper($level),
                 getmypid(),
-                $caller ? " $caller" : '',
                 $message,
                 $contextText
             ),
@@ -91,7 +86,7 @@ class TestLogger implements LoggerInterface
     protected static function getLogFilePath(): string
     {
         if (is_null(self::$logFilePath)) {
-            self::$logFilePath = __DIR__ . '/../../../tests/storage/logs/test.log';
+            self::$logFilePath = __DIR__ . '/../storage/logs/test.log';
         }
 
         return self::$logFilePath;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Flows\ASync\Fork;
 
 use Closure;
+use Psr\Log\LoggerInterface;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Enum\MessageOperationTypeEnum;
@@ -27,6 +28,7 @@ readonly class ForkHandler
         protected EventsBusInterface $eventsBus,
         protected MessageTransport $messageTransport,
         protected ProcessService $processService,
+        protected LoggerInterface $logger,
     ) {
     }
 
@@ -42,11 +44,26 @@ readonly class ForkHandler
     ): void {
         $myPid = getmypid();
 
+        $this->logger->debug(
+            sprintf(
+                "fork started [fPid: %d, tKey: %s]",
+                $myPid,
+                $taskKey
+            )
+        );
+
         $this->eventsBus->processCreated(pid: $myPid);
 
         // TODO: it doesnt work at hybrid usage with 'Allowed memory size' error
         $exitHandler = function () use ($myPid) {
             $this->eventsBus->processFinished(pid: $myPid);
+
+            $this->logger->debug(
+                sprintf(
+                    "fork closing by handler [fPid: %s]",
+                    $myPid
+                )
+            );
 
             posix_kill($myPid, SIGKILL);
         };
@@ -79,7 +96,24 @@ readonly class ForkHandler
                         context: $context
                     )
                 );
+
+                $this->logger->debug(
+                    sprintf(
+                        "fork called task [fPid: %d, tKey: %s]",
+                        $myPid,
+                        $taskKey,
+                    )
+                );
             } catch (Throwable $exception) {
+                $this->logger->error(
+                    sprintf(
+                        "fork got error at handling [fPid: %d, tKey: %s]\n%s",
+                        $myPid,
+                        $taskKey,
+                        $exception
+                    )
+                );
+
                 $this->eventsBus->taskFailed(
                     driverName: $driverName,
                     context: $context,
@@ -111,8 +145,23 @@ readonly class ForkHandler
                         )
                     )
                 );
-            } catch (ContextCheckerException) {
-                // no action needed
+
+                $this->logger->debug(
+                    sprintf(
+                        "fork answered to flow [fPid: %d, tKey: %s]",
+                        $myPid,
+                        $taskKey
+                    )
+                );
+            } catch (ContextCheckerException $exception) {
+                $this->logger->error(
+                    sprintf(
+                        "fork got error at answering to flow [fPid: %d, tKey: %s]\n%s",
+                        $myPid,
+                        $taskKey,
+                        $exception
+                    )
+                );
             }
 
             unset($client);

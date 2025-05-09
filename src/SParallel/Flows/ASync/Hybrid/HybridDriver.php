@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Flows\ASync\Hybrid;
 
 use Closure;
+use Psr\Log\LoggerInterface;
 use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\TaskInterface;
 use SParallel\Contracts\DriverInterface;
@@ -29,7 +30,7 @@ class HybridDriver implements DriverInterface
     public const PARAM_DRIVER_SOCKET_PATH = 'SPARALLEL_DRIVER_SOCKET_PATH';
     public const PARAM_FLOW_SOCKET_PATH   = 'SPARALLEL_FLOW_SOCKET_PATH';
 
-    protected ?Process $process;
+    protected ?Process $handler;
 
     /**
      * @var array<int|string>
@@ -45,7 +46,8 @@ class HybridDriver implements DriverInterface
         protected CallbackTransport $callbackTransport,
         protected ContextTransport $contextTransport,
         protected SocketService $socketService,
-        protected MessageTransport $messageTransport
+        protected MessageTransport $messageTransport,
+        protected LoggerInterface $logger,
     ) {
     }
 
@@ -76,14 +78,21 @@ class HybridDriver implements DriverInterface
 
         $this->socketServer = $this->socketService->createServer($socketPath);
 
-        $this->process = Process::fromShellCommandline(command: $this->processCommandResolver->get())
+        $this->handler = Process::fromShellCommandline(command: $this->processCommandResolver->get())
             ->setTimeout(null)
             ->setEnv([
                 static::PARAM_DRIVER_SOCKET_PATH => $socketPath,
                 static::PARAM_FLOW_SOCKET_PATH   => $socketServer->path,
             ]);
 
-        $this->process->start();
+        $this->handler->start();
+
+        $this->logger->debug(
+            sprintf(
+                "hybrid driver starts handler [hPid: %s]",
+                $this->handler->getPid()
+            )
+        );
 
         // wait for the main process to start and to put payload
         while (true) {
@@ -108,6 +117,13 @@ class HybridDriver implements DriverInterface
                 context: $context,
                 socket: $client,
                 data: $data
+            );
+
+            $this->logger->debug(
+                sprintf(
+                    'hybrid driver sent payload to handler [hPid: %s]',
+                    $this->handler->getPid()
+                )
             );
 
             unset($client);
@@ -140,6 +156,13 @@ class HybridDriver implements DriverInterface
                 socketPath: $response
             );
 
+            $this->logger->debug(
+                sprintf(
+                    'hybrid driver connected to process socket server [hPid: %s]',
+                    $this->handler?->getPid()
+                )
+            );
+
             break;
         }
     }
@@ -166,12 +189,20 @@ class HybridDriver implements DriverInterface
             )
         );
 
+        $this->logger->debug(
+            sprintf(
+                "hybrid driver sent task to process [hPid: %s, tKey: %s]",
+                $this->handler?->getPid(),
+                $key
+            )
+        );
+
         return new HybridTask(
             context: $context,
             pid: mt_rand(),
             taskKey: $key,
             callback: $callback,
-            process: $this->process,
+            process: $this->handler,
             processService: $this->processService,
             hybridDriver: $this
         );
@@ -206,6 +237,14 @@ class HybridDriver implements DriverInterface
                     operation: $message->operation->value,
                 );
             }
+
+            $this->logger->debug(
+                sprintf(
+                    "hybrid driver got task finished signal [hPid: %s, tKey: %s]",
+                    $this->handler->getPid(),
+                    $message->taskKey,
+                )
+            );
         }
 
         return in_array($taskKey, $this->finishedTaskKeys);
@@ -213,13 +252,13 @@ class HybridDriver implements DriverInterface
 
     private function checkProcess(): void
     {
-        if ($this->process->isRunning()) {
+        if ($this->handler->isRunning()) {
             return;
         }
 
         throw new ProcessIsNotRunningException(
-            pid: $this->process->getPid(),
-            description: $this->processService->getOutput($this->process)
+            pid: $this->handler->getPid(),
+            description: $this->processService->getOutput($this->handler)
         );
     }
 }

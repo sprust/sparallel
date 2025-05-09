@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Flows\ASync\Hybrid;
 
+use Psr\Log\LoggerInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Entities\Timer;
 use SParallel\Enum\MessageOperationTypeEnum;
@@ -43,6 +44,7 @@ class HybridProcessHandler
         protected ForkDriver $forkDriver,
         protected ProcessService $processService,
         protected MessageTransport $messageTransport,
+        protected LoggerInterface $logger,
     ) {
     }
 
@@ -55,6 +57,13 @@ class HybridProcessHandler
 
         $myPid = getmypid();
 
+        $this->logger->debug(
+            sprintf(
+                "hybrid handler started [hPid: %s]",
+                $myPid
+            )
+        );
+
         $this->eventsBus->processCreated($myPid);
 
         $exitHandler = function () use ($myPid) {
@@ -63,6 +72,13 @@ class HybridProcessHandler
             }
 
             $this->eventsBus->processFinished(pid: $myPid);
+
+            $this->logger->debug(
+                sprintf(
+                    "hybrid handler closing by handler [hPid: %s]",
+                    $myPid
+                )
+            );
 
             exit(0);
         };
@@ -95,6 +111,13 @@ class HybridProcessHandler
             socket: $client->socket
         );
 
+        $this->logger->debug(
+            sprintf(
+                "hybrid handler got payload from driver [hPid: %s]",
+                $myPid
+            )
+        );
+
         unset($client);
 
         $responseData = json_decode($response, true);
@@ -116,6 +139,13 @@ class HybridProcessHandler
             context: $initContext->setChecker(new Timer(timeoutSeconds: 2)),
             socket: $client->socket,
             data: $socketServer->path
+        );
+
+        $this->logger->debug(
+            sprintf(
+                "hybrid handler sent self socket path to driver [hPid: %s]",
+                $myPid
+            )
         );
 
         unset($client);
@@ -147,6 +177,15 @@ class HybridProcessHandler
                     )
                 );
 
+                $this->logger->debug(
+                    sprintf(
+                        "hybrid handler sent task finished signal [hPid: %d, tKey: %s, tPid: %d]",
+                        $myPid,
+                        $activeTaskKey,
+                        $taskPid
+                    )
+                );
+
                 unset($client);
             }
 
@@ -171,6 +210,15 @@ class HybridProcessHandler
 
             $message = $this->messageTransport->unserialize($response);
 
+            $this->logger->debug(
+                sprintf(
+                    "hybrid handler got message from driver [hPid: %s, mTKey: %s, mOp: %d]",
+                    $myPid,
+                    $message->taskKey,
+                    $message->operation->name,
+                )
+            );
+
             $taskKey = $message->taskKey;
 
             if ($message->operation === MessageOperationTypeEnum::TaskStart) {
@@ -186,6 +234,16 @@ class HybridProcessHandler
                     socketPath: $flowSocketPath,
                     taskKey: $taskKey,
                     callback: $callbacks[$taskKey],
+                );
+
+                $this->logger->debug(
+                    sprintf(
+                        "hybrid handler forked task [hPid: %s, mTKey: %s, mOp: %d, tPid: %d]",
+                        $myPid,
+                        $message->taskKey,
+                        $message->operation->name,
+                        $taskPid,
+                    )
                 );
 
                 $this->activeTaskPids[$taskKey] = $taskPid;
