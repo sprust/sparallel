@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Flows\ASync\Process;
 
+use Closure;
 use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\TaskInterface;
 use SParallel\Contracts\TaskManagerInterface;
@@ -30,7 +31,7 @@ class ProcessTaskManager implements TaskManagerInterface
 
     public function init(
         Context $context,
-        array &$callbacks,
+        array $callbacks,
         int $workersLimit,
         SocketServer $socketServer
     ): void {
@@ -41,7 +42,7 @@ class ProcessTaskManager implements TaskManagerInterface
         Context $context,
         SocketServer $socketServer,
         int|string $key,
-        callable $callback
+        Closure $callback
     ): TaskInterface {
         $process = Process::fromShellCommandline(command: $this->command)
             ->setTimeout(null)

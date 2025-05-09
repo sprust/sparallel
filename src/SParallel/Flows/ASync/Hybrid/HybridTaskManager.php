@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Flows\ASync\Hybrid;
 
+use Closure;
 use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\TaskInterface;
 use SParallel\Contracts\TaskManagerInterface;
@@ -53,7 +54,7 @@ class HybridTaskManager implements TaskManagerInterface
      */
     public function init(
         Context $context,
-        array &$callbacks,
+        array $callbacks,
         int $workersLimit,
         SocketServer $socketServer
     ): void {
@@ -61,10 +62,12 @@ class HybridTaskManager implements TaskManagerInterface
 
         $serializedCallbacks = [];
 
-        $callbackKeys = array_keys($callbacks);
+        $taskKeys = array_keys($callbacks);
 
-        foreach ($callbackKeys as $callbackKey) {
-            $serializedCallbacks[$callbackKey] = $this->callbackTransport->serialize($callbacks[$callbackKey]);
+        foreach ($taskKeys as $callbackKey) {
+            $serializedCallbacks[$callbackKey] = $this->callbackTransport->serialize(
+                $callbacks[$callbackKey]
+            );
         }
 
         $serializedContext = $this->contextTransport->serialize($context);
@@ -84,12 +87,7 @@ class HybridTaskManager implements TaskManagerInterface
 
         // wait for the main process to start and to put payload
         while (true) {
-            if (!$this->process->isRunning()) {
-                throw new ProcessIsNotRunningException(
-                    pid: $this->process->getPid(),
-                    description: $this->processService->getOutput($this->process)
-                );
-            }
+            $this->checkProcess();
 
             $processClient = $this->socketService->accept($this->socketServer->socket);
 
@@ -117,12 +115,7 @@ class HybridTaskManager implements TaskManagerInterface
 
         // get socket server for task messages
         while (true) {
-            if (!$this->process->isRunning()) {
-                throw new ProcessIsNotRunningException(
-                    pid: $this->process->getPid(),
-                    description: $this->processService->getOutput($this->process)
-                );
-            }
+            $this->checkProcess();
 
             $processClient = $this->socketService->accept($this->socketServer->socket);
 
@@ -154,7 +147,7 @@ class HybridTaskManager implements TaskManagerInterface
         Context $context,
         SocketServer $socketServer,
         int|string $key,
-        callable $callback
+        Closure $callback
     ): TaskInterface {
         $client = $this->socketService->createClient($this->processSocketServer->path);
 
@@ -210,5 +203,17 @@ class HybridTaskManager implements TaskManagerInterface
         }
 
         return in_array($taskKey, $this->finishedTaskKeys);
+    }
+
+    private function checkProcess(): void
+    {
+        if ($this->process->isRunning()) {
+            return;
+        }
+
+        throw new ProcessIsNotRunningException(
+            pid: $this->process->getPid(),
+            description: $this->processService->getOutput($this->process)
+        );
     }
 }

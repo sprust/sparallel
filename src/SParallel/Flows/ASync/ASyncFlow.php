@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Flows\ASync;
 
+use Closure;
 use Generator;
 use SParallel\Contracts\FlowInterface;
 use SParallel\Contracts\TaskInterface;
@@ -24,8 +25,14 @@ use SParallel\Transport\ResultTransport;
 class ASyncFlow implements FlowInterface
 {
     protected Context $context;
+
+    /**
+     * @var array<int|string, Closure>
+     */
     protected array $callbacks;
+
     protected int $workersLimit;
+
     protected TaskManagerInterface $taskManager;
 
     protected SocketServer $socketServer;
@@ -55,7 +62,7 @@ class ASyncFlow implements FlowInterface
     }
 
     /**
-     * @param array<int|string, callable> $callbacks
+     * @param array<int|string, Closure> $callbacks
      */
     public function start(
         Context $context,
@@ -93,6 +100,8 @@ class ASyncFlow implements FlowInterface
 
     public function get(): Generator
     {
+        // TODO: delete unknownMessages feature
+
         $serializedContext = $this->contextTransport->serialize($this->context);
 
         while (true) {
@@ -119,9 +128,6 @@ class ASyncFlow implements FlowInterface
             }
 
             while (true) {
-                /**
-                 * @var array{0: Message, 1: TaskInterface} $taskMessages
-                 */
                 $taskMessages = [];
 
                 $unknownMessagesTaskKeys = array_keys($this->unknownMessages);
@@ -159,7 +165,7 @@ class ASyncFlow implements FlowInterface
                     }
                 }
 
-                if (!count($taskMessages)) {
+                if (count($taskMessages) === 0) {
                     $this->context->check();
 
                     usleep(100);

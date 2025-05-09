@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Flows;
 
+use Closure;
 use SParallel\Contracts\FlowInterface;
 use SParallel\Contracts\TaskManagerFactoryInterface;
 use SParallel\Contracts\TaskManagerInterface;
@@ -20,6 +21,9 @@ readonly class FlowFactory
     ) {
     }
 
+    /**
+     * @param array<int|string, Closure> $callbacks
+     */
     public function create(
         array &$callbacks,
         Context $context,

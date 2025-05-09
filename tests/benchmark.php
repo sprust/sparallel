@@ -5,11 +5,11 @@ declare(strict_types=1);
 ini_set('memory_limit', '1G');
 
 use SParallel\Contracts\TaskManagerFactoryInterface;
+use SParallel\Contracts\TaskManagerInterface;
 use SParallel\Flows\ASync\Fork\ForkTaskManager;
 use SParallel\Flows\ASync\Hybrid\HybridTaskManager;
 use SParallel\Flows\ASync\Process\ProcessTaskManager;
 use SParallel\Services\SParallelService;
-use SParallel\TestCases\TestLogger;
 use SParallel\Tests\TestContainer;
 use SParallel\Tests\TestEventsRepository;
 use SParallel\Tests\TestProcessesRepository;
@@ -22,10 +22,10 @@ require_once __DIR__ . '/../vendor/autoload.php';
  */
 $callbacks = [
     ...makeCaseUnique(5),
-    //...makeCaseBigResponse(5),
-    //...makeCaseSleep(count: 10, sec: 1),
-    //...makeCaseMemoryLimit(10),
-    //...makeCaseThrow(300),
+    ...makeCaseBigResponse(5),
+    ...makeCaseSleep(count: 5, sec: 1),
+    ...makeCaseMemoryLimit(5),
+    ...makeCaseThrow(5),
 ];
 
 $keys = array_keys($callbacks);
@@ -42,7 +42,7 @@ $callbacks = $shuffled;
 
 $callbacksCount = count($callbacks);
 
-/** @var array<class-string<\SParallel\Contracts\TaskManagerInterface>> $taskManagerClasses */
+/** @var array<class-string<TaskManagerInterface>> $taskManagerClasses */
 $taskManagerClasses = [
     ProcessTaskManager::class,
     ForkTaskManager::class,
@@ -78,8 +78,8 @@ foreach ($taskManagerClasses as $taskManagerClass) {
 
     $generator = $service->run(
         callbacks: $clonedCallbacks,
-        timeoutSeconds: 5,
-    //workersLimit: 5
+        timeoutSeconds: 10,
+        workersLimit: 100
     );
 
     foreach ($generator as $result) {
@@ -87,20 +87,22 @@ foreach ($taskManagerClasses as $taskManagerClass) {
 
         if ($result->error) {
             echo sprintf(
-                "%f\t%s\tERROR\t%s\n",
+                "%f\t%s\tERROR\t%s\t%s\n",
                 microtime(true),
                 $result->taskKey,
-                $result->error->message
+                $result->error->message,
+                $counter
             );
 
             continue;
         }
 
         echo sprintf(
-            "%f\t%s\tINFO\t%s\n",
+            "%f\t%s\tINFO\t%s\t%s\n",
             microtime(true),
             $result->taskKey,
-            substr($result->result, 0, 50)
+            substr($result->result, 0, 50),
+            $counter
         );
     }
 

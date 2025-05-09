@@ -19,7 +19,11 @@ class SyncFlow implements FlowInterface
 {
     public const DRIVER_NAME = 'sync';
 
+    /**
+     * @var array<int|string, Closure>
+     */
     protected array $callbacks;
+
     protected Context $context;
 
     public function __construct(
@@ -28,9 +32,6 @@ class SyncFlow implements FlowInterface
     ) {
     }
 
-    /**
-     * @param array<mixed, Closure> $callbacks
-     */
     public function start(
         Context $context,
         TaskManagerInterface $taskManager,
@@ -40,6 +41,9 @@ class SyncFlow implements FlowInterface
     ): static {
         $this->callbacks = $callbacks;
         $this->context   = $context;
+
+        // TODO: do pretty
+        $callbacks = [];
 
         return $this;
     }

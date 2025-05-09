@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Flows\ASync\Fork;
 
+use Closure;
 use SParallel\Contracts\TaskInterface;
 use SParallel\Contracts\TaskManagerInterface;
 use SParallel\Entities\SocketServer;
@@ -21,7 +22,7 @@ class ForkTaskManager implements TaskManagerInterface
 
     public function init(
         Context $context,
-        array &$callbacks,
+        array $callbacks,
         int $workersLimit,
         SocketServer $socketServer
     ): void {
@@ -32,7 +33,7 @@ class ForkTaskManager implements TaskManagerInterface
         Context $context,
         SocketServer $socketServer,
         int|string $key,
-        callable $callback
+        Closure $callback
     ): TaskInterface {
         $forkId = $this->forker->fork(
             context: $context,

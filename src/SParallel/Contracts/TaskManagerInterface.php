@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace SParallel\Contracts;
 
+use Closure;
 use SParallel\Entities\SocketServer;
 use SParallel\Services\Context;
 
 interface TaskManagerInterface
 {
     /**
-     * @param array<int|string> $callbacks
+     * @param array<int|string, Closure> $callbacks
      */
     public function init(
         Context $context,
-        array &$callbacks,
+        array $callbacks,
         int $workersLimit,
         SocketServer $socketServer
     ): void;
@@ -23,6 +24,6 @@ interface TaskManagerInterface
         Context $context,
         SocketServer $socketServer,
         int|string $key,
-        callable $callback
+        Closure $callback
     ): TaskInterface;
 }

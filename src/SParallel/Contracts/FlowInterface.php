@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Contracts;
 
+use Closure;
 use Generator;
 use SParallel\Entities\SocketServer;
 use SParallel\Exceptions\ContextCheckerException;
@@ -12,6 +13,9 @@ use SParallel\Services\Context;
 
 interface FlowInterface
 {
+    /**
+     * @param array<int|string, Closure> $callbacks
+     */
     public function start(
         Context $context,
         TaskManagerInterface $taskManager,
