@@ -23,7 +23,7 @@ readonly class ForkService
 
     public function waitFinishAllChildren(): void
     {
-        while (pcntl_waitpid(-1, $status)) {
+        while (pcntl_waitpid(0, $status, WNOHANG) != -1) {
             usleep(100);
         }
     }
@@ -32,7 +32,7 @@ readonly class ForkService
     {
         posix_kill($pid, SIGTERM);
 
-        while (pcntl_waitpid($pid, $status) !== -1) {
+        while (pcntl_waitpid($pid, $status, WNOHANG) !== -1) {
             usleep(100);
         }
     }

@@ -266,18 +266,41 @@ class HybridDriver implements DriverInterface
     public function __destruct()
     {
         if (isset($this->handler) && $this->handler->isRunning()) {
+            $pid = $this->handler->getPid();
+
             try {
                 $this->handler->stop();
             } catch (Throwable) {
                 //
             }
+
+            $this->logger->debug(
+                sprintf(
+                    "hybrid driver stops handler [hPid: %s]",
+                    $pid
+                )
+            );
         }
 
         if (isset($this->socketServer)) {
+            $this->logger->debug(
+                sprintf(
+                    "hybrid driver removes socket server [hPid: %s]",
+                    $this->socketServer->path
+                )
+            );
+
             unset($this->socketServer);
         }
 
         if (isset($this->handlerSocketServer)) {
+            $this->logger->debug(
+                sprintf(
+                    "hybrid driver removes handler socket server [hPid: %s]",
+                    $this->handlerSocketServer->path
+                )
+            );
+
             unset($this->handlerSocketServer);
         }
     }
