@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace SParallel\Flows\ASync\Process;
 
+use Psr\Log\LoggerInterface;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Entities\Timer;
 use SParallel\Enum\MessageOperationTypeEnum;
-use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\InvalidValueException;
 use SParallel\Objects\Message;
 use SParallel\Services\Context;
@@ -31,34 +31,55 @@ class ProcessHandler
         protected ResultTransport $resultTransport,
         protected EventsBusInterface $eventsBus,
         protected ProcessService $processService,
+        protected LoggerInterface $logger
     ) {
     }
 
     /**
-     * @throws ContextCheckerException
+     * @throws Throwable
      */
     public function handle(): void
     {
         $myPid = getmypid();
 
+        $this->logger->debug(
+            sprintf(
+                "process handler started [pPid: %s]",
+                $myPid
+            )
+        );
+
         $this->eventsBus->processCreated(pid: $myPid);
 
-        $exitHandler = function (string $method) use ($myPid) {
+        try {
+            $this->onHandle($myPid);
+        } catch (Throwable $exception) {
+            $this->logger->error(
+                sprintf(
+                    "process handler got error at handling [pPid: %s]: %s\n%s",
+                    $myPid,
+                    $exception->getMessage(),
+                    $exception
+                )
+            );
+
+            throw $exception;
+        } finally {
             $this->eventsBus->processFinished(pid: $myPid);
 
-            posix_kill($myPid, SIGKILL);
-        };
-
-        $this->processService->registerShutdownFunction($exitHandler);
-        $this->processService->registerExitSignals($exitHandler);
-
-        $this->onHandle();
+            $this->logger->debug(
+                sprintf(
+                    "process handler finished [pPid: %s]",
+                    $myPid
+                )
+            );
+        }
     }
 
     /**
-     * @throws ContextCheckerException
+     * @throws Throwable
      */
-    protected function onHandle(): void
+    protected function onHandle(int $myPid): void
     {
         $taskKey    = $_SERVER[ProcessDriver::PARAM_TASK_KEY] ?? null;
         $socketPath = $_SERVER[ProcessDriver::PARAM_SOCKET_PATH] ?? null;
@@ -86,9 +107,17 @@ class ProcessHandler
             socket: $socketClient->socket,
             data: $this->messageTransport->serialize(
                 new Message(
-                    operation: MessageOperationTypeEnum::GetJob,
+                    operation: MessageOperationTypeEnum::GetTask,
                     taskKey: $taskKey,
                 )
+            )
+        );
+
+        $this->logger->debug(
+            sprintf(
+                "process handler requested task from flow [pPid: %s, tKey: %s]",
+                $myPid,
+                $taskKey
             )
         );
 
@@ -102,6 +131,14 @@ class ProcessHandler
         unset($socketClient);
 
         $message = $this->messageTransport->unserialize($response);
+
+        $this->logger->debug(
+            sprintf(
+                "process handler got message from flow [mTKey: %s, mOp: %s]",
+                $message->operation->name,
+                $message->taskKey
+            )
+        );
 
         $context = $this->contextTransport->unserialize($message->serializedContext);
 
@@ -138,6 +175,14 @@ class ProcessHandler
                     )
                 )
             );
+
+            $this->logger->debug(
+                sprintf(
+                    "process handler sent task result to flow [pPid: %s, tKey: %s]",
+                    $myPid,
+                    $taskKey
+                )
+            );
         } catch (Throwable $exception) {
             $this->eventsBus->taskFailed(
                 driverName: $driverName,
@@ -161,13 +206,25 @@ class ProcessHandler
                     )
                 )
             );
+
+            $this->logger->error(
+                sprintf(
+                    "process handler sent error to flow [fPid: %d, tKey: %s]: %s\n%s",
+                    $myPid,
+                    $taskKey,
+                    $exception->getMessage(),
+                    $exception
+                )
+            );
+
+            throw $exception;
         } finally {
             $this->eventsBus->taskFinished(
                 driverName: $driverName,
                 context: $context
             );
-        }
 
-        unset($socketClient);
+            unset($socketClient);
+        }
     }
 }

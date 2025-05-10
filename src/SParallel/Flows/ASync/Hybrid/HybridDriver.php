@@ -183,7 +183,7 @@ class HybridDriver implements DriverInterface
             socket: $client->socket,
             data: $this->messageTransport->serialize(
                 new Message(
-                    operation: MessageOperationTypeEnum::TaskStart,
+                    operation: MessageOperationTypeEnum::StartTask,
                     taskKey: $key,
                 )
             )

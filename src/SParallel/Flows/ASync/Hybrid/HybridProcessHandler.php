@@ -18,12 +18,12 @@ use SParallel\Flows\ASync\Fork\ForkService;
 use SParallel\Flows\FlowFactory;
 use SParallel\Objects\Message;
 use SParallel\Services\Context;
-use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\MessageTransport;
 use SParallel\Transport\ResultTransport;
+use Throwable;
 
 class HybridProcessHandler
 {
@@ -42,19 +42,17 @@ class HybridProcessHandler
         protected ForkService $forkService,
         protected FlowFactory $flowFactory,
         protected ForkDriver $forkDriver,
-        protected ProcessService $processService,
         protected MessageTransport $messageTransport,
         protected LoggerInterface $logger,
     ) {
     }
 
     /**
+     * @throws Throwable
      * @throws ContextCheckerException
      */
     public function handle(): void
     {
-        $this->activeTaskPids = [];
-
         $myPid = getmypid();
 
         $this->logger->debug(
@@ -66,42 +64,35 @@ class HybridProcessHandler
 
         $this->eventsBus->processCreated($myPid);
 
-        $exitHandler = function (string $method) use ($myPid) {
-            foreach ($this->activeTaskPids as $activeTaskPid) {
-                $this->forkService->finish($activeTaskPid);
-            }
-
-            $this->eventsBus->processFinished(pid: $myPid);
-
-            if ($lastError = error_get_last()) {
-                $this->logger->error(
-                    sprintf(
-                        "hybrid handler got error in closing handler [fPid: %d, tKey]: %s\n%s:%s",
-                        $myPid,
-                        $lastError['message'],
-                        $lastError['file'],
-                        $lastError['line'],
-                    )
-                );
-            }
-
-            $this->logger->debug(
+        try {
+            $this->onHandle($myPid);
+        } catch (Throwable $exception) {
+            $this->logger->error(
                 sprintf(
-                    "hybrid handler closing by handler [$method] [hPid: %s]",
-                    $myPid
+                    "hybrid handler got error at handling [hPid: %s]: %s\n%s",
+                    $myPid,
+                    $exception->getMessage(),
+                    $exception->getTraceAsString()
                 )
             );
 
-            exit(0);
-        };
+            throw $exception;
+        } finally {
+            $this->logger->debug(
+                sprintf(
+                    "hybrid handler finished [hPid: %s]",
+                    $myPid
+                )
+            );
+        }
+    }
 
-        /**
-         * TODO: i cant redefine this in fork
-         *
-         * When fork has 'Memory limit' error, call this handler
-         */
-        //$this->processService->registerShutdownFunction($exitHandler);
-        $this->processService->registerExitSignals($exitHandler);
+    /**
+     * @throws ContextCheckerException
+     */
+    protected function onHandle(int $myPid): void
+    {
+        $this->activeTaskPids = [];
 
         $driverSocketPath = $_SERVER[HybridDriver::PARAM_DRIVER_SOCKET_PATH] ?? null;
 
@@ -128,14 +119,14 @@ class HybridProcessHandler
             socket: $client->socket
         );
 
+        unset($client);
+
         $this->logger->debug(
             sprintf(
                 "hybrid handler got payload from driver [hPid: %s]",
                 $myPid
             )
         );
-
-        unset($client);
 
         $responseData = json_decode($response, true);
 
@@ -158,14 +149,14 @@ class HybridProcessHandler
             data: $socketServer->path
         );
 
+        unset($client);
+
         $this->logger->debug(
             sprintf(
                 "hybrid handler sent self socket path to driver [hPid: %s]",
                 $myPid
             )
         );
-
-        unset($client);
 
         while (count($callbacks) > 0 || count($this->activeTaskPids) > 0) {
             $activeTaskKeys = array_keys($this->activeTaskPids);
@@ -194,6 +185,8 @@ class HybridProcessHandler
                     )
                 );
 
+                unset($client);
+
                 $this->logger->debug(
                     sprintf(
                         "hybrid handler sent task finished signal [hPid: %d, tKey: %s, tPid: %d]",
@@ -202,8 +195,6 @@ class HybridProcessHandler
                         $taskPid
                     )
                 );
-
-                unset($client);
             }
 
             $client = $this->socketService->accept(
@@ -238,7 +229,7 @@ class HybridProcessHandler
 
             $taskKey = $message->taskKey;
 
-            if ($message->operation === MessageOperationTypeEnum::TaskStart) {
+            if ($message->operation === MessageOperationTypeEnum::StartTask) {
                 if (!array_key_exists($taskKey, $callbacks)) {
                     throw new UnexpectedTaskException(
                         unexpectedTaskKey: $taskKey
@@ -275,12 +266,5 @@ class HybridProcessHandler
         }
 
         $this->forkService->waitFinishAllChildren();
-
-        $this->logger->debug(
-            sprintf(
-                "hybrid handler finished [hPid: %s]",
-                $myPid
-            )
-        );
     }
 }

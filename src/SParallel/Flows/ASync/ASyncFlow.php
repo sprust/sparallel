@@ -173,13 +173,13 @@ class ASyncFlow implements FlowInterface
                     )
                 );
 
-                if ($message->operation === MessageOperationTypeEnum::GetJob) {
+                if ($message->operation === MessageOperationTypeEnum::GetTask) {
                     $this->socketService->writeToSocket(
                         context: $this->context,
                         socket: $childClient,
                         data: $this->messageTransport->serialize(
                             new Message(
-                                operation: MessageOperationTypeEnum::Job,
+                                operation: MessageOperationTypeEnum::Task,
                                 taskKey: $message->taskKey,
                                 serializedContext: $serializedContext,
                                 payload: $this->callbackTransport->serialize(

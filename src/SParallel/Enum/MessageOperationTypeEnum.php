@@ -6,9 +6,9 @@ namespace SParallel\Enum;
 
 enum MessageOperationTypeEnum: string
 {
-    case Job = 'jb';
-    case TaskStart = 'ts';
+    case Task = 't';
+    case StartTask = 'ts';
     case TaskFinished = 'tf';
-    case GetJob = 'gjb';
+    case GetTask = 'tg';
     case Response = 'res';
 }

@@ -10,10 +10,8 @@ use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Enum\MessageOperationTypeEnum;
 use SParallel\Exceptions\ContextCheckerException;
-use SParallel\Exceptions\CouldNotOpenDevNullException;
 use SParallel\Objects\Message;
 use SParallel\Services\Context;
-use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\MessageTransport;
 use SParallel\Transport\ResultTransport;
@@ -27,14 +25,10 @@ readonly class ForkHandler
         protected CallbackCallerInterface $callbackCaller,
         protected EventsBusInterface $eventsBus,
         protected MessageTransport $messageTransport,
-        protected ProcessService $processService,
         protected LoggerInterface $logger,
     ) {
     }
 
-    /**
-     * Forks the current process, executes the given callback and return child process id.
-     */
     public function handle(
         Context $context,
         string $driverName,
@@ -54,133 +48,129 @@ readonly class ForkHandler
 
         $this->eventsBus->processCreated(pid: $myPid);
 
-        $exitHandler = function (string $method) use ($myPid, $taskKey) {
-            $this->eventsBus->processFinished(pid: $myPid);
-
-            if ($lastError = error_get_last()) {
-                $this->logger->error(
-                    sprintf(
-                        "fork got error in closing handler [fPid: %d, tKey: $taskKey]: %s\n%s:%s",
-                        $myPid,
-                        $lastError['message'],
-                        $lastError['file'],
-                        $lastError['line'],
-                    )
-                );
-            }
-
-            $this->logger->debug(
+        try {
+            $this->onHandle(
+                context: $context,
+                myPid: $myPid,
+                driverName: $driverName,
+                socketPath: $socketPath,
+                taskKey: $taskKey,
+                callback: $callback
+            );
+        } catch (Throwable $exception) {
+            $this->logger->error(
                 sprintf(
-                    "fork closing by handler [$method] [fPid: %s, tKey: $taskKey]",
-                    $myPid
+                    "fork got error at handling [fPid: %d, tKey: %s]: %s\n%s",
+                    $myPid,
+                    $taskKey,
+                    $exception->getMessage(),
+                    $exception
                 )
             );
 
-            posix_kill($myPid, SIGKILL);
-        };
+            $this->eventsBus->taskFailed(
+                driverName: $driverName,
+                context: $context,
+                exception: $exception
+            );
+        } finally {
+            $this->eventsBus->processFinished(pid: $myPid);
+        }
 
-        // TODO: hybrid handler fail when 'Allowed memory size' happens here
-        //$this->processService->registerShutdownFunction($exitHandler);
-        $this->processService->registerExitSignals($exitHandler);
+        posix_kill($myPid, SIGTERM);
+    }
+
+    protected function onHandle(
+        Context $context,
+        int $myPid,
+        string $driverName,
+        string $socketPath,
+        int|string $taskKey,
+        Closure $callback
+    ): void {
+        $this->eventsBus->taskStarting(
+            driverName: $driverName,
+            context: $context
+        );
 
         try {
-            // TODO: WARNING: crushing sometimes
-            //$stdout = fopen('/dev/null', 'w');
-            //
-            //if ($stdout === false) {
-            //    throw new CouldNotOpenDevNullException();
-            //}
-            //
-            //fclose(STDOUT);
-            //
-            //$GLOBALS['STDOUT'] = $stdout;
+            $serializedResult = $this->resultTransport->serialize(
+                taskKey: $taskKey,
+                result: $this->callbackCaller->call(
+                    callback: $callback,
+                    context: $context
+                )
+            );
 
-            $this->eventsBus->taskStarting(
+            $this->logger->debug(
+                sprintf(
+                    "fork called task [fPid: %d, tKey: %s]",
+                    $myPid,
+                    $taskKey,
+                )
+            );
+        } catch (Throwable $exception) {
+            $this->logger->error(
+                sprintf(
+                    "fork got error at handling [fPid: %d, tKey: %s]: %s\n%s",
+                    $myPid,
+                    $taskKey,
+                    $exception->getMessage(),
+                    $exception
+                )
+            );
+
+            $this->eventsBus->taskFailed(
+                driverName: $driverName,
+                context: $context,
+                exception: $exception
+            );
+
+            $serializedResult = $this->resultTransport->serialize(
+                taskKey: $taskKey,
+                exception: $exception
+            );
+        } finally {
+            $this->eventsBus->taskFinished(
                 driverName: $driverName,
                 context: $context
             );
+        }
 
-            try {
-                $serializedResult = $this->resultTransport->serialize(
-                    taskKey: $taskKey,
-                    result: $this->callbackCaller->call(
-                        callback: $callback,
-                        context: $context
+        $client = $this->socketService->createClient($socketPath);
+
+        try {
+            $this->socketService->writeToSocket(
+                context: $context,
+                socket: $client->socket,
+                data: $this->messageTransport->serialize(
+                    new Message(
+                        operation: MessageOperationTypeEnum::Response,
+                        taskKey: $taskKey,
+                        payload: $serializedResult,
                     )
-                );
+                )
+            );
 
-                $this->logger->debug(
-                    sprintf(
-                        "fork called task [fPid: %d, tKey: %s]",
-                        $myPid,
-                        $taskKey,
-                    )
-                );
-            } catch (Throwable $exception) {
-                $this->logger->error(
-                    sprintf(
-                        "fork got error at handling [fPid: %d, tKey: %s]: %s\n%s",
-                        $myPid,
-                        $taskKey,
-                        $exception->getMessage(),
-                        $exception
-                    )
-                );
-
-                $this->eventsBus->taskFailed(
-                    driverName: $driverName,
-                    context: $context,
-                    exception: $exception
-                );
-
-                $serializedResult = $this->resultTransport->serialize(
-                    taskKey: $taskKey,
-                    exception: $exception
-                );
-            } finally {
-                $this->eventsBus->taskFinished(
-                    driverName: $driverName,
-                    context: $context
-                );
-            }
-
-            $client = $this->socketService->createClient($socketPath);
-
-            try {
-                $this->socketService->writeToSocket(
-                    context: $context,
-                    socket: $client->socket,
-                    data: $this->messageTransport->serialize(
-                        new Message(
-                            operation: MessageOperationTypeEnum::Response,
-                            taskKey: $taskKey,
-                            payload: $serializedResult,
-                        )
-                    )
-                );
-
-                $this->logger->debug(
-                    sprintf(
-                        "fork answered to flow [fPid: %d, tKey: %s]",
-                        $myPid,
-                        $taskKey
-                    )
-                );
-            } catch (ContextCheckerException $exception) {
-                $this->logger->error(
-                    sprintf(
-                        "fork got error at answering to flow [fPid: %d, tKey: %s]: %s\n%s",
-                        $myPid,
-                        $taskKey,
-                        $exception->getMessage(),
-                        $exception
-                    )
-                );
-            }
-
-            unset($client);
+            $this->logger->debug(
+                sprintf(
+                    "fork answered to flow [fPid: %d, tKey: %s]",
+                    $myPid,
+                    $taskKey
+                )
+            );
+        } catch (ContextCheckerException $exception) {
+            $this->logger->error(
+                sprintf(
+                    "fork got error at answering to flow [fPid: %d, tKey: %s]: %s\n%s",
+                    $myPid,
+                    $taskKey,
+                    $exception->getMessage(),
+                    $exception
+                )
+            );
         } finally {
-            posix_kill($myPid, SIGTERM);
+            unset($client);
         }
     }
 }
