@@ -80,6 +80,9 @@ readonly class ForkHandler
         posix_kill($myPid, SIGTERM);
     }
 
+    /**
+     * @throws ContextCheckerException
+     */
     protected function onHandle(
         Context $context,
         int $myPid,
@@ -169,6 +172,8 @@ readonly class ForkHandler
                     $exception
                 )
             );
+
+            throw $exception;
         } finally {
             unset($client);
         }
