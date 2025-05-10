@@ -41,22 +41,16 @@ class SParallelService
             callbacks: $callbacks,
             timeoutSeconds: $timeoutSeconds,
             workersLimit: $workersLimit,
-            context: $context
+            waitFirst: true,
+            waitFirstOnlySuccess: $onlySuccess,
+            context: $context,
         );
 
-        $result = null;
-
         foreach ($generator as $result) {
-            /** @var TaskResult $result */
-
-            if ($result->error && $onlySuccess) {
-                continue;
-            }
-
-            break;
+            return $result;
         }
 
-        return $result;
+        return null;
     }
 
     /**
@@ -110,6 +104,8 @@ class SParallelService
         int $timeoutSeconds,
         int $workersLimit = 0,
         bool $breakAtFirstError = false,
+        bool $waitFirst = false,
+        bool $waitFirstOnlySuccess = false,
         ?Context $context = null
     ): Generator {
         if ($workersLimit < 1) {
@@ -150,6 +146,18 @@ class SParallelService
 
             foreach ($flow->get() as $result) {
                 $context->check();
+
+                if ($waitFirst) {
+                    if ($result->error && $waitFirstOnlySuccess) {
+                        continue;
+                    }
+
+                    $flow->break();
+
+                    $brokeResult = $result;
+
+                    break;
+                }
 
                 if ($breakAtFirstError && $result->error) {
                     $flow->break();

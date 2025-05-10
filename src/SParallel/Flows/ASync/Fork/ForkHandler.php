@@ -38,6 +38,8 @@ readonly class ForkHandler
     ): void {
         $myPid = getmypid();
 
+        $this->eventsBus->processCreated(pid: $myPid);
+
         $this->logger->debug(
             sprintf(
                 "fork started [fPid: %d, tKey: %s]",
@@ -45,8 +47,6 @@ readonly class ForkHandler
                 $taskKey
             )
         );
-
-        $this->eventsBus->processCreated(pid: $myPid);
 
         try {
             $this->onHandle(

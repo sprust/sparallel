@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Flows\ASync\Fork;
 
 use Closure;
+use Psr\Log\LoggerInterface;
 use SParallel\Contracts\TaskInterface;
 
 class ForkTask implements TaskInterface
@@ -14,6 +15,7 @@ class ForkTask implements TaskInterface
         protected int|string $taskKey,
         protected Closure $callback,
         protected ForkService $forkService,
+        protected LoggerInterface $logger,
     ) {
     }
 
@@ -35,6 +37,13 @@ class ForkTask implements TaskInterface
     public function finish(): void
     {
         $this->forkService->finish($this->pid);
+
+        $this->logger->debug(
+            sprintf(
+                "fork task stops process [pPid: %s]",
+                $this->pid
+            )
+        );
     }
 
     public function getOutput(): ?string

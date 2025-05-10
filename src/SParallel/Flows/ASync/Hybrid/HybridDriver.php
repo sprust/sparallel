@@ -212,6 +212,57 @@ class HybridDriver implements DriverInterface
     /**
      * @throws ContextCheckerException
      */
+    public function break(Context $context): void
+    {
+        if (isset($this->handler) && $this->handler->isRunning()) {
+            $pid = $this->handler->getPid();
+
+            $this->processService->killChildren(
+                context: $context,
+                caller: 'hybrid driver',
+                pid: $pid
+            );
+
+            try {
+                $this->handler->stop();
+            } catch (Throwable) {
+                //
+            }
+
+            $this->logger->debug(
+                sprintf(
+                    "hybrid driver stops handler [hPid: %s]",
+                    $pid
+                )
+            );
+        }
+
+        if (isset($this->socketServer)) {
+            $this->logger->debug(
+                sprintf(
+                    "hybrid driver removes socket server [hPid: %s]",
+                    $this->socketServer->path
+                )
+            );
+
+            unset($this->socketServer);
+        }
+
+        if (isset($this->handlerSocketServer)) {
+            $this->logger->debug(
+                sprintf(
+                    "hybrid driver removes handler socket server [hPid: %s]",
+                    $this->handlerSocketServer->path
+                )
+            );
+
+            unset($this->handlerSocketServer);
+        }
+    }
+
+    /**
+     * @throws ContextCheckerException
+     */
     public function isTaskFinished(Context $context, int|string $taskKey): bool
     {
         while (true) {
@@ -263,45 +314,11 @@ class HybridDriver implements DriverInterface
         );
     }
 
+    /**
+     * @throws ContextCheckerException
+     */
     public function __destruct()
     {
-        if (isset($this->handler) && $this->handler->isRunning()) {
-            $pid = $this->handler->getPid();
-
-            try {
-                $this->handler->stop();
-            } catch (Throwable) {
-                //
-            }
-
-            $this->logger->debug(
-                sprintf(
-                    "hybrid driver stops handler [hPid: %s]",
-                    $pid
-                )
-            );
-        }
-
-        if (isset($this->socketServer)) {
-            $this->logger->debug(
-                sprintf(
-                    "hybrid driver removes socket server [hPid: %s]",
-                    $this->socketServer->path
-                )
-            );
-
-            unset($this->socketServer);
-        }
-
-        if (isset($this->handlerSocketServer)) {
-            $this->logger->debug(
-                sprintf(
-                    "hybrid driver removes handler socket server [hPid: %s]",
-                    $this->handlerSocketServer->path
-                )
-            );
-
-            unset($this->handlerSocketServer);
-        }
+        $this->break(new Context());
     }
 }

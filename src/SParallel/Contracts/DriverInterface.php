@@ -26,4 +26,6 @@ interface DriverInterface
         int|string $key,
         Closure $callback
     ): TaskInterface;
+
+    public function break(Context $context): void;
 }

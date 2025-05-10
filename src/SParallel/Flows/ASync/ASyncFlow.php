@@ -49,6 +49,8 @@ class ASyncFlow implements FlowInterface
      */
     protected array $remainTaskKeys;
 
+    protected bool $isFinished;
+
     public function __construct(
         protected SocketService $socketService,
         protected ContextTransport $contextTransport,
@@ -81,6 +83,8 @@ class ASyncFlow implements FlowInterface
         $this->workersLimit = $workersLimit;
         $this->driver       = $driver;
 
+        $this->isFinished = false;
+
         $this->socketServer = $socketServer;
 
         $this->activeTasks = [];
@@ -106,7 +110,7 @@ class ASyncFlow implements FlowInterface
     {
         $serializedContext = $this->contextTransport->serialize($this->context);
 
-        while (true) {
+        while (!$this->isFinished) {
             $this->context->check();
 
             $this->shiftWorkers();
@@ -193,8 +197,6 @@ class ASyncFlow implements FlowInterface
 
                     $this->deleteRemainTaskKeys($result->taskKey);
 
-                    $task->finish();
-
                     yield $result;
                 } else {
                     throw new UnexpectedTaskOperationException(
@@ -243,6 +245,10 @@ class ASyncFlow implements FlowInterface
 
     public function break(): void
     {
+        if ($this->isFinished) {
+            return;
+        }
+
         while (true) {
             $task = $this->pullTask();
 
@@ -252,6 +258,16 @@ class ASyncFlow implements FlowInterface
 
             $task->finish();
         }
+
+        if (isset($this->driver)) {
+            $this->driver->break($this->context);
+        }
+
+        $this->isFinished = true;
+
+        $this->logger->debug(
+            'async flow stopped'
+        );
     }
 
     protected function shiftWorkers(): void

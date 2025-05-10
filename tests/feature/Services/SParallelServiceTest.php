@@ -7,6 +7,7 @@ namespace SParallel\Tests\Services;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Exceptions\ContextCheckerException;
@@ -31,6 +32,8 @@ class SParallelServiceTest extends TestCase
     protected TestSocketFilesRepository $socketFilesRepository;
     protected TestEventsRepository $eventsRepository;
 
+    protected LoggerInterface $logger;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -42,6 +45,8 @@ class SParallelServiceTest extends TestCase
         $this->processesRepository->flush();
         $this->socketFilesRepository->flush();
         $this->eventsRepository->flush();
+
+        $this->logger = TestContainer::resolve()->get(LoggerInterface::class);
 
         TestLogger::flush();
     }
@@ -72,8 +77,7 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
         );
 
-        // TODO
-        //$this->assertActiveProcessesCount(0);
+        $this->assertActiveProcessesCount(0);
         $this->assertActiveSocketServersCount(0);
     }
 
@@ -88,7 +92,7 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
         );
 
-        // TODO
+        // TODO: it doesn't work with hybrid driver'
         //$this->assertActiveProcessesCount(0);
         $this->assertActiveSocketServersCount(0);
     }
@@ -348,7 +352,7 @@ class SParallelServiceTest extends TestCase
             'fork'    => self::makeDriverCase(
                 driver: $container->get(id: ForkDriver::class)
             ),
-            'hybrid'  => self::makeDriverCase(
+            'hybrid' => self::makeDriverCase(
                 driver: $container->get(id: HybridDriver::class)
             ),
         ];
@@ -374,30 +378,24 @@ class SParallelServiceTest extends TestCase
 
     private function assertActiveProcessesCount(int $expectedCount): void
     {
-        // TODO
-        return;
+        $activeProcessesCount = $this->processesRepository->getActiveCount();
 
-        //$activeProcessesCount = $this->processesRepository->getActiveCount();
-        //
-        //self::assertEquals(
-        //    $expectedCount,
-        //    $activeProcessesCount,
-        //    "Expected active processes count: $expectedCount, got: $activeProcessesCount"
-        //);
+        self::assertEquals(
+            $expectedCount,
+            $activeProcessesCount,
+            "Expected active processes count: $expectedCount, got: $activeProcessesCount"
+        );
     }
 
     private function assertActiveSocketServersCount(int $expectedCount): void
     {
-        // TODO
-        return;
+        $openedSocketsCount = $this->socketFilesRepository->getCount();
 
-        //$openedSocketsCount = $this->socketFilesRepository->getCount();
-        //
-        //self::assertEquals(
-        //    $expectedCount,
-        //    $openedSocketsCount,
-        //    "Expected active sockets count: $expectedCount, got: $openedSocketsCount"
-        //);
+        self::assertEquals(
+            $expectedCount,
+            $openedSocketsCount,
+            "Expected active sockets count: $expectedCount, got: $openedSocketsCount"
+        );
     }
 
     private function assertEventsCount(string $eventName, int $expectedCount): void

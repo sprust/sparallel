@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Flows\ASync\Fork;
 
 use Closure;
+use Psr\Log\LoggerInterface;
 use SParallel\Contracts\TaskInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Entities\SocketServer;
@@ -17,6 +18,7 @@ class ForkDriver implements DriverInterface
     public function __construct(
         protected Forker $forker,
         protected ForkService $forkService,
+        protected LoggerInterface $logger,
     ) {
     }
 
@@ -47,7 +49,13 @@ class ForkDriver implements DriverInterface
             pid: $forkId,
             taskKey: $key,
             callback: $callback,
-            forkService: $this->forkService
+            forkService: $this->forkService,
+            logger: $this->logger,
         );
+    }
+
+    public function break(Context $context): void
+    {
+        //
     }
 }

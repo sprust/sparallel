@@ -60,10 +60,18 @@ class TestLogger implements LoggerInterface
             ? ("\t" . json_encode($context, JSON_PRETTY_PRINT))
             : '';
 
-        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2] ?? '';
+        $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 4);
+
+        $caller = $backtrace[2] ?? '';
 
         if ($caller) {
-            $caller = "\t--------->\t" . $caller['class'] . '::' . $caller['function'];
+            $caller = "   <---------   " . $caller['class'] . '::' . $caller['function'];
+
+            $callerOfCaller = $backtrace[3] ?? '';;
+
+            if ($callerOfCaller) {
+                $caller = "$caller   <---------   " . $callerOfCaller['class'] . '::' . $callerOfCaller['function'];
+            }
         }
 
         file_put_contents(
