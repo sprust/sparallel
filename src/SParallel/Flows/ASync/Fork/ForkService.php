@@ -32,6 +32,8 @@ readonly class ForkService
     {
         posix_kill($pid, SIGTERM);
 
-        pcntl_waitpid($pid, $status);
+        while (pcntl_waitpid($pid, $status) !== -1) {
+            usleep(100);
+        }
     }
 }

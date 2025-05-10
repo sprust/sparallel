@@ -22,6 +22,7 @@ use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\MessageTransport;
 use Symfony\Component\Process\Process;
+use Throwable;
 
 class HybridDriver implements DriverInterface
 {
@@ -30,7 +31,7 @@ class HybridDriver implements DriverInterface
     public const PARAM_DRIVER_SOCKET_PATH = 'SPARALLEL_DRIVER_SOCKET_PATH';
     public const PARAM_FLOW_SOCKET_PATH   = 'SPARALLEL_FLOW_SOCKET_PATH';
 
-    protected ?Process $handler;
+    protected Process $handler;
 
     /**
      * @var array<int|string>
@@ -260,5 +261,20 @@ class HybridDriver implements DriverInterface
             pid: $this->handler->getPid(),
             description: $this->processService->getOutput($this->handler)
         );
+    }
+
+    public function __destruct()
+    {
+        if (isset($this->handler) && $this->handler->isRunning()) {
+            try {
+                $this->handler->stop();
+            } catch (Throwable) {
+                //
+            }
+        }
+
+        if (isset($this->socketServer)) {
+            unset($this->socketServer);
+        }
     }
 }
