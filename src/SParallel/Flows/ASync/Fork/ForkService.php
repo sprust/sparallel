@@ -23,7 +23,7 @@ readonly class ForkService
 
     public function waitFinishAllChildren(): void
     {
-        while (pcntl_waitpid(0, $status) != -1) {
+        while (pcntl_waitpid(-1, $status)) {
             usleep(100);
         }
     }
