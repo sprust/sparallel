@@ -160,7 +160,7 @@ class HybridDriver implements DriverInterface
             $this->logger->debug(
                 sprintf(
                     'hybrid driver connected to process socket server [hPid: %s]',
-                    $this->handler?->getPid()
+                    $this->handler->getPid()
                 )
             );
 
@@ -193,7 +193,7 @@ class HybridDriver implements DriverInterface
         $this->logger->debug(
             sprintf(
                 "hybrid driver sent task to process [hPid: %s, tKey: %s]",
-                $this->handler?->getPid(),
+                $this->handler->getPid(),
                 $key
             )
         );
@@ -275,6 +275,10 @@ class HybridDriver implements DriverInterface
 
         if (isset($this->socketServer)) {
             unset($this->socketServer);
+        }
+
+        if (isset($this->handlerSocketServer)) {
+            unset($this->handlerSocketServer);
         }
     }
 }

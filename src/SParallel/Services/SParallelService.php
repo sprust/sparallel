@@ -118,6 +118,13 @@ class SParallelService
             $workersLimit = min($workersLimit, SOMAXCONN);
         }
 
+        $this->logger->debug(
+            sprintf(
+                "service started [wLim: %d]",
+                $workersLimit
+            )
+        );
+
         if (is_null($context)) {
             $context = new Context();
         }
@@ -132,13 +139,13 @@ class SParallelService
             context: $context
         );
 
-        try {
-            $flow = $this->flowFactory->create(
-                callbacks: $callbacks,
-                context: $context,
-                workersLimit: $workersLimit
-            );
+        $flow = $this->flowFactory->create(
+            callbacks: $callbacks,
+            context: $context,
+            workersLimit: $workersLimit
+        );
 
+        try {
             $brokeResult = null;
 
             foreach ($flow->get() as $result) {
@@ -192,9 +199,15 @@ class SParallelService
                 previous: $exception
             );
         } finally {
+            $this->logger->debug(
+                'service finished'
+            );
+
             $this->eventsBus->flowFinished(
                 context: $context,
             );
+
+            unset($flow);
         }
     }
 }

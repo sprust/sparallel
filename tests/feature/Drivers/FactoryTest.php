@@ -7,11 +7,10 @@ namespace SParallel\Tests\Drivers;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
-use SParallel\Drivers\Factory;
-use SParallel\Drivers\Fork\ForkDriver;
-use SParallel\Drivers\Hybrid\HybridDriver;
-use SParallel\Drivers\Process\ProcessDriver;
-use SParallel\Drivers\Sync\SyncDriver;
+use SParallel\Flows\ASync\Fork\ForkDriver;
+use SParallel\Flows\ASync\Hybrid\HybridDriver;
+use SParallel\Flows\ASync\Process\ProcessDriver;
+use SParallel\Flows\DriverFactory;
 use SParallel\Tests\TestContainer;
 
 class FactoryTest extends TestCase
@@ -22,7 +21,7 @@ class FactoryTest extends TestCase
      */
     public function testDefault(): void
     {
-        $factory = new Factory(
+        $factory = new DriverFactory(
             container: TestContainer::resolve()
         );
 
@@ -38,7 +37,7 @@ class FactoryTest extends TestCase
      */
     public function testInConsole(): void
     {
-        $factory = new Factory(
+        $factory = new DriverFactory(
             container: TestContainer::resolve(),
             isRunningInConsole: true
         );
@@ -55,7 +54,7 @@ class FactoryTest extends TestCase
      */
     public function testNotInConsole(): void
     {
-        $factory = new Factory(
+        $factory = new DriverFactory(
             container: TestContainer::resolve(),
             isRunningInConsole: false
         );
@@ -72,14 +71,14 @@ class FactoryTest extends TestCase
      */
     public function testManual(): void
     {
-        $factory = new Factory(
+        $factory = new DriverFactory(
             container: TestContainer::resolve(),
             isRunningInConsole: false,
-            driver: TestContainer::resolve()->get(SyncDriver::class)
+            driver: TestContainer::resolve()->get(HybridDriver::class),
         );
 
         self::assertEquals(
-            SyncDriver::class,
+            HybridDriver::class,
             $factory->detect()::class,
         );
     }
@@ -90,7 +89,7 @@ class FactoryTest extends TestCase
      */
     public function testHybrid(): void
     {
-        $factory = new Factory(
+        $factory = new DriverFactory(
             container: TestContainer::resolve(),
             isRunningInConsole: false,
             useHybridDriverInsteadProcess: true

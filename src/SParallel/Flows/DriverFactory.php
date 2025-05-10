@@ -10,6 +10,7 @@ use Psr\Container\NotFoundExceptionInterface;
 use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Flows\ASync\Fork\ForkDriver;
+use SParallel\Flows\ASync\Hybrid\HybridDriver;
 use SParallel\Flows\ASync\Process\ProcessDriver;
 
 class DriverFactory implements DriverFactoryInterface
@@ -18,6 +19,7 @@ class DriverFactory implements DriverFactoryInterface
         protected ContainerInterface $container,
         protected ?bool $isRunningInConsole = null,
         protected ?DriverInterface $driver = null,
+        protected bool $useHybridDriverInsteadProcess = false,
     ) {
     }
 
@@ -39,7 +41,9 @@ class DriverFactory implements DriverFactoryInterface
         if ($this->runningInConsole()) {
             $driver = $this->container->get(ForkDriver::class);
         } else {
-            $driver = $this->container->get(ProcessDriver::class);
+            $driver = $this->useHybridDriverInsteadProcess
+                ? $this->container->get(HybridDriver::class)
+                : $this->container->get(ProcessDriver::class);
         }
 
         return $this->driver = $driver;

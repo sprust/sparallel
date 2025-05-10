@@ -105,7 +105,9 @@ class TestContainer implements ContainerInterface
 
                 $isDefaultValueAvailable = $param->isDefaultValueAvailable();
 
+                /** @phpstan-ignore-next-line method.notFound */
                 if ($type && !$isDefaultValueAvailable && !$type->isBuiltin()) {
+                /** @phpstan-ignore-next-line method.notFound */
                     $params[] = $this->get($type->getName());
                 } elseif ($isDefaultValueAvailable) {
                     $params[] = $param->getDefaultValue();

@@ -267,6 +267,8 @@ class HybridProcessHandler
             }
         }
 
+        unset($socketServer);
+
         $this->forkService->waitFinishAllChildren();
     }
 }
