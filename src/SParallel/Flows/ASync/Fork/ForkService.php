@@ -21,7 +21,7 @@ readonly class ForkService
         return false;
     }
 
-    public function waitAllChildren(): void
+    public function waitFinishAllChildren(): void
     {
         while (pcntl_waitpid(0, $status) != -1) {
             // just wait

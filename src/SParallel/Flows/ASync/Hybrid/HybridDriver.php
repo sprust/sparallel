@@ -38,7 +38,7 @@ class HybridDriver implements DriverInterface
     protected array $finishedTaskKeys;
 
     protected SocketServer $socketServer;
-    protected SocketServer $processSocketServer;
+    protected SocketServer $handlerSocketServer;
 
     public function __construct(
         protected HybridProcessCommandResolverInterface $processCommandResolver,
@@ -152,7 +152,7 @@ class HybridDriver implements DriverInterface
 
             unset($client);
 
-            $this->processSocketServer = $this->socketService->createServer(
+            $this->handlerSocketServer = $this->socketService->createServer(
                 socketPath: $response
             );
 
@@ -176,7 +176,7 @@ class HybridDriver implements DriverInterface
         int|string $key,
         Closure $callback
     ): TaskInterface {
-        $client = $this->socketService->createClient($this->processSocketServer->path);
+        $client = $this->socketService->createClient($this->handlerSocketServer->path);
 
         $this->socketService->writeToSocket(
             context: $context,

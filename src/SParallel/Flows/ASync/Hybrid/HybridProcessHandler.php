@@ -73,6 +73,18 @@ class HybridProcessHandler
 
             $this->eventsBus->processFinished(pid: $myPid);
 
+            if ($lastError = error_get_last()) {
+                $this->logger->error(
+                    sprintf(
+                        "hybrid handler got error in closing handler [fPid: %d, tKey]: %s\n%s:%s",
+                        $myPid,
+                        $lastError['message'],
+                        $lastError['file'],
+                        $lastError['line'],
+                    )
+                );
+            }
+
             $this->logger->debug(
                 sprintf(
                     "hybrid handler closing by handler [$method] [hPid: %s]",
@@ -83,7 +95,11 @@ class HybridProcessHandler
             exit(0);
         };
 
-        // TODO: i cant redefine this in fork
+        /**
+         * TODO: i cant redefine this in fork
+         *
+         * When fork has 'Memory limit' error, call this handler
+         */
         //$this->processService->registerShutdownFunction($exitHandler);
         $this->processService->registerExitSignals($exitHandler);
 
@@ -258,7 +274,7 @@ class HybridProcessHandler
             }
         }
 
-        $this->forkService->waitAllChildren();
+        $this->forkService->waitFinishAllChildren();
 
         $this->logger->debug(
             sprintf(
