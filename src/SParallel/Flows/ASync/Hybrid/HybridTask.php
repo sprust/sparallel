@@ -39,10 +39,9 @@ readonly class HybridTask implements TaskInterface
      */
     public function isFinished(): bool
     {
-        // TODO: implement otherwise
-        //if (!$this->process->isRunning()) {
-        //    return true;
-        //}
+        if (!$this->process->isRunning()) {
+            return true;
+        }
 
         return $this->hybridDriver->isTaskFinished(
             context: $this->context,

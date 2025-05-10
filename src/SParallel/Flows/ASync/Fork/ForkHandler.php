@@ -54,7 +54,6 @@ readonly class ForkHandler
 
         $this->eventsBus->processCreated(pid: $myPid);
 
-        // TODO: it doesnt work at hybrid usage with 'Allowed memory size' error
         $exitHandler = function (string $method) use ($myPid, $taskKey) {
             $this->eventsBus->processFinished(pid: $myPid);
 
@@ -80,20 +79,21 @@ readonly class ForkHandler
             posix_kill($myPid, SIGKILL);
         };
 
-        $this->processService->registerShutdownFunction($exitHandler);
+        // TODO: hybrid handler fail when 'Allowed memory size' happens here
+        //$this->processService->registerShutdownFunction($exitHandler);
         $this->processService->registerExitSignals($exitHandler);
 
         try {
             // TODO: WARNING: crushing sometimes
-            $stdout = fopen('/dev/null', 'w');
-
-            if ($stdout === false) {
-                throw new CouldNotOpenDevNullException();
-            }
-
-            fclose(STDOUT);
-
-            $GLOBALS['STDOUT'] = $stdout;
+            //$stdout = fopen('/dev/null', 'w');
+            //
+            //if ($stdout === false) {
+            //    throw new CouldNotOpenDevNullException();
+            //}
+            //
+            //fclose(STDOUT);
+            //
+            //$GLOBALS['STDOUT'] = $stdout;
 
             $this->eventsBus->taskStarting(
                 driverName: $driverName,
