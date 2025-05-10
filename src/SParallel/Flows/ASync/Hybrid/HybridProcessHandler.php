@@ -84,6 +84,8 @@ class HybridProcessHandler
                     $myPid
                 )
             );
+
+            $this->eventsBus->processFinished($myPid);
         }
     }
 

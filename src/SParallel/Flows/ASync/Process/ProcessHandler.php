@@ -65,14 +65,14 @@ class ProcessHandler
 
             throw $exception;
         } finally {
-            $this->eventsBus->processFinished(pid: $myPid);
-
             $this->logger->debug(
                 sprintf(
                     "process handler finished [pPid: %s]",
                     $myPid
                 )
             );
+
+            $this->eventsBus->processFinished(pid: $myPid);
         }
     }
 

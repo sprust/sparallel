@@ -74,6 +74,14 @@ readonly class ForkHandler
                 exception: $exception
             );
         } finally {
+            $this->logger->debug(
+                sprintf(
+                    "fork finished [fPid: %d, tKey: %s]",
+                    $myPid,
+                    $taskKey
+                )
+            );
+
             $this->eventsBus->processFinished(pid: $myPid);
         }
 
