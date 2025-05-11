@@ -14,6 +14,7 @@ use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\FlowInterface;
+use SParallel\Contracts\FlowTypeResolverInterface;
 use SParallel\Contracts\ForkStarterInterface;
 use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\ProcessCommandResolverInterface;
@@ -57,6 +58,7 @@ class TestContainer implements ContainerInterface
             LoggerInterface::class                       => fn() => $this->get(TestLogger::class),
             ProcessCommandResolverInterface::class       => fn() => $this->get(ProcessCommandResolver::class),
             HybridProcessCommandResolverInterface::class => fn() => $this->get(HybridProcessCommandResolver::class),
+            FlowTypeResolverInterface::class             => fn() => $this->get(FlowTypeResolver::class),
 
             SocketService::class => fn() => new SocketService(
                 socketPathDirectory: __DIR__ . '/../storage/sockets',
@@ -107,7 +109,7 @@ class TestContainer implements ContainerInterface
 
                 /** @phpstan-ignore-next-line method.notFound */
                 if ($type && !$isDefaultValueAvailable && !$type->isBuiltin()) {
-                /** @phpstan-ignore-next-line method.notFound */
+                    /** @phpstan-ignore-next-line method.notFound */
                     $params[] = $this->get($type->getName());
                 } elseif ($isDefaultValueAvailable) {
                     $params[] = $param->getDefaultValue();

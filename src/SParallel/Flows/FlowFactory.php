@@ -6,11 +6,13 @@ namespace SParallel\Flows;
 
 use Closure;
 use Psr\Log\LoggerInterface;
-use SParallel\Contracts\FlowInterface;
 use SParallel\Contracts\DriverFactoryInterface;
-use SParallel\Contracts\DriverInterface;
-use SParallel\Entities\SocketServer;
+use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\FlowInterface;
+use SParallel\Contracts\FlowTypeResolverInterface;
 use SParallel\Flows\ASync\ASyncFlow;
+use SParallel\Flows\Sync\SyncFlow;
+use SParallel\Services\Callback\CallbackCaller;
 use SParallel\Services\Context;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
@@ -27,7 +29,10 @@ readonly class FlowFactory
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
         protected MessageTransport $messageTransport,
-        protected LoggerInterface $logger
+        protected LoggerInterface $logger,
+        protected FlowTypeResolverInterface $flowTypeResolver,
+        protected EventsBusInterface $eventsBus,
+        protected CallbackCaller $callbackCaller,
     ) {
     }
 
@@ -36,14 +41,21 @@ readonly class FlowFactory
      */
     public function create(array &$callbacks, Context $context, int $workersLimit): FlowInterface
     {
-        $flow = new ASyncFlow(
-            socketService: $this->socketService,
-            contextTransport: $this->contextTransport,
-            callbackTransport: $this->callbackTransport,
-            resultTransport: $this->resultTransport,
-            messageTransport: $this->messageTransport,
-            logger: $this->logger,
-        );
+        if ($this->flowTypeResolver->isAsync()) {
+            $flow = new ASyncFlow(
+                socketService: $this->socketService,
+                contextTransport: $this->contextTransport,
+                callbackTransport: $this->callbackTransport,
+                resultTransport: $this->resultTransport,
+                messageTransport: $this->messageTransport,
+                logger: $this->logger,
+            );
+        } else {
+            $flow = new SyncFlow(
+                eventsBus: $this->eventsBus,
+                callbackCaller: $this->callbackCaller,
+            );
+        }
 
         return $flow->start(
             context: $context,
