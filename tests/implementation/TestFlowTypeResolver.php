@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Tests;
+namespace SParallel\TestsImplementation;
 
 use SParallel\Contracts\FlowTypeResolverInterface;
 
-class FlowTypeResolver implements FlowTypeResolverInterface
+class TestFlowTypeResolver implements FlowTypeResolverInterface
 {
     public static bool $isAsync = true;
 

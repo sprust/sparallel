@@ -1,11 +1,11 @@
 <?php
 
-namespace SParallel\Tests;
+namespace SParallel\TestsImplementation;
 
 use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use Symfony\Component\Process\PhpExecutableFinder;
 
-class HybridProcessCommandResolver implements HybridProcessCommandResolverInterface
+class TestHybridProcessCommandResolver implements HybridProcessCommandResolverInterface
 {
     public function get(): string
     {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Tests;
+namespace SParallel\TestsImplementation;
 
 use Closure;
 use Psr\Container\ContainerInterface;
@@ -56,9 +56,9 @@ class TestContainer implements ContainerInterface
             DriverFactoryInterface::class                => fn() => $this->get(DriverFactory::class),
             FlowInterface::class                         => fn() => $this->get(ASyncFlow::class),
             LoggerInterface::class                       => fn() => $this->get(TestLogger::class),
-            ProcessCommandResolverInterface::class       => fn() => $this->get(ProcessCommandResolver::class),
-            HybridProcessCommandResolverInterface::class => fn() => $this->get(HybridProcessCommandResolver::class),
-            FlowTypeResolverInterface::class             => fn() => $this->get(FlowTypeResolver::class),
+            ProcessCommandResolverInterface::class       => fn() => $this->get(TestProcessCommandResolver::class),
+            HybridProcessCommandResolverInterface::class => fn() => $this->get(TestHybridProcessCommandResolver::class),
+            FlowTypeResolverInterface::class             => fn() => $this->get(TestFlowTypeResolver::class),
 
             SocketService::class => fn() => new SocketService(
                 socketPathDirectory: __DIR__ . '/../storage/sockets',

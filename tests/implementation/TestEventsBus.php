@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Tests;
+namespace SParallel\TestsImplementation;
 
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Services\Context;

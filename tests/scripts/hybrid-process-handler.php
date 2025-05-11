@@ -5,7 +5,7 @@ declare(strict_types=1);
 ini_set('memory_limit', '1G');
 
 use SParallel\Flows\ASync\Hybrid\HybridProcessHandler;
-use SParallel\Tests\TestContainer;
+use SParallel\TestsImplementation\TestContainer;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 

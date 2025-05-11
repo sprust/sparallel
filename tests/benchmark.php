@@ -9,11 +9,11 @@ use SParallel\Flows\ASync\Fork\ForkDriver;
 use SParallel\Flows\ASync\Hybrid\HybridDriver;
 use SParallel\Flows\ASync\Process\ProcessDriver;
 use SParallel\Services\SParallelService;
-use SParallel\Tests\TestContainer;
-use SParallel\Tests\TestEventsRepository;
-use SParallel\Tests\TestLogger;
-use SParallel\Tests\TestProcessesRepository;
-use SParallel\Tests\TestSocketFilesRepository;
+use SParallel\TestsImplementation\TestContainer;
+use SParallel\TestsImplementation\TestEventsRepository;
+use SParallel\TestsImplementation\TestLogger;
+use SParallel\TestsImplementation\TestProcessesRepository;
+use SParallel\TestsImplementation\TestSocketFilesRepository;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 

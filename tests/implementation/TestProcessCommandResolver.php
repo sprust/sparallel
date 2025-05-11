@@ -1,11 +1,11 @@
 <?php
 
-namespace SParallel\Tests;
+namespace SParallel\TestsImplementation;
 
 use SParallel\Contracts\ProcessCommandResolverInterface;
 use Symfony\Component\Process\PhpExecutableFinder;
 
-class ProcessCommandResolver implements ProcessCommandResolverInterface
+class TestProcessCommandResolver implements ProcessCommandResolverInterface
 {
     public function get(): string
     {

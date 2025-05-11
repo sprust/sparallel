@@ -1,6 +1,6 @@
 FROM php:8.2-cli
 
-RUN apt update && apt install -y git libzip-dev zip unzip
+RUN apt update && apt install -y git libzip-dev zip unzip procps
 
 RUN pecl install zip && docker-php-ext-enable zip
 

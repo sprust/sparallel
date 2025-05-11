@@ -25,7 +25,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "SParallel\\Tests\\": "tests/feature"
+            "SParallel\\TestsFeature\\": "tests/feature",
+            "SParallel\\TestsImplementation\\": "tests/implementation"
         }
     },
     "minimum-stability": "stable",

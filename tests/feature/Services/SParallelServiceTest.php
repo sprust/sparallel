@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Tests\Services;
+namespace SParallel\TestsFeature\Services;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -18,11 +18,11 @@ use SParallel\Flows\DriverFactory;
 use SParallel\Services\Context;
 use SParallel\Services\SParallelService;
 use SParallel\TestCases\SParallelServiceTestCasesTrait;
-use SParallel\Tests\TestContainer;
-use SParallel\Tests\TestEventsRepository;
-use SParallel\Tests\TestLogger;
-use SParallel\Tests\TestProcessesRepository;
-use SParallel\Tests\TestSocketFilesRepository;
+use SParallel\TestsImplementation\TestContainer;
+use SParallel\TestsImplementation\TestEventsRepository;
+use SParallel\TestsImplementation\TestLogger;
+use SParallel\TestsImplementation\TestProcessesRepository;
+use SParallel\TestsImplementation\TestSocketFilesRepository;
 
 class SParallelServiceTest extends TestCase
 {
