@@ -65,7 +65,7 @@ class TestLogger implements LoggerInterface
         $caller = $backtrace[2] ?? '';
 
         if ($caller) {
-            $caller = "   <---------   " . $caller['class'] . '::' . $caller['function'];
+            $caller = "   <---------   " . ($caller['class'] ?? 'UNKNOWN') . '::' . $caller['function'];
 
             $callerOfCaller = $backtrace[3] ?? '';;
 

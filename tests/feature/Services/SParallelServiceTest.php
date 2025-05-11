@@ -92,8 +92,13 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
         );
 
-        // TODO: it doesn't work with hybrid driver'
-        //$this->assertActiveProcessesCount(0);
+        if ($driver instanceof HybridDriver) {
+            // TODO
+            $this->assertActiveProcessesCount(1);
+        } else {
+            $this->assertActiveProcessesCount(0);
+        }
+
         $this->assertActiveSocketServersCount(0);
     }
 
@@ -135,8 +140,13 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
         );
 
-        // TODO
-        //$this->assertActiveProcessesCount(0);
+        if ($driver instanceof ProcessDriver || $driver instanceof HybridDriver) {
+            // TODO
+            $this->assertActiveProcessesCount(1);
+        } else {
+            $this->assertActiveProcessesCount(0);
+        }
+
         $this->assertActiveSocketServersCount(0);
     }
 
@@ -151,8 +161,13 @@ class SParallelServiceTest extends TestCase
             service: $this->makeServiceByDriver($driver),
         );
 
-        // TODO
-        //$this->assertActiveProcessesCount(0);
+        if ($driver instanceof HybridDriver) {
+            // TODO
+            $this->assertActiveProcessesCount(1);
+        } else {
+            $this->assertActiveProcessesCount(0);
+        }
+
         $this->assertActiveSocketServersCount(0);
     }
 
@@ -352,7 +367,7 @@ class SParallelServiceTest extends TestCase
             'fork'    => self::makeDriverCase(
                 driver: $container->get(id: ForkDriver::class)
             ),
-            'hybrid' => self::makeDriverCase(
+            'hybrid'  => self::makeDriverCase(
                 driver: $container->get(id: HybridDriver::class)
             ),
         ];
