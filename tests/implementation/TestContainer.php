@@ -44,6 +44,11 @@ class TestContainer implements ContainerInterface
         return self::$container ??= new TestContainer();
     }
 
+    public static function flush(): void
+    {
+        self::$container = null;
+    }
+
     private function __construct()
     {
         $this->resolvers = [

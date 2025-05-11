@@ -39,7 +39,12 @@ class SParallelServiceASyncTest extends TestCase
     {
         parent::setUp();
 
-        $this->processesRepository   = TestContainer::resolve()->get(TestProcessesRepository::class);
+        TestLogger::flush();
+        TestFlowTypeResolver::$isAsync = true;
+
+        $container = TestContainer::resolve();
+
+        $this->processesRepository   = $container->get(TestProcessesRepository::class);
         $this->socketFilesRepository = TestContainer::resolve()->get(TestSocketFilesRepository::class);
         $this->eventsRepository      = TestContainer::resolve()->get(TestEventsRepository::class);
 
@@ -48,8 +53,6 @@ class SParallelServiceASyncTest extends TestCase
         $this->eventsRepository->flush();
 
         $this->logger = TestContainer::resolve()->get(LoggerInterface::class);
-
-        TestLogger::flush();
     }
 
     /**
@@ -390,8 +393,6 @@ class SParallelServiceASyncTest extends TestCase
 
         $container->get(DriverFactory::class)
             ->forceDriver($driver);
-
-        TestFlowTypeResolver::$isAsync = true;
 
         return $container->get(SParallelService::class);
     }
