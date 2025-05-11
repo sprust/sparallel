@@ -93,7 +93,7 @@ class SParallelServiceTest extends TestCase
         );
 
         if ($driver instanceof HybridDriver) {
-            // TODO
+            // WARNING: zombie collector
             $this->assertActiveProcessesCount(1);
         } else {
             $this->assertActiveProcessesCount(0);
@@ -141,7 +141,7 @@ class SParallelServiceTest extends TestCase
         );
 
         if ($driver instanceof ProcessDriver || $driver instanceof HybridDriver) {
-            // TODO
+            // WARNING: zombie collector
             $this->assertActiveProcessesCount(1);
         } else {
             $this->assertActiveProcessesCount(0);
@@ -162,7 +162,7 @@ class SParallelServiceTest extends TestCase
         );
 
         if ($driver instanceof HybridDriver) {
-            // TODO
+            // WARNING: zombie collector
             $this->assertActiveProcessesCount(1);
         } else {
             $this->assertActiveProcessesCount(0);
