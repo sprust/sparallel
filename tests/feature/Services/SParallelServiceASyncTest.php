@@ -20,11 +20,12 @@ use SParallel\Services\SParallelService;
 use SParallel\TestCases\SParallelServiceTestCasesTrait;
 use SParallel\TestsImplementation\TestContainer;
 use SParallel\TestsImplementation\TestEventsRepository;
+use SParallel\TestsImplementation\TestFlowTypeResolver;
 use SParallel\TestsImplementation\TestLogger;
 use SParallel\TestsImplementation\TestProcessesRepository;
 use SParallel\TestsImplementation\TestSocketFilesRepository;
 
-class SParallelServiceTest extends TestCase
+class SParallelServiceASyncTest extends TestCase
 {
     use SParallelServiceTestCasesTrait;
 
@@ -385,10 +386,14 @@ class SParallelServiceTest extends TestCase
 
     private function makeServiceByDriver(DriverInterface $driver): SParallelService
     {
-        TestContainer::resolve()->get(DriverFactory::class)
+        $container = TestContainer::resolve();
+
+        $container->get(DriverFactory::class)
             ->forceDriver($driver);
 
-        return TestContainer::resolve()->get(SParallelService::class);
+        TestFlowTypeResolver::$isAsync = true;
+
+        return $container->get(SParallelService::class);
     }
 
     private function assertActiveProcessesCount(int $expectedCount): void
