@@ -7,7 +7,6 @@ namespace SParallel\TestsFeature\Services;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Exceptions\ContextCheckerException;
@@ -33,8 +32,6 @@ class SParallelServiceASyncTest extends TestCase
     protected TestSocketFilesRepository $socketFilesRepository;
     protected TestEventsRepository $eventsRepository;
 
-    protected LoggerInterface $logger;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -51,8 +48,6 @@ class SParallelServiceASyncTest extends TestCase
         $this->processesRepository->flush();
         $this->socketFilesRepository->flush();
         $this->eventsRepository->flush();
-
-        $this->logger = TestContainer::resolve()->get(LoggerInterface::class);
     }
 
     /**
