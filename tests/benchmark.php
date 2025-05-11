@@ -5,7 +5,6 @@ declare(strict_types=1);
 ini_set('memory_limit', '1G');
 
 use SParallel\Contracts\DriverFactoryInterface;
-use SParallel\Contracts\DriverInterface;
 use SParallel\Flows\ASync\Fork\ForkDriver;
 use SParallel\Flows\ASync\Hybrid\HybridDriver;
 use SParallel\Flows\ASync\Process\ProcessDriver;
@@ -29,7 +28,7 @@ $callbacks = [
     ...makeCaseThrow(5),
 ];
 
-/** @var array<class-string<DriverInterface>> $driverClasses */
+/** @var array<class-string<SParallel\Contracts\DriverInterface>> $driverClasses */
 $driverClasses = [
     ProcessDriver::class,
     ForkDriver::class,
