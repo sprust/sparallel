@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\TestsFeature\Drivers;
+namespace SParallel\TestsFeature\Flows;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerExceptionInterface;
@@ -13,7 +13,7 @@ use SParallel\Flows\ASync\Process\ProcessDriver;
 use SParallel\Flows\DriverFactory;
 use SParallel\TestsImplementation\TestContainer;
 
-class FactoryTest extends TestCase
+class DriverFactoryTest extends TestCase
 {
     /**
      * @throws ContainerExceptionInterface
