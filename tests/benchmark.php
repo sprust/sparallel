@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 ini_set('memory_limit', '1G');
 
-use SParallel\Contracts\EventsBusInterface;
-use SParallel\Drivers\Fork\ForkDriver;
-use SParallel\Drivers\Hybrid\HybridDriver;
-use SParallel\Drivers\Process\ProcessDriver;
+use SParallel\Contracts\DriverFactoryInterface;
+use SParallel\Flows\ASync\Fork\ForkDriver;
+use SParallel\Flows\ASync\Hybrid\HybridDriver;
+use SParallel\Flows\ASync\Process\ProcessDriver;
 use SParallel\Services\SParallelService;
-use SParallel\Tests\TestContainer;
+use SParallel\TestsImplementation\TestContainer;
+use SParallel\TestsImplementation\TestEventsRepository;
+use SParallel\TestsImplementation\TestLogger;
+use SParallel\TestsImplementation\TestProcessesRepository;
+use SParallel\TestsImplementation\TestSocketFilesRepository;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -19,23 +23,44 @@ require_once __DIR__ . '/../vendor/autoload.php';
 $callbacks = [
     ...makeCaseUnique(5),
     ...makeCaseBigResponse(5),
-    ...makeCaseMemoryLimit(5),
     ...makeCaseSleep(count: 5, sec: 1),
+    ...makeCaseMemoryLimit(5),
     ...makeCaseThrow(5),
 ];
 
-shuffle($callbacks);
-
-$callbacksCount = count($callbacks);
-
-/** @var array<class-string<\SParallel\Contracts\DriverInterface>> $driverClasses */
+/** @var array<class-string<SParallel\Contracts\DriverInterface>> $driverClasses */
 $driverClasses = [
-    ForkDriver::class,
     ProcessDriver::class,
+    ForkDriver::class,
     HybridDriver::class,
 ];
 
+$timeoutSeconds = 5;
+$workersLimit   = 10;
+
+$keys = array_keys($callbacks);
+
+shuffle($keys);
+
+$shuffled = [];
+
+foreach ($keys as $key) {
+    $shuffled[$key] = $callbacks[$key];
+}
+
+$callbacks = $shuffled;
+
+$callbacksCount = count($callbacks);
+
 $metrics = [];
+
+$container = TestContainer::resolve();
+
+$container->get(TestProcessesRepository::class)->flush();
+$container->get(TestSocketFilesRepository::class)->flush();
+$container->get(TestEventsRepository::class)->flush();
+
+TestLogger::flush();
 
 foreach ($driverClasses as $driverClass) {
     echo '------------------------------------------' . PHP_EOL;
@@ -46,10 +71,11 @@ foreach ($driverClasses as $driverClass) {
 
     $clonedCallbacks = array_merge($callbacks);
 
-    $service = new SParallelService(
-        driver: TestContainer::resolve()->get($driverClass),
-        eventsBus: TestContainer::resolve()->get(EventsBusInterface::class),
+    $container->get(DriverFactoryInterface::class)->forceDriver(
+        $container->get($driverClass),
     );
+
+    $service = $container->get(SParallelService::class);
 
     memory_reset_peak_usage();
 
@@ -57,8 +83,8 @@ foreach ($driverClasses as $driverClass) {
 
     $generator = $service->run(
         callbacks: $clonedCallbacks,
-        timeoutSeconds: 5,
-        workersLimit: 5
+        timeoutSeconds: $timeoutSeconds,
+        workersLimit: $workersLimit
     );
 
     foreach ($generator as $result) {
@@ -66,20 +92,22 @@ foreach ($driverClasses as $driverClass) {
 
         if ($result->error) {
             echo sprintf(
-                "%f\t%s\tERROR\t%s\n",
+                "%f\t%s\tERROR\t%s\t%s\n",
                 microtime(true),
                 $result->taskKey,
-                $result->error->message
+                $counter,
+                $result->error->message,
             );
 
             continue;
         }
 
         echo sprintf(
-            "%f\t%s\tINFO\t%s\n",
+            "%f\t%s\tINFO\t%s\t%s\n",
             microtime(true),
             $result->taskKey,
-            substr($result->result, 0, 50)
+            $counter,
+            substr($result->result, 0, 50),
         );
     }
 
@@ -93,6 +121,7 @@ foreach ($driverClasses as $driverClass) {
         'count'          => $counter,
     ];
 }
+//}
 
 echo '------------------------------------------' . PHP_EOL;
 
@@ -117,7 +146,7 @@ function makeCaseUnique(int $count): array
     $result = [];
 
     while ($count--) {
-        $result[__FUNCTION__ . '-' . $count] = static fn() => uniqid(more_entropy: true);
+        $result['success' . '-' . $count] = static fn() => $count . ': ' . uniqid(more_entropy: true);
     }
 
     return $result;
@@ -131,10 +160,10 @@ function makeCaseBigResponse(int $count): array
     $result = [];
 
     while ($count--) {
-        $result[__FUNCTION__ . '-' . $count] = static fn() => str_repeat(
-            uniqid(more_entropy: true),
-            2000000
-        );
+        $result['big-resp' . '-' . $count] = static fn() => $count . ': ' . str_repeat(
+                uniqid(more_entropy: true),
+                2000000
+            );
     }
 
     return $result;
@@ -148,10 +177,10 @@ function makeCaseMemoryLimit(int $count): array
     $result = [];
 
     while ($count--) {
-        $result[__FUNCTION__ . '-' . $count] = static fn() => str_repeat(
-            uniqid(more_entropy: true),
-            3000000000
-        );
+        $result['mem-lim' . '-' . $count] = static fn() => $count . ': ' . str_repeat(
+                uniqid(more_entropy: true),
+                3000000000
+            );
     }
 
     return $result;
@@ -165,10 +194,10 @@ function makeCaseSleep(int $count, int $sec): array
     $result = [];
 
     while ($count--) {
-        $result[__FUNCTION__ . '-' . $count] = static function () use ($sec) {
+        $result['sleeping' . '-' . $count] = static function () use ($count, $sec) {
             sleep($sec);
 
-            return "sleep $sec";
+            return "$count: sleep $sec";
         };
     }
 
@@ -183,8 +212,8 @@ function makeCaseThrow(int $count): array
     $result = [];
 
     while ($count--) {
-        $result[__FUNCTION__ . '-' . $count] = static fn() => throw new RuntimeException(
-            "exception: $count " . uniqid(more_entropy: true)
+        $result['except' . '-' . $count] = static fn() => throw new RuntimeException(
+            "$count: exception: " . uniqid(more_entropy: true)
         );
     }
 

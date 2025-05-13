@@ -12,7 +12,7 @@ readonly class TaskResult
     public mixed $result;
 
     public function __construct(
-        public mixed $taskKey,
+        public int|string $taskKey,
         ?Throwable $exception = null,
         mixed $result = null
     ) {

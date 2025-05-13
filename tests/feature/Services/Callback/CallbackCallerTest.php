@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Tests\Services\Callback;
+namespace SParallel\TestsFeature\Services\Callback;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerExceptionInterface;
@@ -12,7 +12,7 @@ use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Services\Callback\CallbackCaller;
 use SParallel\Services\Context;
-use SParallel\Tests\TestContainer;
+use SParallel\TestsImplementation\TestContainer;
 
 class CallbackCallerTest extends TestCase
 {

@@ -6,11 +6,12 @@ namespace SParallel\Services;
 
 use Closure;
 use Generator;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
-use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Drivers\Timer;
+use SParallel\Entities\Timer;
 use SParallel\Exceptions\ContextCheckerException;
+use SParallel\Flows\FlowFactory;
 use SParallel\Objects\TaskResult;
 use SParallel\Objects\TaskResults;
 use Throwable;
@@ -18,13 +19,14 @@ use Throwable;
 class SParallelService
 {
     public function __construct(
-        protected DriverInterface $driver,
         protected EventsBusInterface $eventsBus,
+        protected FlowFactory $flowFactory,
+        protected LoggerInterface $logger
     ) {
     }
 
     /**
-     * @param array<mixed, Closure> $callbacks
+     * @param array<int|string, Closure> $callbacks
      *
      * @throws ContextCheckerException
      */
@@ -39,26 +41,20 @@ class SParallelService
             callbacks: $callbacks,
             timeoutSeconds: $timeoutSeconds,
             workersLimit: $workersLimit,
-            context: $context
+            waitFirst: true,
+            waitFirstOnlySuccess: $onlySuccess,
+            context: $context,
         );
 
-        $result = null;
-
         foreach ($generator as $result) {
-            /** @var TaskResult $result */
-
-            if ($result->error && $onlySuccess) {
-                continue;
-            }
-
-            break;
+            return $result;
         }
 
-        return $result;
+        return null;
     }
 
     /**
-     * @param array<mixed, Closure> $callbacks
+     * @param array<int|string, Closure> $callbacks
      *
      * @throws ContextCheckerException
      */
@@ -97,7 +93,7 @@ class SParallelService
     }
 
     /**
-     * @param array<mixed, Closure> $callbacks
+     * @param array<int|string, Closure> $callbacks
      *
      * @return Generator<TaskResult>
      *
@@ -108,6 +104,8 @@ class SParallelService
         int $timeoutSeconds,
         int $workersLimit = 0,
         bool $breakAtFirstError = false,
+        bool $waitFirst = false,
+        bool $waitFirstOnlySuccess = false,
         ?Context $context = null
     ): Generator {
         if ($workersLimit < 1) {
@@ -116,34 +114,53 @@ class SParallelService
             $workersLimit = min($workersLimit, SOMAXCONN);
         }
 
+        $this->logger->debug(
+            sprintf(
+                "service started [wLim: %d]",
+                $workersLimit
+            )
+        );
+
         if (is_null($context)) {
             $context = new Context();
         }
 
-        $context->addChecker(
-            new Timer(
-                timeoutSeconds: $timeoutSeconds
-            )
-        );
+        if (!$context->hasChecker(Timer::class)) {
+            $context->setChecker(
+                new Timer(timeoutSeconds: $timeoutSeconds)
+            );
+        }
 
         $this->eventsBus->flowStarting(
             context: $context
         );
 
-        try {
-            $waitGroup = $this->driver->run(
-                callbacks: $callbacks,
-                context: $context,
-                workersLimit: $workersLimit
-            );
+        $flow = $this->flowFactory->create(
+            callbacks: $callbacks,
+            context: $context,
+            workersLimit: $workersLimit
+        );
 
+        try {
             $brokeResult = null;
 
-            foreach ($waitGroup->get() as $result) {
+            foreach ($flow->get() as $result) {
                 $context->check();
 
+                if ($waitFirst) {
+                    if ($result->error && $waitFirstOnlySuccess) {
+                        continue;
+                    }
+
+                    $flow->break();
+
+                    $brokeResult = $result;
+
+                    break;
+                }
+
                 if ($breakAtFirstError && $result->error) {
-                    $waitGroup->break();
+                    $flow->break();
 
                     $brokeResult = $result;
 
@@ -157,6 +174,14 @@ class SParallelService
                 yield $brokeResult;
             }
         } catch (ContextCheckerException $exception) {
+            $this->logger->error(
+                sprintf(
+                    "service got context checker exception: %s\n%s",
+                    $exception->getMessage(),
+                    $exception
+                )
+            );
+
             $this->eventsBus->flowFailed(
                 context: $context,
                 exception: $exception
@@ -164,6 +189,14 @@ class SParallelService
 
             throw $exception;
         } catch (Throwable $exception) {
+            $this->logger->error(
+                sprintf(
+                    "service got exception: %s\n%s",
+                    $exception->getMessage(),
+                    $exception
+                )
+            );
+
             $this->eventsBus->flowFailed(
                 context: $context,
                 exception: $exception
@@ -174,9 +207,15 @@ class SParallelService
                 previous: $exception
             );
         } finally {
+            $this->logger->debug(
+                'service finished'
+            );
+
             $this->eventsBus->flowFinished(
                 context: $context,
             );
+
+            unset($flow);
         }
     }
 }

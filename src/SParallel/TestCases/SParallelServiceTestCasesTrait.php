@@ -51,12 +51,12 @@ trait SParallelServiceTestCasesTrait
     protected function onWaitFirstOnlySuccess(SParallelService $service): void
     {
         $callbacks = [
-            'first'  => static fn() => throw new RuntimeException('first'),
-            'second' => static function () {
+            'first'  => static function () {
                 sleep(1);
 
-                return 'second';
+                return 'first';
             },
+            'second' => static fn() => throw new RuntimeException('second'),
         ];
 
         $result = $service->waitFirst(
@@ -70,7 +70,7 @@ trait SParallelServiceTestCasesTrait
         );
 
         self::assertEquals(
-            'second',
+            'first',
             $result->result
         );
     }
@@ -81,12 +81,12 @@ trait SParallelServiceTestCasesTrait
     protected function onWaitFirstNotOnlySuccess(SParallelService $service): void
     {
         $callbacks = [
-            'first'  => static fn() => throw new RuntimeException('first'),
-            'second' => static function () {
+            'first'  => static function () {
                 sleep(1);
 
-                return 'second';
+                return 'first';
             },
+            'second' => static fn() => throw new RuntimeException('second'),
         ];
 
         $result = $service->waitFirst(
@@ -100,7 +100,7 @@ trait SParallelServiceTestCasesTrait
         );
 
         self::assertEquals(
-            'first',
+            'second',
             $result->error->message
         );
     }
@@ -297,8 +297,10 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws ContextCheckerException
      */
-    protected function onUnexpectedExitOfParent(SParallelService $processService, SParallelService $testableService): void
-    {
+    protected function onUnexpectedExitOfParent(
+        SParallelService $processService,
+        SParallelService $testableService
+    ): void {
         $parentCallback = [
             static function () use ($testableService) {
                 $callbacks = [

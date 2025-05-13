@@ -16,7 +16,7 @@ class Context
     protected array $values = [];
 
     /**
-     * @var array<ContextCheckerInterface>
+     * @var array<class-string<ContextCheckerInterface>, ContextCheckerInterface>
      */
     protected array $checkers = [];
 
@@ -75,11 +75,19 @@ class Context
         $this->values = [];
     }
 
-    public function addChecker(ContextCheckerInterface $checker): static
+    public function setChecker(ContextCheckerInterface $checker): static
     {
-        $this->checkers[] = $checker;
+        $this->checkers[$checker::class] = $checker;
 
         return $this;
+    }
+
+    /**
+     * @param class-string<ContextCheckerInterface> $checkerClass
+     */
+    public function hasChecker(string $checkerClass): bool
+    {
+        return array_key_exists($checkerClass, $this->checkers);
     }
 
     /**

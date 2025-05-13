@@ -16,7 +16,7 @@ class ResultTransport
     ) {
     }
 
-    public function serialize(mixed $taskKey, ?Throwable $exception = null, mixed $result = null): string
+    public function serialize(int|string $taskKey, ?Throwable $exception = null, mixed $result = null): string
     {
         return $this->serializer->serialize(
             new TaskResult(
@@ -37,7 +37,7 @@ class ResultTransport
 
         throw new UnserializeException(
             expected: TaskResult::class,
-            got: $response
+            got: gettype($response)
         );
     }
 }

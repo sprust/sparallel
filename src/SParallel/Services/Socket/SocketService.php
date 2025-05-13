@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace SParallel\Services\Socket;
 
 use Socket;
+use SParallel\Entities\SocketClient;
+use SParallel\Entities\SocketServer;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\CouldNotConnectToSocketException;
 use SParallel\Exceptions\CouldNotCreateSocketServerException;
-use SParallel\Objects\SocketClient;
-use SParallel\Objects\SocketServer;
 use SParallel\Services\Context;
 
 readonly class SocketService
@@ -21,7 +21,7 @@ readonly class SocketService
 
     public function __construct(
         protected string $socketPathDirectory = '/tmp',
-        protected int $bufferSize = 1024,
+        protected int $bufferSize = 8024,
         protected float $timeout = 0.0001,
     ) {
         $this->timeoutSeconds      = (int) floor($this->timeout);
@@ -31,11 +31,11 @@ readonly class SocketService
     public function makeSocketPath(): string
     {
         $socketPath = sprintf(
-            rtrim($this->socketPathDirectory, '/') . '/%s_%d_%f_%s',
+            rtrim($this->socketPathDirectory, '/') . '/%s_%s_%s_%s.sock',
             self::SOCKET_PATH_PREFIX,
             getmypid(),
-            microtime(true),
-            uniqid(more_entropy: true)
+            uniqid(more_entropy: true),
+            mt_rand(100000, 999999),
         );
 
         if (file_exists($socketPath)) {
@@ -53,9 +53,9 @@ readonly class SocketService
             throw new CouldNotCreateSocketServerException($socketPath);
         }
 
-        socket_bind($socket, $socketPath);
-        socket_listen($socket, SOMAXCONN);
-        socket_set_nonblock($socket);
+        @socket_bind($socket, $socketPath);
+        @socket_listen($socket, SOMAXCONN);
+        @socket_set_nonblock($socket);
 
         return new SocketServer(
             path: $socketPath,
@@ -76,6 +76,11 @@ readonly class SocketService
         );
     }
 
+    public function accept(Socket $socket): Socket|false
+    {
+        return @socket_accept($socket);
+    }
+
     /**
      * @throws ContextCheckerException
      */
@@ -91,7 +96,7 @@ readonly class SocketService
             if ($chunk === false || $chunk === '') {
                 $context->check();
 
-                usleep(1000);
+                usleep(100);
 
                 continue;
             }
@@ -101,14 +106,15 @@ readonly class SocketService
 
         $data       = '';
         $dataLength = unpack('N', $lengthHeader)[1];
+        $bufferSize = $this->bufferSize;
 
         while (strlen($data) < $dataLength) {
-            $chunk = socket_read($socket, min(8192, $dataLength - strlen($data)));
+            $chunk = socket_read($socket, min($bufferSize, $dataLength - strlen($data)));
 
             if ($chunk === false || $chunk === '') {
                 $context->check();
 
-                usleep(1000);
+                usleep(100);
 
                 continue;
             }
@@ -137,7 +143,7 @@ readonly class SocketService
             if ($bytes === false) {
                 $context->check();
 
-                usleep(1000);
+                usleep(100);
 
                 continue;
             }
@@ -145,17 +151,17 @@ readonly class SocketService
             $sentBytes += $bytes;
         }
 
-        $sentBytes = 0;
-        $chunkSize = 8192;
+        $sentBytes  = 0;
+        $bufferSize = $this->bufferSize;
 
         while ($sentBytes < $dataLength) {
-            $chunk = substr($data, $sentBytes, $chunkSize);
+            $chunk = substr($data, $sentBytes, $bufferSize);
             $bytes = socket_write($socket, $chunk, strlen($chunk));
 
             if ($bytes === false) {
                 $context->check();
 
-                usleep(1000);
+                usleep(100);
 
                 continue;
             }
