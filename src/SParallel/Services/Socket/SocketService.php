@@ -34,7 +34,7 @@ readonly class SocketService
             rtrim($this->socketPathDirectory, '/') . '/%s_%s_%s_%s.sock',
             self::SOCKET_PATH_PREFIX,
             getmypid(),
-            uniqid(more_entropy: true),
+            uniqid(),
             mt_rand(100000, 999999),
         );
 
