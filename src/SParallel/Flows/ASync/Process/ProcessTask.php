@@ -10,7 +10,6 @@ use SParallel\Contracts\TaskInterface;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
-use Symfony\Component\Process\Process;
 
 readonly class ProcessTask implements TaskInterface
 {
@@ -21,6 +20,7 @@ readonly class ProcessTask implements TaskInterface
         protected Closure $callback,
         protected Process $process,
         protected ProcessService $processService,
+        protected ProcessDriver $processDriver,
         protected LoggerInterface $logger,
     ) {
     }
@@ -37,7 +37,7 @@ readonly class ProcessTask implements TaskInterface
 
     public function isFinished(): bool
     {
-        return !$this->process->isRunning();
+        return !$this->processDriver->isTaskActive($this->taskKey);
     }
 
     /**
@@ -69,7 +69,7 @@ readonly class ProcessTask implements TaskInterface
 
     public function getOutput(): ?string
     {
-        return $this->processService->getOutput($this->process);
+        return null;
     }
 
     public function getCallback(): Closure

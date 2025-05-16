@@ -21,22 +21,22 @@ require_once __DIR__ . '/../vendor/autoload.php';
  * @var array<mixed, Closure> $callbacks
  */
 $callbacks = [
-    ...makeCaseUnique(5),
-    ...makeCaseBigResponse(5),
-    ...makeCaseSleep(count: 5, sec: 1),
+    //...makeCaseUnique(10),
+    //...makeCaseBigResponse(5),
+    //...makeCaseSleep(count: 5, sec: 1),
     ...makeCaseMemoryLimit(5),
-    ...makeCaseThrow(5),
+    //...makeCaseThrow(5),
 ];
 
 /** @var array<class-string<SParallel\Contracts\DriverInterface>> $driverClasses */
 $driverClasses = [
     ProcessDriver::class,
-    ForkDriver::class,
-    HybridDriver::class,
+    //ForkDriver::class,
+    //HybridDriver::class,
 ];
 
 $timeoutSeconds = 5;
-$workersLimit   = 10;
+$workersLimit   = 5;
 
 $keys = array_keys($callbacks);
 

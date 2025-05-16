@@ -6,7 +6,6 @@ namespace SParallel\Contracts;
 
 use Closure;
 use Generator;
-use SParallel\Entities\SocketServer;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Objects\TaskResult;
 use SParallel\Services\Context;
@@ -21,7 +20,6 @@ interface FlowInterface
         DriverInterface $driver,
         array &$callbacks,
         int $workersLimit,
-        SocketServer $socketServer
     ): static;
 
     /**

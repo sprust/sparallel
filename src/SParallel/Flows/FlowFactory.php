@@ -43,7 +43,6 @@ readonly class FlowFactory
     {
         if ($this->flowTypeResolver->isAsync()) {
             $flow = new ASyncFlow(
-                socketService: $this->socketService,
                 contextTransport: $this->contextTransport,
                 callbackTransport: $this->callbackTransport,
                 resultTransport: $this->resultTransport,
@@ -62,9 +61,6 @@ readonly class FlowFactory
             driver: $this->driverFactory->detect(),
             callbacks: $callbacks,
             workersLimit: $workersLimit,
-            socketServer: $this->socketService->createServer(
-                socketPath: $this->socketService->makeSocketPath()
-            )
         );
     }
 }

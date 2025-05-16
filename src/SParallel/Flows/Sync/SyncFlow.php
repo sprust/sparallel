@@ -37,7 +37,6 @@ class SyncFlow implements FlowInterface
         DriverInterface $driver,
         array &$callbacks,
         int $workersLimit,
-        SocketServer $socketServer
     ): static {
         $this->callbacks = $callbacks;
         $this->context   = $context;

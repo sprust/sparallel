@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace SParallel\Contracts;
 
 use Closure;
-use SParallel\Entities\SocketServer;
+use SParallel\Exceptions\ContextCheckerException;
+use SParallel\Objects\TaskResult;
 use SParallel\Services\Context;
 
 interface DriverInterface
@@ -17,15 +18,18 @@ interface DriverInterface
         Context $context,
         array $callbacks,
         int $workersLimit,
-        SocketServer $socketServer
     ): void;
 
-    public function create(
+    public function createTask(
         Context $context,
-        SocketServer $socketServer,
-        int|string $key,
+        int|string $taskKey,
         Closure $callback
     ): TaskInterface;
+
+    /**
+     * @throws ContextCheckerException
+     */
+    public function getResult(Context $context): TaskResult|false;
 
     public function break(Context $context): void;
 }

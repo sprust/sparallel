@@ -16,15 +16,9 @@ class ResultTransport
     ) {
     }
 
-    public function serialize(int|string $taskKey, ?Throwable $exception = null, mixed $result = null): string
+    public function serialize(TaskResult $result): string
     {
-        return $this->serializer->serialize(
-            new TaskResult(
-                taskKey: $taskKey,
-                exception: $exception,
-                result: $result,
-            )
-        );
+        return $this->serializer->serialize($result);
     }
 
     public function unserialize(string $data): TaskResult

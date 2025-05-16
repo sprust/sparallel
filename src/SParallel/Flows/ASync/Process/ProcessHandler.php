@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace SParallel\Flows\ASync\Process;
 
+use LogicException;
 use Psr\Log\LoggerInterface;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Entities\Timer;
 use SParallel\Enum\MessageOperationTypeEnum;
 use SParallel\Exceptions\InvalidValueException;
+use SParallel\Exceptions\UnexpectedTaskOperationException;
 use SParallel\Objects\Message;
+use SParallel\Objects\TaskResult;
 use SParallel\Services\Context;
 use SParallel\Services\Process\ProcessService;
 use SParallel\Services\Socket\SocketService;
@@ -51,94 +54,106 @@ class ProcessHandler
 
         $this->eventsBus->processCreated(pid: $myPid);
 
-        try {
-            $this->onHandle($myPid);
-        } catch (Throwable $exception) {
-            $this->logger->error(
-                sprintf(
-                    "process handler got error at handling [pPid: %s]: %s\n%s",
-                    $myPid,
-                    $exception->getMessage(),
-                    $exception
-                )
-            );
+        $stdin = fopen('php://stdin', 'r');
 
-            throw $exception;
-        } finally {
+        while (true) {
+            $lenPacked = fread($stdin, 4);
+
+            if ($lenPacked === false) {
+                usleep(100);
+
+                continue;
+            }
+
+            if (strlen($lenPacked) !== 4) {
+                throw new LogicException(
+                    'Unexpected end of stream.'
+                );
+            }
+
+            $len = unpack('N', $lenPacked)[1];
+
+            $payload = '';
+
+            while (strlen($payload) < $len) {
+                $payload .= fread($stdin, $len - strlen($payload));
+            }
+
             $this->logger->debug(
                 sprintf(
-                    "process handler finished [pPid: %s]",
-                    $myPid
+                    "process handler got payload from flow [pPid: %s]\n%s",
+                    $myPid,
+                    $payload
                 )
             );
 
-            $this->eventsBus->processFinished(pid: $myPid);
+            try {
+                $result = $this->onHandle($myPid, $payload);
+            } catch (Throwable $exception) {
+                $this->logger->error(
+                    sprintf(
+                        "process handler got error at handling [pPid: %s]: %s\n%s",
+                        $myPid,
+                        $exception->getMessage(),
+                        $exception
+                    )
+                );
+
+                throw $exception;
+            } finally {
+                $this->logger->debug(
+                    sprintf(
+                        "process handler finished [pPid: %s]",
+                        $myPid
+                    )
+                );
+            }
+
+            fflush(STDOUT);
+
+            $serializedResult = $this->resultTransport->serialize($result);
+
+            fwrite(STDOUT, pack('N', strlen($serializedResult)));
+            fwrite(STDOUT, $serializedResult);
+
+            fflush(STDIN);
         }
+
+        // TODO
+        //$this->eventsBus->processFinished(pid: $myPid);
     }
 
     /**
      * @throws Throwable
      */
-    protected function onHandle(int $myPid): void
+    protected function onHandle(int $myPid, string $payload): TaskResult
     {
-        $taskKey    = $_SERVER[ProcessDriver::PARAM_TASK_KEY] ?? null;
-        $socketPath = $_SERVER[ProcessDriver::PARAM_SOCKET_PATH] ?? null;
-
-        if (is_null($taskKey)) {
-            throw new InvalidValueException(
-                'Task key is not set.'
-            );
-        }
-
-        if (!$socketPath || !is_string($socketPath)) {
-            throw new InvalidValueException(
-                'Socket path is not set or is not a string.'
-            );
-        }
-
-        $taskKey = unserialize($taskKey);
-
-        $socketClient = $this->socketService->createClient($socketPath);
-
-        $initContext = new Context();
-
-        $this->socketService->writeToSocket(
-            context: $initContext->setChecker(new Timer(timeoutSeconds: 2)),
-            socket: $socketClient->socket,
-            data: $this->messageTransport->serialize(
-                new Message(
-                    operation: MessageOperationTypeEnum::GetTask,
-                    taskKey: $taskKey,
-                )
-            )
-        );
+        $message = $this->messageTransport->unserialize($payload);
 
         $this->logger->debug(
             sprintf(
-                "process handler requested task from flow [pPid: %s, tKey: %s]",
-                $myPid,
-                $taskKey
-            )
-        );
-
-        $initContext->clear();
-
-        $response = $this->socketService->readSocket(
-            context: $initContext->setChecker(new Timer(timeoutSeconds: 2)),
-            socket: $socketClient->socket
-        );
-
-        unset($socketClient);
-
-        $message = $this->messageTransport->unserialize($response);
-
-        $this->logger->debug(
-            sprintf(
-                "process handler got message from flow [mTKey: %s, mOp: %s]",
+                "process handler got message from flow [op: %s, mOp: %s]",
                 $message->operation->name,
-                $message->taskKey
+                $message->taskKey,
             )
         );
+
+        if ($message->operation === MessageOperationTypeEnum::StartTask) {
+            return $this->handleStartTask($myPid, $message);
+        }
+
+        return new TaskResult(
+            taskKey: $message->taskKey,
+            exception: new UnexpectedTaskOperationException(
+                taskKey: $message->taskKey,
+                operation: $message->operation->value,
+            )
+        );
+    }
+
+    private function handleStartTask(int $myPid, Message $message): TaskResult
+    {
+        $taskKey = $message->taskKey;
 
         $context = $this->contextTransport->unserialize($message->serializedContext);
 
@@ -159,23 +174,6 @@ class ProcessHandler
                 context: $context
             );
 
-            $socketClient = $this->socketService->createClient($socketPath);
-
-            $this->socketService->writeToSocket(
-                context: $context,
-                socket: $socketClient->socket,
-                data: $this->messageTransport->serialize(
-                    new Message(
-                        operation: MessageOperationTypeEnum::Response,
-                        taskKey: $taskKey,
-                        payload: $this->resultTransport->serialize(
-                            taskKey: $taskKey,
-                            result: $result
-                        ),
-                    )
-                )
-            );
-
             $this->logger->debug(
                 sprintf(
                     "process handler sent task result to flow [pPid: %s, tKey: %s]",
@@ -183,28 +181,16 @@ class ProcessHandler
                     $taskKey
                 )
             );
+
+            return new TaskResult(
+                taskKey: $taskKey,
+                result: $result
+            );
         } catch (Throwable $exception) {
             $this->eventsBus->taskFailed(
                 driverName: $driverName,
                 context: $context,
                 exception: $exception
-            );
-
-            $socketClient = $this->socketService->createClient($socketPath);
-
-            $this->socketService->writeToSocket(
-                context: $context,
-                socket: $socketClient->socket,
-                data: $this->messageTransport->serialize(
-                    new Message(
-                        operation: MessageOperationTypeEnum::Response,
-                        taskKey: $taskKey,
-                        payload: $this->resultTransport->serialize(
-                            taskKey: $taskKey,
-                            exception: $exception
-                        ),
-                    )
-                )
             );
 
             $this->logger->error(
@@ -217,14 +203,15 @@ class ProcessHandler
                 )
             );
 
-            throw $exception;
+            return new TaskResult(
+                taskKey: $taskKey,
+                exception: $exception
+            );
         } finally {
             $this->eventsBus->taskFinished(
                 driverName: $driverName,
                 context: $context
             );
-
-            unset($socketClient);
         }
     }
 }

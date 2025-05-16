@@ -10,15 +10,10 @@ use Psr\Log\LoggerInterface;
 use SParallel\Contracts\FlowInterface;
 use SParallel\Contracts\TaskInterface;
 use SParallel\Contracts\DriverInterface;
-use SParallel\Entities\SocketServer;
-use SParallel\Enum\MessageOperationTypeEnum;
 use SParallel\Exceptions\UnexpectedTaskException;
-use SParallel\Exceptions\UnexpectedTaskOperationException;
 use SParallel\Exceptions\UnexpectedTaskTerminationException;
-use SParallel\Objects\Message;
 use SParallel\Objects\TaskResult;
 use SParallel\Services\Context;
-use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\MessageTransport;
@@ -37,8 +32,6 @@ class ASyncFlow implements FlowInterface
 
     protected DriverInterface $driver;
 
-    protected SocketServer $socketServer;
-
     /**
      * @var array<int|string, TaskInterface>
      */
@@ -52,7 +45,6 @@ class ASyncFlow implements FlowInterface
     protected bool $isFinished;
 
     public function __construct(
-        protected SocketService $socketService,
         protected ContextTransport $contextTransport,
         protected CallbackTransport $callbackTransport,
         protected ResultTransport $resultTransport,
@@ -69,7 +61,6 @@ class ASyncFlow implements FlowInterface
         DriverInterface $driver,
         array &$callbacks,
         int $workersLimit,
-        SocketServer $socketServer
     ): static {
         $this->logger->debug(
             sprintf(
@@ -85,8 +76,6 @@ class ASyncFlow implements FlowInterface
 
         $this->isFinished = false;
 
-        $this->socketServer = $socketServer;
-
         $this->activeTasks = [];
 
         $this->remainTaskKeys = array_keys($this->callbacks);
@@ -95,7 +84,6 @@ class ASyncFlow implements FlowInterface
             context: $context,
             callbacks: $callbacks,
             workersLimit: $workersLimit,
-            socketServer: $socketServer
         );
 
         // TODO: do pretty
@@ -108,8 +96,6 @@ class ASyncFlow implements FlowInterface
 
     public function get(): Generator
     {
-        $serializedContext = $this->contextTransport->serialize($this->context);
-
         while (!$this->isFinished) {
             $this->context->check();
 
@@ -142,9 +128,9 @@ class ASyncFlow implements FlowInterface
             }
 
             while (true) {
-                $childClient = $this->socketService->accept($this->socketServer->socket);
+                $taskResult = $this->driver->getResult($this->context);
 
-                if ($childClient === false) {
+                if ($taskResult === false) {
                     $this->context->check();
 
                     usleep(100);
@@ -152,58 +138,26 @@ class ASyncFlow implements FlowInterface
                     break;
                 }
 
-                $response = $this->socketService->readSocket(
-                    context: $this->context,
-                    socket: $childClient
-                );
-
-                $message = $this->messageTransport->unserialize($response);
-
-                $task = $currentActiveTasks[$message->taskKey] ?? null;
+                $task = $currentActiveTasks[$taskResult->taskKey] ?? null;
 
                 if (!$task) {
                     throw new UnexpectedTaskException(
-                        unexpectedTaskKey: $message->taskKey,
+                        unexpectedTaskKey: $taskResult->taskKey,
                     );
                 }
 
                 $this->logger->debug(
                     sprintf(
-                        "async flow got message from task [mOp: %s, mTKey: %s tKey: %s, tPid: %d]",
-                        $message->operation->name,
-                        $message->taskKey,
+                        "async flow got result from task [rTKey: %s tKey: %s, tPid: %d]",
+                        $taskResult->taskKey,
                         $task->getKey(),
                         $task->getPid()
                     )
                 );
 
-                if ($message->operation === MessageOperationTypeEnum::GetTask) {
-                    $this->socketService->writeToSocket(
-                        context: $this->context,
-                        socket: $childClient,
-                        data: $this->messageTransport->serialize(
-                            new Message(
-                                operation: MessageOperationTypeEnum::Task,
-                                taskKey: $message->taskKey,
-                                serializedContext: $serializedContext,
-                                payload: $this->callbackTransport->serialize(
-                                    callback: $task->getCallback()
-                                )
-                            )
-                        )
-                    );
-                } elseif ($message->operation === MessageOperationTypeEnum::Response) {
-                    $result = $this->resultTransport->unserialize($message->payload);
+                $this->deleteRemainTaskKeys($task->getKey());
 
-                    $this->deleteRemainTaskKeys($result->taskKey);
-
-                    yield $result;
-                } else {
-                    throw new UnexpectedTaskOperationException(
-                        taskKey: $message->taskKey,
-                        operation: $message->operation->value,
-                    );
-                }
+                yield $taskResult;
             }
         }
 
@@ -287,10 +241,9 @@ class ASyncFlow implements FlowInterface
         foreach ($taskKeys as $taskKey) {
             $callback = $this->callbacks[$taskKey];
 
-            $task = $this->driver->create(
+            $task = $this->driver->createTask(
                 context: $this->context,
-                socketServer: $this->socketServer,
-                key: $taskKey,
+                taskKey: $taskKey,
                 callback: $callback
             );
 
