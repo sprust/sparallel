@@ -1,4 +1,5 @@
 PHP_CLI="docker-compose run -it --rm --user $$(id -u):$$(id -g) php"
+GO_CLI="docker-compose run -it --rm --user $$(id -u):$$(id -g) --publish 18077:18077 --workdir=/sparallel/libs/server php"
 
 build:
 	docker-compose build
@@ -6,8 +7,11 @@ build:
 down:
 	docker-compose down
 
-bash:
+bash-php:
 	"$(PHP_CLI)" bash
+
+bash-server:
+	"$(GO_CLI)" bash
 
 composer:
 	"$(PHP_CLI)" composer ${c}
@@ -37,3 +41,6 @@ check:
 	make phpstan
 	make test
 	make benchmark
+
+run-server:
+	go run ./cmd/server/main.go ${c}

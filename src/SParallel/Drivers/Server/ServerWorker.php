@@ -49,7 +49,7 @@ readonly class ServerWorker
                     exception: $exception
                 );
 
-                ob_clean();
+                fflush(STDOUT);
                 fwrite(STDOUT, $serializedResult);;
                 fflush(STDIN);
 
@@ -87,7 +87,7 @@ readonly class ServerWorker
                 );
             }
 
-            ob_clean();
+            fflush(STDOUT);
             fwrite(STDOUT, $serializedResult);
             fflush(STDIN);
         }

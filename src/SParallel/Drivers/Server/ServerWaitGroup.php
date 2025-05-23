@@ -6,10 +6,12 @@ namespace SParallel\Drivers\Server;
 
 use Closure;
 use Generator;
+use RuntimeException;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Drivers\Server\Rpc\ServerRpcClient;
 use SParallel\Drivers\Server\Rpc\ServerTask;
 use SParallel\Exceptions\UnexpectedServerTaskException;
+use SParallel\Objects\TaskResult;
 use SParallel\Services\Context;
 use SParallel\Transport\ServerTaskTransport;
 use SParallel\Transport\TaskResultTransport;
@@ -86,11 +88,22 @@ class ServerWaitGroup implements WaitGroupInterface
                 );
             }
 
+            try {
+                $result = $this->taskResultTransport->unserialize(
+                    data: $finishedTask->response
+                );
+            } catch (Throwable) {
+                $result = new TaskResult(
+                    taskKey: $this->expectedTasks[$finishedTask->taskUuid]->key,
+                    exception: new RuntimeException(
+                        message: $finishedTask->response
+                    )
+                );
+            }
+
             unset($this->expectedTasks[$finishedTask->taskUuid]);
 
-            yield $this->taskResultTransport->unserialize(
-                data: $finishedTask->response
-            );
+            yield $result;
         }
     }
 
