@@ -14,18 +14,18 @@ use SParallel\Objects\Message;
 use SParallel\Services\Context;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\MessageTransport;
-use SParallel\Transport\ResultTransport;
+use SParallel\Transport\TaskResultTransport;
 use Throwable;
 
 readonly class ForkHandler
 {
     public function __construct(
-        protected ResultTransport $resultTransport,
-        protected SocketService $socketService,
+        protected TaskResultTransport     $resultTransport,
+        protected SocketService           $socketService,
         protected CallbackCallerInterface $callbackCaller,
-        protected EventsBusInterface $eventsBus,
-        protected MessageTransport $messageTransport,
-        protected LoggerInterface $logger,
+        protected EventsBusInterface      $eventsBus,
+        protected MessageTransport        $messageTransport,
+        protected LoggerInterface         $logger,
     ) {
     }
 

@@ -18,21 +18,21 @@ use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\MessageTransport;
-use SParallel\Transport\ResultTransport;
+use SParallel\Transport\TaskResultTransport;
 
 readonly class FlowFactory
 {
     public function __construct(
-        protected SocketService $socketService,
-        protected DriverFactoryInterface $driverFactory,
-        protected ContextTransport $contextTransport,
-        protected CallbackTransport $callbackTransport,
-        protected ResultTransport $resultTransport,
-        protected MessageTransport $messageTransport,
-        protected LoggerInterface $logger,
+        protected SocketService             $socketService,
+        protected DriverFactoryInterface    $driverFactory,
+        protected ContextTransport          $contextTransport,
+        protected CallbackTransport         $callbackTransport,
+        protected TaskResultTransport       $resultTransport,
+        protected MessageTransport          $messageTransport,
+        protected LoggerInterface           $logger,
         protected FlowTypeResolverInterface $flowTypeResolver,
-        protected EventsBusInterface $eventsBus,
-        protected CallbackCaller $callbackCaller,
+        protected EventsBusInterface        $eventsBus,
+        protected CallbackCaller            $callbackCaller,
     ) {
     }
 

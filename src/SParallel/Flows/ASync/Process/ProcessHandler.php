@@ -17,21 +17,21 @@ use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\MessageTransport;
-use SParallel\Transport\ResultTransport;
+use SParallel\Transport\TaskResultTransport;
 use Throwable;
 
 class ProcessHandler
 {
     public function __construct(
-        protected SocketService $socketService,
-        protected MessageTransport $messageTransport,
-        protected CallbackTransport $callbackTransport,
-        protected ContextTransport $contextTransport,
+        protected SocketService           $socketService,
+        protected MessageTransport        $messageTransport,
+        protected CallbackTransport       $callbackTransport,
+        protected ContextTransport        $contextTransport,
         protected CallbackCallerInterface $callbackCaller,
-        protected ResultTransport $resultTransport,
-        protected EventsBusInterface $eventsBus,
-        protected ProcessService $processService,
-        protected LoggerInterface $logger
+        protected TaskResultTransport     $resultTransport,
+        protected EventsBusInterface      $eventsBus,
+        protected ProcessService          $processService,
+        protected LoggerInterface         $logger
     ) {
     }
 

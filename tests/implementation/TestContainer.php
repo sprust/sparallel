@@ -6,7 +6,6 @@ namespace SParallel\TestsImplementation;
 
 use Closure;
 use Psr\Container\ContainerInterface;
-use Psr\Log\LoggerInterface;
 use ReflectionClass;
 use ReflectionException;
 use RuntimeException;
@@ -19,6 +18,8 @@ use SParallel\Contracts\ForkStarterInterface;
 use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\SerializerInterface;
+use SParallel\Contracts\SParallelLoggerInterface;
+use SParallel\Drivers\Server\Rpc\ServerRpcClient;
 use SParallel\Flows\ASync\ASyncFlow;
 use SParallel\Flows\DriverFactory;
 use SParallel\Services\Callback\CallbackCaller;
@@ -60,13 +61,18 @@ class TestContainer implements ContainerInterface
             ForkStarterInterface::class                  => fn() => $this->get(TestForkStarter::class),
             DriverFactoryInterface::class                => fn() => $this->get(DriverFactory::class),
             FlowInterface::class                         => fn() => $this->get(ASyncFlow::class),
-            LoggerInterface::class                       => fn() => $this->get(TestLogger::class),
+            SParallelLoggerInterface::class              => fn() => $this->get(TestLogger::class),
             ProcessCommandResolverInterface::class       => fn() => $this->get(TestProcessCommandResolver::class),
             HybridProcessCommandResolverInterface::class => fn() => $this->get(TestHybridProcessCommandResolver::class),
             FlowTypeResolverInterface::class             => fn() => $this->get(TestFlowTypeResolver::class),
 
             SocketService::class => fn() => new SocketService(
                 socketPathDirectory: __DIR__ . '/../storage/sockets',
+            ),
+
+            ServerRpcClient::class => fn() => new ServerRpcClient(
+                host: 'host.docker.internal',
+                port: 18077
             ),
         ];
     }

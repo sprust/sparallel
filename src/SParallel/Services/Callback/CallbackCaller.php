@@ -25,7 +25,7 @@ class CallbackCaller implements CallbackCallerInterface
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
-    public function call(Closure $callback, Context $context): mixed
+    public function call(Context $context, Closure $callback): mixed
     {
         $reflection = new ReflectionFunction($callback);
 

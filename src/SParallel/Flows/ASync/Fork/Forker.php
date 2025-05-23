@@ -11,16 +11,16 @@ use SParallel\Contracts\ForkStarterInterface;
 use SParallel\Exceptions\CouldNotForkProcessException;
 use SParallel\Services\Context;
 use SParallel\Services\Socket\SocketService;
-use SParallel\Transport\ResultTransport;
+use SParallel\Transport\TaskResultTransport;
 
 readonly class Forker
 {
     public function __construct(
-        protected ResultTransport $resultTransport,
-        protected SocketService $socketService,
+        protected TaskResultTransport     $resultTransport,
+        protected SocketService           $socketService,
         protected CallbackCallerInterface $callbackCaller,
-        protected EventsBusInterface $eventsBus,
-        protected ForkStarterInterface $forkStarter,
+        protected EventsBusInterface      $eventsBus,
+        protected ForkStarterInterface    $forkStarter,
     ) {
     }
 

@@ -22,7 +22,7 @@ use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\MessageTransport;
-use SParallel\Transport\ResultTransport;
+use SParallel\Transport\TaskResultTransport;
 use Throwable;
 
 class HybridProcessHandler
@@ -33,17 +33,17 @@ class HybridProcessHandler
     protected array $activeTaskPids;
 
     public function __construct(
-        protected ContextTransport $contextTransport,
-        protected EventsBusInterface $eventsBus,
-        protected CallbackTransport $callbackTransport,
-        protected ResultTransport $resultTransport,
-        protected SocketService $socketService,
-        protected Forker $forkExecutor,
-        protected ForkService $forkService,
-        protected FlowFactory $flowFactory,
-        protected ForkDriver $forkDriver,
-        protected MessageTransport $messageTransport,
-        protected LoggerInterface $logger,
+        protected ContextTransport    $contextTransport,
+        protected EventsBusInterface  $eventsBus,
+        protected CallbackTransport   $callbackTransport,
+        protected TaskResultTransport $resultTransport,
+        protected SocketService       $socketService,
+        protected Forker              $forkExecutor,
+        protected ForkService         $forkService,
+        protected FlowFactory         $flowFactory,
+        protected ForkDriver          $forkDriver,
+        protected MessageTransport    $messageTransport,
+        protected LoggerInterface     $logger,
     ) {
     }
 

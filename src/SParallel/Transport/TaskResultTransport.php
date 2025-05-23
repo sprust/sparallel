@@ -9,7 +9,7 @@ use SParallel\Exceptions\UnserializeException;
 use SParallel\Objects\TaskResult;
 use Throwable;
 
-class ResultTransport
+class TaskResultTransport
 {
     public function __construct(
         protected SerializerInterface $serializer,

@@ -6,12 +6,12 @@ namespace SParallel\Services;
 
 use Closure;
 use Generator;
-use Psr\Log\LoggerInterface;
 use RuntimeException;
+use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Contracts\SParallelLoggerInterface;
 use SParallel\Entities\Timer;
 use SParallel\Exceptions\ContextCheckerException;
-use SParallel\Flows\FlowFactory;
 use SParallel\Objects\TaskResult;
 use SParallel\Objects\TaskResults;
 use Throwable;
@@ -20,8 +20,8 @@ class SParallelService
 {
     public function __construct(
         protected EventsBusInterface $eventsBus,
-        protected FlowFactory $flowFactory,
-        protected LoggerInterface $logger
+        protected DriverFactoryInterface $driverFactory,
+        protected SParallelLoggerInterface $logger,
     ) {
     }
 
@@ -41,8 +41,8 @@ class SParallelService
             callbacks: $callbacks,
             timeoutSeconds: $timeoutSeconds,
             workersLimit: $workersLimit,
-            waitFirst: true,
-            waitFirstOnlySuccess: $onlySuccess,
+            getFirstAny: true,
+            getFirstSuccess: $onlySuccess,
             context: $context,
         );
 
@@ -104,14 +104,14 @@ class SParallelService
         int $timeoutSeconds,
         int $workersLimit = 0,
         bool $breakAtFirstError = false,
-        bool $waitFirst = false,
-        bool $waitFirstOnlySuccess = false,
+        bool $getFirstAny = false,
+        bool $getFirstSuccess = false,
         ?Context $context = null
     ): Generator {
         if ($workersLimit < 1) {
-            $workersLimit = SOMAXCONN;
+            $workersLimit = 100;
         } else {
-            $workersLimit = min($workersLimit, SOMAXCONN);
+            $workersLimit = min($workersLimit, 100);
         }
 
         $this->logger->debug(
@@ -135,24 +135,26 @@ class SParallelService
             context: $context
         );
 
-        $flow = $this->flowFactory->create(
-            callbacks: $callbacks,
-            context: $context,
-            workersLimit: $workersLimit
-        );
+        $driver = $this->driverFactory->detect();
 
         try {
+            $waitGroup = $driver->run(
+                context: $context,
+                callbacks: $callbacks,
+                timeoutSeconds: $timeoutSeconds
+            );
+
             $brokeResult = null;
 
-            foreach ($flow->get() as $result) {
+            foreach ($waitGroup->get() as $result) {
                 $context->check();
 
-                if ($waitFirst) {
-                    if ($result->error && $waitFirstOnlySuccess) {
+                if ($getFirstAny || $getFirstSuccess) {
+                    if ($getFirstSuccess && $result->error) {
                         continue;
                     }
 
-                    $flow->break();
+                    $waitGroup->cancel();
 
                     $brokeResult = $result;
 
@@ -160,7 +162,7 @@ class SParallelService
                 }
 
                 if ($breakAtFirstError && $result->error) {
-                    $flow->break();
+                    $waitGroup->cancel();
 
                     $brokeResult = $result;
 
@@ -215,7 +217,7 @@ class SParallelService
                 context: $context,
             );
 
-            unset($flow);
+            unset($driver);
         }
     }
 }

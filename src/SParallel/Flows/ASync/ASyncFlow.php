@@ -22,7 +22,7 @@ use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\CallbackTransport;
 use SParallel\Transport\ContextTransport;
 use SParallel\Transport\MessageTransport;
-use SParallel\Transport\ResultTransport;
+use SParallel\Transport\TaskResultTransport;
 
 class ASyncFlow implements FlowInterface
 {
@@ -55,7 +55,7 @@ class ASyncFlow implements FlowInterface
         protected SocketService $socketService,
         protected ContextTransport $contextTransport,
         protected CallbackTransport $callbackTransport,
-        protected ResultTransport $resultTransport,
+        protected TaskResultTransport $resultTransport,
         protected MessageTransport $messageTransport,
         protected LoggerInterface $logger
     ) {

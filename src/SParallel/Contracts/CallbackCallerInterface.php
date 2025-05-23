@@ -9,5 +9,5 @@ use SParallel\Services\Context;
 
 interface CallbackCallerInterface
 {
-    public function call(Closure $callback, Context $context): mixed;
+    public function call(Context $context, Closure $callback): mixed;
 }
