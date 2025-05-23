@@ -1,0 +1,3 @@
+[submodule "libs/server"]
+	path = libs/server
+	url = git@github.com:sprust/sparallel-server.git
