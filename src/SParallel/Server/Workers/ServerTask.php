@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Drivers\Server\Rpc;
+namespace SParallel\Server\Workers;
 
 use Closure;
 use SParallel\Services\Context;

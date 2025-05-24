@@ -6,7 +6,7 @@ namespace SParallel\Drivers\Server;
 
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Server\Rpc\ServerRpcClient;
+use SParallel\Server\Workers\WorkersRpcClient;
 use SParallel\Services\Context;
 use SParallel\Transport\ServerTaskTransport;
 use SParallel\Transport\TaskResultTransport;
@@ -16,7 +16,7 @@ readonly class ServerDriver implements DriverInterface
     public const DRIVER_NAME = 'server';
 
     public function __construct(
-        protected ServerRpcClient $rpcClient,
+        protected WorkersRpcClient $rpcClient,
         protected ServerTaskTransport $serverTaskTransport,
         protected TaskResultTransport $taskResultTransport,
     ) {

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SParallel\Transport;
 
 use SParallel\Contracts\SerializerInterface;
-use SParallel\Drivers\Server\Rpc\ServerTask;
 use SParallel\Exceptions\UnserializeException;
+use SParallel\Server\Workers\ServerTask;
 
 readonly class ServerTaskTransport
 {

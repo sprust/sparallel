@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Drivers\Server\Rpc;
+namespace SParallel\Server\Workers;
 
-readonly class FinishedTask
+readonly class ServerFinishedTask
 {
     public function __construct(
         public string $groupUuid,

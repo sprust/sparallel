@@ -5,9 +5,7 @@ declare(strict_types=1);
 ini_set('memory_limit', '1G');
 
 use SParallel\Contracts\DriverFactoryInterface;
-use SParallel\Flows\ASync\Fork\ForkDriver;
-use SParallel\Flows\ASync\Hybrid\HybridDriver;
-use SParallel\Flows\ASync\Process\ProcessDriver;
+use SParallel\Drivers\Server\ServerDriver;
 use SParallel\Services\SParallelService;
 use SParallel\TestsImplementation\TestContainer;
 use SParallel\TestsImplementation\TestEventsRepository;
@@ -22,7 +20,8 @@ require_once __DIR__ . '/../vendor/autoload.php';
  */
 $callbacks = [
     ...makeCaseUnique(5),
-    ...makeCaseBigResponse(5),
+    // TODO: io stream
+    //...makeCaseBigResponse(1),
     ...makeCaseSleep(count: 5, sec: 1),
     ...makeCaseMemoryLimit(5),
     ...makeCaseThrow(5),
@@ -30,9 +29,7 @@ $callbacks = [
 
 /** @var array<class-string<SParallel\Contracts\DriverInterface>> $driverClasses */
 $driverClasses = [
-    ProcessDriver::class,
-    ForkDriver::class,
-    HybridDriver::class,
+    ServerDriver::class,
 ];
 
 $timeoutSeconds = 5;

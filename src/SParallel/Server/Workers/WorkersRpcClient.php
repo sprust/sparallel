@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Drivers\Server\Rpc;
+namespace SParallel\Server\Workers;
 
 use Spiral\Goridge\Relay;
 use Spiral\Goridge\RPC\RPC;
 
-readonly class ServerRpcClient
+readonly class WorkersRpcClient
 {
     protected RPC $rpc;
 
@@ -32,13 +32,13 @@ readonly class ServerRpcClient
         ]);
     }
 
-    public function detectAnyFinishedTask(string $groupUuid): FinishedTask
+    public function detectAnyFinishedTask(string $groupUuid): ServerFinishedTask
     {
         $rpcResponse = $this->rpc->call("WorkersServer.DetectAnyFinishedTask", [
             'GroupUuid' => $groupUuid,
         ]);
 
-        return new FinishedTask(
+        return new ServerFinishedTask(
             groupUuid: $rpcResponse['GroupUuid'],
             taskUuid: $rpcResponse['TaskUuid'],
             isFinished: $rpcResponse['IsFinished'],

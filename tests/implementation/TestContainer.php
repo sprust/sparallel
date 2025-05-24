@@ -19,9 +19,10 @@ use SParallel\Contracts\HybridProcessCommandResolverInterface;
 use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Contracts\SParallelLoggerInterface;
-use SParallel\Drivers\Server\Rpc\ServerRpcClient;
 use SParallel\Flows\ASync\ASyncFlow;
 use SParallel\Flows\DriverFactory;
+use SParallel\Server\Proxy\Mongodb\ProxyMongodbRpcClient;
+use SParallel\Server\Workers\WorkersRpcClient;
 use SParallel\Services\Callback\CallbackCaller;
 use SParallel\Services\Socket\SocketService;
 use SParallel\Transport\OpisSerializer;
@@ -70,7 +71,11 @@ class TestContainer implements ContainerInterface
                 socketPathDirectory: __DIR__ . '/../storage/sockets',
             ),
 
-            ServerRpcClient::class => fn() => new ServerRpcClient(
+            WorkersRpcClient::class => fn() => new WorkersRpcClient(
+                host: 'host.docker.internal',
+                port: 18077
+            ),
+            ProxyMongodbRpcClient::class => fn() => new ProxyMongodbRpcClient(
                 host: 'host.docker.internal',
                 port: 18077
             ),

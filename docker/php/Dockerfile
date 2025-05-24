@@ -3,9 +3,9 @@ FROM php:8.2-cli
 RUN apt update && apt install -y git libzip-dev zip unzip procps wget git gcc make
 
 # PHP
-RUN pecl install zip && docker-php-ext-enable zip
+RUN pecl install zip mongodb-1.21.0 && docker-php-ext-enable zip
 
-RUN docker-php-ext-install sockets && docker-php-ext-enable sockets
+RUN docker-php-ext-install sockets && docker-php-ext-enable sockets mongodb
 
 # composer
 RUN curl -sS https://getcomposer.org/installer  \

@@ -8,10 +8,10 @@ use Closure;
 use Generator;
 use RuntimeException;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Drivers\Server\Rpc\ServerRpcClient;
-use SParallel\Drivers\Server\Rpc\ServerTask;
 use SParallel\Exceptions\UnexpectedServerTaskException;
 use SParallel\Objects\TaskResult;
+use SParallel\Server\Workers\WorkersRpcClient;
+use SParallel\Server\Workers\ServerTask;
 use SParallel\Services\Context;
 use SParallel\Transport\ServerTaskTransport;
 use SParallel\Transport\TaskResultTransport;
@@ -35,7 +35,7 @@ class ServerWaitGroup implements WaitGroupInterface
         private readonly Context $context,
         array &$callbacks,
         int $timeoutSeconds,
-        private readonly ServerRpcClient $rpcClient,
+        private readonly WorkersRpcClient $rpcClient,
         private readonly ServerTaskTransport $serverTaskTransport,
         private readonly TaskResultTransport $taskResultTransport,
     ) {
