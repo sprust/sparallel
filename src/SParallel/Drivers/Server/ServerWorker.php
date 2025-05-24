@@ -29,6 +29,7 @@ readonly class ServerWorker
         $this->logger->debug("Server worker [$myPid] started");
 
         while (true) {
+            // TODO: stream read
             $data = fread(STDIN, 64 * 1024);
 
             if ($data === false) {
@@ -50,6 +51,7 @@ readonly class ServerWorker
                 );
 
                 fflush(STDOUT);
+                // TODO: stream write
                 fwrite(STDOUT, $serializedResult);;
                 fflush(STDIN);
 

@@ -88,15 +88,23 @@ class ServerWaitGroup implements WaitGroupInterface
                 );
             }
 
-            try {
-                $result = $this->taskResultTransport->unserialize(
-                    data: $finishedTask->response
-                );
-            } catch (Throwable) {
+            if ($this->isSerializedString($finishedTask->response)) {
+                try {
+                    $result = $this->taskResultTransport->unserialize(
+                        data: $finishedTask->response
+                    );
+                } catch (Throwable $exception) {
+                    $result = new TaskResult(
+                        taskKey: $this->expectedTasks[$finishedTask->taskUuid]->key,
+                        exception: $exception,
+                        result: $finishedTask->response
+                    );
+                }
+            } else {
                 $result = new TaskResult(
                     taskKey: $this->expectedTasks[$finishedTask->taskUuid]->key,
                     exception: new RuntimeException(
-                        message: $finishedTask->response
+                        message: trim($finishedTask->response)
                     )
                 );
             }
@@ -120,6 +128,18 @@ class ServerWaitGroup implements WaitGroupInterface
     {
         return uniqid(more_entropy: true);
     }
+
+    private function isSerializedString(string $data): bool
+    {
+        $pattern = '/^((s|i|d|b|a|O|C):|N;)/';
+
+        if (!preg_match($pattern, $data)) {
+            return false;
+        }
+
+        return true;
+    }
+
 
     public function __destruct()
     {
