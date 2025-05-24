@@ -14,16 +14,16 @@ use SParallel\Objects\TaskResult;
 use SParallel\Services\Context;
 use Throwable;
 
-readonly class SyncWaitGroup implements WaitGroupInterface
+class SyncWaitGroup implements WaitGroupInterface
 {
     /**
      * @param array<int|string, Closure> $callbacks
      */
     public function __construct(
-        private Context $context,
+        private readonly Context $context,
         private array &$callbacks,
-        private EventsBusInterface $eventsBus,
-        private CallbackCallerInterface $callbackCaller,
+        private readonly EventsBusInterface $eventsBus,
+        private readonly CallbackCallerInterface $callbackCaller,
     ) {
     }
 
