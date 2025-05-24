@@ -29,7 +29,7 @@ readonly class ServerWorker
         $this->logger->debug("Server worker [$myPid] started");
 
         while (true) {
-            $data = fread(STDIN, 1024);
+            $data = fread(STDIN, 64 * 1024);
 
             if ($data === false) {
                 usleep(100);

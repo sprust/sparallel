@@ -24,7 +24,7 @@ readonly class ServerRpcClient
         string $payload,
         int $unixTimeout
     ): void {
-        $this->rpc->call("Server.AddTask", [
+        $this->rpc->call("WorkersServer.AddTask", [
             'GroupUuid'   => $groupUuid,
             'TaskUuid'    => $taskUuid,
             'UnixTimeout' => $unixTimeout,
@@ -34,7 +34,7 @@ readonly class ServerRpcClient
 
     public function detectAnyFinishedTask(string $groupUuid): FinishedTask
     {
-        $rpcResponse = $this->rpc->call("Server.DetectAnyFinishedTask", [
+        $rpcResponse = $this->rpc->call("WorkersServer.DetectAnyFinishedTask", [
             'GroupUuid' => $groupUuid,
         ]);
 
@@ -49,7 +49,7 @@ readonly class ServerRpcClient
 
     public function cancelGroup(string $groupUuid): void
     {
-        $this->rpc->call("Server.CancelGroup", [
+        $this->rpc->call("WorkersServer.CancelGroup", [
             'GroupUuid' => $groupUuid,
         ]);
     }
