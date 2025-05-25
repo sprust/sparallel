@@ -20,8 +20,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
  */
 $callbacks = [
     ...makeCaseUnique(5),
-    // TODO: io stream
-    //...makeCaseBigResponse(1),
+    ...makeCaseBigResponse(5),
     ...makeCaseSleep(count: 5, sec: 1),
     ...makeCaseMemoryLimit(5),
     ...makeCaseThrow(5),
