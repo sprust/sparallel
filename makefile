@@ -44,3 +44,6 @@ check:
 
 run-server:
 	go run ./cmd/server/main.go ${c}
+
+htop-workers:
+	htop -t --filter=server-process-handler.php
