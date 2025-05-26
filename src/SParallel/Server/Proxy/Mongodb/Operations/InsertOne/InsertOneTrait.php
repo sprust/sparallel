@@ -9,6 +9,9 @@ use SParallel\Server\Proxy\Mongodb\Operations\RunningOperation;
 
 trait InsertOneTrait
 {
+    /**
+     * @param array<int|string, mixed> $document
+     */
     public function insertOne(
         string $connection,
         string $database,

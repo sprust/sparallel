@@ -12,20 +12,13 @@ use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\FlowInterface;
-use SParallel\Contracts\FlowTypeResolverInterface;
-use SParallel\Contracts\ForkStarterInterface;
-use SParallel\Contracts\HybridProcessCommandResolverInterface;
-use SParallel\Contracts\ProcessCommandResolverInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Contracts\SParallelLoggerInterface;
-use SParallel\Flows\ASync\ASyncFlow;
-use SParallel\Flows\DriverFactory;
+use SParallel\Drivers\DriverFactory;
+use SParallel\Implementation\CallbackCaller;
+use SParallel\Implementation\OpisSerializer;
 use SParallel\Server\Proxy\Mongodb\ProxyMongodbRpcClient;
 use SParallel\Server\Workers\WorkersRpcClient;
-use SParallel\Services\Callback\CallbackCaller;
-use SParallel\Services\Socket\SocketService;
-use SParallel\Transport\OpisSerializer;
 
 class TestContainer implements ContainerInterface
 {
@@ -59,17 +52,8 @@ class TestContainer implements ContainerInterface
             SerializerInterface::class                   => fn() => $this->get(OpisSerializer::class),
             CallbackCallerInterface::class               => fn() => $this->get(CallbackCaller::class),
             EventsBusInterface::class                    => fn() => $this->get(TestEventsBus::class),
-            ForkStarterInterface::class                  => fn() => $this->get(TestForkStarter::class),
             DriverFactoryInterface::class                => fn() => $this->get(DriverFactory::class),
-            FlowInterface::class                         => fn() => $this->get(ASyncFlow::class),
             SParallelLoggerInterface::class              => fn() => $this->get(TestLogger::class),
-            ProcessCommandResolverInterface::class       => fn() => $this->get(TestProcessCommandResolver::class),
-            HybridProcessCommandResolverInterface::class => fn() => $this->get(TestHybridProcessCommandResolver::class),
-            FlowTypeResolverInterface::class             => fn() => $this->get(TestFlowTypeResolver::class),
-
-            SocketService::class => fn() => new SocketService(
-                socketPathDirectory: __DIR__ . '/../storage/sockets',
-            ),
 
             WorkersRpcClient::class => fn() => new WorkersRpcClient(
                 host: 'host.docker.internal',

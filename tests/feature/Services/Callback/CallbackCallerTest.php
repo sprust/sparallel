@@ -10,8 +10,8 @@ use Psr\Container\NotFoundExceptionInterface;
 use ReflectionException;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\SerializerInterface;
-use SParallel\Services\Callback\CallbackCaller;
-use SParallel\Services\Context;
+use SParallel\Entities\Context;
+use SParallel\Implementation\CallbackCaller;
 use SParallel\TestsImplementation\TestContainer;
 
 class CallbackCallerTest extends TestCase

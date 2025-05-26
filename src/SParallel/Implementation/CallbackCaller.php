@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Services\Callback;
+namespace SParallel\Implementation;
 
 use Closure;
 use Psr\Container\ContainerExceptionInterface;
@@ -12,7 +12,7 @@ use ReflectionException;
 use ReflectionFunction;
 use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
-use SParallel\Services\Context;
+use SParallel\Entities\Context;
 
 class CallbackCaller implements CallbackCallerInterface
 {

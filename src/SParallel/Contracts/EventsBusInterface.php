@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Contracts;
 
-use SParallel\Services\Context;
+use SParallel\Entities\Context;
 use Throwable;
 
 interface EventsBusInterface
@@ -20,8 +20,4 @@ interface EventsBusInterface
     public function taskFailed(string $driverName, Context $context, Throwable $exception): void;
 
     public function taskFinished(string $driverName, Context $context): void;
-
-    public function processCreated(int $pid): void;
-
-    public function processFinished(int $pid): void;
 }

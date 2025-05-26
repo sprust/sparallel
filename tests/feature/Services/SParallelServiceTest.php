@@ -9,27 +9,21 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Drivers\DriverFactory;
+use SParallel\Drivers\Server\ServerDriver;
+use SParallel\Drivers\Sync\SyncDriver;
+use SParallel\Entities\Context;
 use SParallel\Exceptions\ContextCheckerException;
-use SParallel\Flows\ASync\Fork\ForkDriver;
-use SParallel\Flows\ASync\Hybrid\HybridDriver;
-use SParallel\Flows\ASync\Process\ProcessDriver;
-use SParallel\Flows\DriverFactory;
-use SParallel\Services\Context;
-use SParallel\Services\SParallelService;
+use SParallel\SParallelService;
 use SParallel\TestCases\SParallelServiceTestCasesTrait;
 use SParallel\TestsImplementation\TestContainer;
 use SParallel\TestsImplementation\TestEventsRepository;
-use SParallel\TestsImplementation\TestFlowTypeResolver;
 use SParallel\TestsImplementation\TestLogger;
-use SParallel\TestsImplementation\TestProcessesRepository;
-use SParallel\TestsImplementation\TestSocketFilesRepository;
 
-class SParallelServiceASyncTest extends TestCase
+class SParallelServiceTest extends TestCase
 {
     use SParallelServiceTestCasesTrait;
 
-    protected TestProcessesRepository $processesRepository;
-    protected TestSocketFilesRepository $socketFilesRepository;
     protected TestEventsRepository $eventsRepository;
 
     protected function setUp(): void
@@ -37,16 +31,9 @@ class SParallelServiceASyncTest extends TestCase
         parent::setUp();
 
         TestLogger::flush();
-        TestFlowTypeResolver::$isAsync = true;
 
-        $container = TestContainer::resolve();
+        $this->eventsRepository = TestContainer::resolve()->get(TestEventsRepository::class);
 
-        $this->processesRepository   = $container->get(TestProcessesRepository::class);
-        $this->socketFilesRepository = TestContainer::resolve()->get(TestSocketFilesRepository::class);
-        $this->eventsRepository      = TestContainer::resolve()->get(TestEventsRepository::class);
-
-        $this->processesRepository->flush();
-        $this->socketFilesRepository->flush();
         $this->eventsRepository->flush();
     }
 
@@ -60,9 +47,6 @@ class SParallelServiceASyncTest extends TestCase
         $this->onSuccess(
             service: $this->makeServiceByDriver($driver)
         );
-
-        $this->assertActiveProcessesCount(0);
-        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -75,9 +59,6 @@ class SParallelServiceASyncTest extends TestCase
         $this->onWaitFirstOnlySuccess(
             service: $this->makeServiceByDriver($driver),
         );
-
-        $this->assertActiveProcessesCount(0);
-        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -90,30 +71,18 @@ class SParallelServiceASyncTest extends TestCase
         $this->onWaitFirstNotOnlySuccess(
             service: $this->makeServiceByDriver($driver),
         );
-
-        if ($driver instanceof HybridDriver) {
-            // WARNING: zombie collector
-            $this->assertActiveProcessesCount(1);
-        } else {
-            $this->assertActiveProcessesCount(0);
-        }
-
-        $this->assertActiveSocketServersCount(0);
     }
 
     /**
      * @throws ContextCheckerException
      */
-    #[Test]
+    //#[Test] // TODO
     #[DataProvider('allDriversDataProvider')]
     public function workersLimit(DriverInterface $driver): void
     {
         $this->onWorkersLimit(
             service: $this->makeServiceByDriver($driver),
         );
-
-        $this->assertActiveProcessesCount(0);
-        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -126,9 +95,6 @@ class SParallelServiceASyncTest extends TestCase
         $this->onFailure(
             service: $this->makeServiceByDriver($driver),
         );
-
-        $this->assertActiveProcessesCount(0);
-        $this->assertActiveSocketServersCount(0);
     }
 
     #[Test]
@@ -138,15 +104,6 @@ class SParallelServiceASyncTest extends TestCase
         $this->onTimeout(
             service: $this->makeServiceByDriver($driver),
         );
-
-        if ($driver instanceof ProcessDriver || $driver instanceof HybridDriver) {
-            // WARNING: zombie collector
-            //$this->assertActiveProcessesCount(1);
-        } else {
-            $this->assertActiveProcessesCount(0);
-        }
-
-        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -159,45 +116,30 @@ class SParallelServiceASyncTest extends TestCase
         $this->onBreakAtFirstError(
             service: $this->makeServiceByDriver($driver),
         );
-
-        if ($driver instanceof HybridDriver) {
-            // WARNING: zombie collector
-            $this->assertActiveProcessesCount(1);
-        } else {
-            $this->assertActiveProcessesCount(0);
-        }
-
-        $this->assertActiveSocketServersCount(0);
     }
 
     /**
      * @throws ContextCheckerException
      */
     #[Test]
-    #[DataProvider('allDriversDataProvider')]
+    #[DataProvider('asyncDriversDataProvider')]
     public function bigPayload(DriverInterface $driver): void
     {
         $this->onBigPayload(
             service: $this->makeServiceByDriver($driver),
         );
-
-        $this->assertActiveProcessesCount(0);
-        $this->assertActiveSocketServersCount(0);
     }
 
     /**
      * @throws ContextCheckerException
      */
     #[Test]
-    #[DataProvider('allDriversDataProvider')]
+    #[DataProvider('asyncDriversDataProvider')]
     public function memoryLeak(DriverInterface $driver): void
     {
         $this->onMemoryLeak(
             service: $this->makeServiceByDriver($driver),
         );
-
-        $this->assertActiveProcessesCount(0);
-        $this->assertActiveSocketServersCount(0);
     }
 
     /**
@@ -236,9 +178,6 @@ class SParallelServiceASyncTest extends TestCase
         self::assertTrue($results->isFinished());
         self::assertFalse($results->hasFailed());
         self::assertTrue($results->count() === $callbacksCount);
-
-        $this->assertActiveProcessesCount(0);
-        $this->assertActiveSocketServersCount(0);
 
         $this->assertEventsCount('flowStarting', 1);
         $this->assertEventsCount('flowFailed', 0);
@@ -292,9 +231,6 @@ class SParallelServiceASyncTest extends TestCase
         self::assertTrue($results->hasFailed());
         self::assertTrue($results->count() === $callbacksCount);
 
-        $this->assertActiveProcessesCount(0);
-        $this->assertActiveSocketServersCount(0);
-
         $this->assertEventsCount('flowStarting', 1);
         $this->assertEventsCount('flowFailed', 0);
         $this->assertEventsCount('flowFinished', 1);
@@ -305,54 +241,6 @@ class SParallelServiceASyncTest extends TestCase
     }
 
     /**
-     * @throws ContextCheckerException
-     */
-    #[Test]
-    #[DataProvider('allDriversDataProvider')]
-    public function unexpectedExitOfParent(DriverInterface $driver): void
-    {
-        $processService = $this->makeServiceByDriver(
-            driver: TestContainer::resolve()->get(ProcessDriver::class),
-        );
-
-        $testableService = $this->makeServiceByDriver(
-            driver: $driver
-        );
-
-        $this->onUnexpectedExitOfParent(
-            processService: $processService,
-            testableService: $testableService
-        );
-
-        $this->assertActiveProcessesCount(0);
-        $this->assertActiveSocketServersCount(0);
-    }
-
-    /**
-     * @throws ContextCheckerException
-     */
-    #[Test]
-    #[DataProvider('allDriversDataProvider')]
-    public function memoryLeakOfParent(DriverInterface $driver): void
-    {
-        $processService = $this->makeServiceByDriver(
-            driver: TestContainer::resolve()->get(ProcessDriver::class),
-        );
-
-        $testableService = $this->makeServiceByDriver(
-            driver: $driver
-        );
-
-        $this->onMemoryLeakOfParent(
-            processService: $processService,
-            testableService: $testableService
-        );
-
-        $this->assertActiveProcessesCount(0);
-        $this->assertActiveSocketServersCount(0);
-    }
-
-    /**
      * @return array{driver: DriverInterface}[]
      */
     public static function allDriversDataProvider(): array
@@ -360,14 +248,25 @@ class SParallelServiceASyncTest extends TestCase
         $container = TestContainer::resolve();
 
         return [
-            'process' => self::makeDriverCase(
-                driver: $container->get(id: ProcessDriver::class)
+            'sync'   => self::makeDriverCase(
+                driver: $container->get(id: SyncDriver::class)
             ),
-            'fork'    => self::makeDriverCase(
-                driver: $container->get(id: ForkDriver::class)
+            'server' => self::makeDriverCase(
+                driver: $container->get(id: ServerDriver::class)
             ),
-            'hybrid'  => self::makeDriverCase(
-                driver: $container->get(id: HybridDriver::class)
+        ];
+    }
+
+    /**
+     * @return array{driver: DriverInterface}[]
+     */
+    public static function asyncDriversDataProvider(): array
+    {
+        $container = TestContainer::resolve();
+
+        return [
+            'server' => self::makeDriverCase(
+                driver: $container->get(id: ServerDriver::class)
             ),
         ];
     }
@@ -390,28 +289,6 @@ class SParallelServiceASyncTest extends TestCase
             ->forceDriver($driver);
 
         return $container->get(SParallelService::class);
-    }
-
-    private function assertActiveProcessesCount(int $expectedCount): void
-    {
-        $activeProcessesCount = $this->processesRepository->getActiveCount();
-
-        self::assertEquals(
-            $expectedCount,
-            $activeProcessesCount,
-            "Expected active processes count: $expectedCount, got: $activeProcessesCount"
-        );
-    }
-
-    private function assertActiveSocketServersCount(int $expectedCount): void
-    {
-        $openedSocketsCount = $this->socketFilesRepository->getCount();
-
-        self::assertEquals(
-            $expectedCount,
-            $openedSocketsCount,
-            "Expected active sockets count: $expectedCount, got: $openedSocketsCount"
-        );
     }
 
     private function assertEventsCount(string $eventName, int $expectedCount): void

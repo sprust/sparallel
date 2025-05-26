@@ -6,28 +6,36 @@ namespace SParallel\TestsFeature\Flows;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
-use SParallel\Flows\ASync\Fork\ForkDriver;
-use SParallel\Flows\ASync\Hybrid\HybridDriver;
-use SParallel\Flows\ASync\Process\ProcessDriver;
-use SParallel\Flows\DriverFactory;
+use SParallel\Contracts\DriverFactoryInterface;
+use SParallel\Drivers\DriverFactory;
+use SParallel\Drivers\Server\ServerDriver;
+use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\TestsImplementation\TestContainer;
 
 class DriverFactoryTest extends TestCase
 {
+    private ContainerInterface $container;
+    private DriverFactoryInterface $factory;
+
     /**
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->container = TestContainer::resolve();
+        $this->factory   = $this->container->get(DriverFactoryInterface::class);
+    }
+
     public function testDefault(): void
     {
-        $factory = new DriverFactory(
-            container: TestContainer::resolve()
-        );
-
         self::assertEquals(
-            ForkDriver::class,
-            $factory->detect()::class,
+            SyncDriver::class,
+            $this->factory->get()::class,
         );
     }
 
@@ -35,16 +43,15 @@ class DriverFactoryTest extends TestCase
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
-    public function testInConsole(): void
+    public function testForce(): void
     {
-        $factory = new DriverFactory(
-            container: TestContainer::resolve(),
-            isRunningInConsole: true
+        $this->factory->forceDriver(
+            $this->container->get(ServerDriver::class)
         );
 
         self::assertEquals(
-            ForkDriver::class,
-            $factory->detect()::class,
+            ServerDriver::class,
+            $this->factory->get()::class,
         );
     }
 
@@ -52,52 +59,16 @@ class DriverFactoryTest extends TestCase
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
-    public function testNotInConsole(): void
+    public function testConstructor(): void
     {
         $factory = new DriverFactory(
-            container: TestContainer::resolve(),
-            isRunningInConsole: false
+            $this->container,
+            $this->container->get(ServerDriver::class)
         );
 
         self::assertEquals(
-            ProcessDriver::class,
-            $factory->detect()::class,
-        );
-    }
-
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
-    public function testManual(): void
-    {
-        $factory = new DriverFactory(
-            container: TestContainer::resolve(),
-            isRunningInConsole: false,
-            driver: TestContainer::resolve()->get(HybridDriver::class),
-        );
-
-        self::assertEquals(
-            HybridDriver::class,
-            $factory->detect()::class,
-        );
-    }
-
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
-    public function testHybrid(): void
-    {
-        $factory = new DriverFactory(
-            container: TestContainer::resolve(),
-            isRunningInConsole: false,
-            useHybridDriverInsteadProcess: true
-        );
-
-        self::assertEquals(
-            HybridDriver::class,
-            $factory->detect()::class,
+            ServerDriver::class,
+            $factory->get()::class,
         );
     }
 }

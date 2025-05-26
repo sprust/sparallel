@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Services;
+namespace SParallel;
 
 use Closure;
 use Generator;
@@ -10,8 +10,9 @@ use RuntimeException;
 use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\SParallelLoggerInterface;
-use SParallel\Entities\Timer;
+use SParallel\Entities\Context;
 use SParallel\Exceptions\ContextCheckerException;
+use SParallel\Implementation\Timer;
 use SParallel\Objects\TaskResult;
 use SParallel\Objects\TaskResults;
 use Throwable;
@@ -135,7 +136,7 @@ class SParallelService
             context: $context
         );
 
-        $driver = $this->driverFactory->detect();
+        $driver = $this->driverFactory->get();
 
         try {
             $waitGroup = $driver->run(

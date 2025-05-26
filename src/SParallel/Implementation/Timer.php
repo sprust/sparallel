@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Entities;
+namespace SParallel\Implementation;
 
 use SParallel\Contracts\ContextCheckerInterface;
 use SParallel\Exceptions\InvalidValueException;

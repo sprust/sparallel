@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Server\Workers;
 
 use Closure;
-use SParallel\Services\Context;
+use SParallel\Entities\Context;
 
 readonly class ServerTask
 {

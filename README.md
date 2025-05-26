@@ -3,18 +3,16 @@
 ## example ##
 
 Init
+
 ```php
-$service = new \SParallel\Services\SParallelService(
-    new \SParallel\Drivers\Factory(
-        container: \SParallel\Tests\TestContainer::resolve()
-    )
-);
+$service = \SParallel\TestsImplementation\TestContainer::resolve()
+    ->get(\SParallel\SParallelService::class);
 
 $callbacks = [
     'first'  => static fn() => 'first',
     'second' => static fn() => throw new RuntimeException('second'),
      'third'  => static function(
-        \SParallel\Services\Context $context,
+        \SParallel\Entities\Context $context,
         \SParallel\Contracts\EventsBusInterface $eventsBus // DI support
     ) {
         $context->check();
@@ -25,9 +23,10 @@ $callbacks = [
 ```
 
 Wait all tasks to finish and get results
+
 ```php
 /** 
- * @var \SParallel\Services\SParallelService $service 
+ * @var \SParallel\SParallelService $service 
  * @var array<string, Closure> $callbacks 
  */
 
@@ -52,9 +51,10 @@ foreach ($results->getResults() as $result) {
 ```
 
 Run tasks and get results at any task completion
+
 ```php
 /** 
- * @var \SParallel\Services\SParallelService $service 
+ * @var \SParallel\SParallelService $service 
  * @var array<string, Closure> $callbacks 
  */
 

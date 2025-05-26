@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SParallel\Contracts;
 
 use Closure;
+use SParallel\Entities\Context;
 use SParallel\Exceptions\ContextCheckerException;
-use SParallel\Services\Context;
 
 interface DriverInterface
 {

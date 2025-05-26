@@ -8,10 +8,12 @@ use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Services\Context;
+use SParallel\Entities\Context;
 
 readonly class SyncDriver implements DriverInterface
 {
+    public const DRIVER_NAME = 'sync';
+
     public function __construct(
         private EventsBusInterface $eventsBus,
         private CallbackCallerInterface $callbackCaller,

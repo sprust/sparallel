@@ -6,12 +6,10 @@ ini_set('memory_limit', '1G');
 
 use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Drivers\Server\ServerDriver;
-use SParallel\Services\SParallelService;
+use SParallel\SParallelService;
 use SParallel\TestsImplementation\TestContainer;
 use SParallel\TestsImplementation\TestEventsRepository;
 use SParallel\TestsImplementation\TestLogger;
-use SParallel\TestsImplementation\TestProcessesRepository;
-use SParallel\TestsImplementation\TestSocketFilesRepository;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -52,8 +50,6 @@ $metrics = [];
 
 $container = TestContainer::resolve();
 
-$container->get(TestProcessesRepository::class)->flush();
-$container->get(TestSocketFilesRepository::class)->flush();
 $container->get(TestEventsRepository::class)->flush();
 
 TestLogger::flush();

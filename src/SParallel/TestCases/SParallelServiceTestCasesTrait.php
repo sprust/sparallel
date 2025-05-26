@@ -6,7 +6,7 @@ namespace SParallel\TestCases;
 
 use RuntimeException;
 use SParallel\Exceptions\ContextCheckerException;
-use SParallel\Services\SParallelService;
+use SParallel\SParallelService;
 
 /** @phpstan-ignore-next-line trait.unused */
 trait SParallelServiceTestCasesTrait
@@ -81,12 +81,12 @@ trait SParallelServiceTestCasesTrait
     protected function onWaitFirstNotOnlySuccess(SParallelService $service): void
     {
         $callbacks = [
+            'second' => static fn() => throw new RuntimeException('second'),
             'first'  => static function () {
                 sleep(1);
 
                 return 'first';
             },
-            'second' => static fn() => throw new RuntimeException('second'),
         ];
 
         $result = $service->waitFirst(

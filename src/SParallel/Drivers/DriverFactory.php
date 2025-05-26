@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Flows;
+namespace SParallel\Drivers;
 
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
@@ -28,7 +28,7 @@ class DriverFactory implements DriverFactoryInterface
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
-    public function detect(): DriverInterface
+    public function get(): DriverInterface
     {
         if ($this->driver) {
             return $this->driver;

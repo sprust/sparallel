@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Services;
+namespace SParallel\Entities;
 
 use SParallel\Contracts\ContextCheckerInterface;
 use SParallel\Exceptions\ContextCheckerException;

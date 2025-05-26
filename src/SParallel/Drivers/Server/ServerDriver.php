@@ -6,8 +6,8 @@ namespace SParallel\Drivers\Server;
 
 use SParallel\Contracts\DriverInterface;
 use SParallel\Contracts\WaitGroupInterface;
+use SParallel\Entities\Context;
 use SParallel\Server\Workers\WorkersRpcClient;
-use SParallel\Services\Context;
 use SParallel\Transport\ServerTaskTransport;
 use SParallel\Transport\TaskResultTransport;
 

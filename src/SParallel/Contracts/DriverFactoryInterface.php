@@ -8,5 +8,5 @@ interface DriverFactoryInterface
 {
     public function forceDriver(?DriverInterface $driver): void;
 
-    public function detect(): DriverInterface;
+    public function get(): DriverInterface;
 }

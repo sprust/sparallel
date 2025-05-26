@@ -32,6 +32,7 @@ readonly class ServerWorker
 
         $this->logger->debug("Server worker [$myPid] started");
 
+        /** @phpstan-ignore-next-line - while.alwaysTrue */
         while (true) {
             $readPayloadLen = fread(STDIN, $this->lenOfHeaderLen);
 

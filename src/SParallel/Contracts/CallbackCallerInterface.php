@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Contracts;
 
 use Closure;
-use SParallel\Services\Context;
+use SParallel\Entities\Context;
 
 interface CallbackCallerInterface
 {

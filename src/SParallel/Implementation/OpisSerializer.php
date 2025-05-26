@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Transport;
+namespace SParallel\Implementation;
 
 use SParallel\Contracts\SerializerInterface;
 

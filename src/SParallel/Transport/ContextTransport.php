@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SParallel\Transport;
 
 use SParallel\Contracts\SerializerInterface;
+use SParallel\Entities\Context;
 use SParallel\Exceptions\UnserializeException;
-use SParallel\Services\Context;
 
 class ContextTransport
 {

@@ -9,9 +9,8 @@ use Generator;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
-use SParallel\Flows\Sync\SyncFlow;
+use SParallel\Entities\Context;
 use SParallel\Objects\TaskResult;
-use SParallel\Services\Context;
 use Throwable;
 
 class SyncWaitGroup implements WaitGroupInterface
@@ -37,7 +36,7 @@ class SyncWaitGroup implements WaitGroupInterface
             $callback = $this->callbacks[$callbackKey];
 
             $this->eventsBus->taskStarting(
-                driverName: SyncFlow::DRIVER_NAME,
+                driverName: SyncDriver::DRIVER_NAME,
                 context: $this->context
             );
 
@@ -51,7 +50,7 @@ class SyncWaitGroup implements WaitGroupInterface
                 );
             } catch (Throwable $exception) {
                 $this->eventsBus->taskFailed(
-                    driverName: SyncFlow::DRIVER_NAME,
+                    driverName: SyncDriver::DRIVER_NAME,
                     context: $this->context,
                     exception: $exception
                 );
@@ -62,7 +61,7 @@ class SyncWaitGroup implements WaitGroupInterface
                 );
             } finally {
                 $this->eventsBus->taskFinished(
-                    driverName: SyncFlow::DRIVER_NAME,
+                    driverName: SyncDriver::DRIVER_NAME,
                     context: $this->context
                 );
             }
