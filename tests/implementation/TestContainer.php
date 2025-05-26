@@ -18,6 +18,7 @@ use SParallel\Drivers\DriverFactory;
 use SParallel\Implementation\CallbackCaller;
 use SParallel\Implementation\OpisSerializer;
 use SParallel\Server\Proxy\Mongodb\ProxyMongodbRpcClient;
+use SParallel\Server\Proxy\Mongodb\Serializers\DocumentSerializer;
 use SParallel\Server\Workers\WorkersRpcClient;
 
 class TestContainer implements ContainerInterface
@@ -61,7 +62,8 @@ class TestContainer implements ContainerInterface
             ),
             ProxyMongodbRpcClient::class => fn() => new ProxyMongodbRpcClient(
                 host: 'host.docker.internal',
-                port: 18077
+                port: 18077,
+                documentSerializer: $this->get(DocumentSerializer::class)
             ),
         ];
     }

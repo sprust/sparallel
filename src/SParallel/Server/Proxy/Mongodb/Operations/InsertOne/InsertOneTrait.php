@@ -22,7 +22,7 @@ trait InsertOneTrait
             'Connection' => $connection,
             'Database'   => $database,
             'Collection' => $collection,
-            'Document'   => json_encode($document),
+            'Document'   => $this->documentSerializer->serialize($document),
         ]);
 
         return new RunningOperation(

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use MongoDB\BSON\UTCDateTime;
 use SParallel\Server\Proxy\Mongodb\Operations\RunningOperation;
 use SParallel\Server\Proxy\Mongodb\ProxyMongodbRpcClient;
 use SParallel\TestsImplementation\TestContainer;
@@ -27,29 +28,29 @@ while ($x--) {
         document: [
             'uniq'      => uniqid(),
             'bool'      => true,
-            'date'      => (new DateTime())->format(DateTime::RFC3339_EXTENDED),
+            'date'      => new UTCDateTime(),
             'dates'     => [
-                (new DateTime())->format(DateTime::RFC3339_EXTENDED),
-                (new DateTime())->format(DateTime::RFC3339_EXTENDED),
+                new UTCDateTime(),
+                new UTCDateTime(),
                 'dates'     => [
-                    (new DateTime())->format(DateTime::RFC3339_EXTENDED),
-                    (new DateTime())->format(DateTime::RFC3339_EXTENDED),
+                    new UTCDateTime(),
+                    new UTCDateTime(),
                 ],
                 'dates_ass' => [
-                    'one' => (new DateTime())->format(DateTime::RFC3339_EXTENDED),
-                    'two' => (new DateTime())->format(DateTime::RFC3339_EXTENDED),
+                    'one' => new UTCDateTime(),
+                    'two' => new UTCDateTime(),
                 ],
             ],
             'dates_ass' => [
-                'one' => (new DateTime())->format(DateTime::RFC3339_EXTENDED),
-                'two' => (new DateTime())->format(DateTime::RFC3339_EXTENDED),
+                'one'       => new UTCDateTime(),
+                'two'       => new UTCDateTime(),
                 'dates'     => [
-                    (new DateTime())->format(DateTime::RFC3339_EXTENDED),
-                    (new DateTime())->format(DateTime::RFC3339_EXTENDED),
+                    new UTCDateTime(),
+                    new UTCDateTime(),
                 ],
                 'dates_ass' => [
-                    'one' => (new DateTime())->format(DateTime::RFC3339_EXTENDED),
-                    'two' => (new DateTime())->format(DateTime::RFC3339_EXTENDED),
+                    'one' => new UTCDateTime(),
+                    'two' => new UTCDateTime(),
                 ],
             ],
         ]
