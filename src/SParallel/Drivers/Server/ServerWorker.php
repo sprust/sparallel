@@ -85,8 +85,12 @@ readonly class ServerWorker
 
                 $this->writeResult($serializedResult);
 
+                unset($serializedResult);
+                
                 continue;
             }
+
+            unset($payload);
 
             $this->eventsBus->taskStarting(
                 driverName: ServerDriver::DRIVER_NAME,
@@ -120,6 +124,8 @@ readonly class ServerWorker
             }
 
             $this->writeResult($serializedResult);
+
+            unset($serializedResult);
         }
     }
 
