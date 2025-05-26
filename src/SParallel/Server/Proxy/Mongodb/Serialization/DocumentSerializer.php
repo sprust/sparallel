@@ -1,6 +1,8 @@
 <?php
 
-namespace SParallel\Server\Proxy\Mongodb\Serializers;
+declare(strict_types=1);
+
+namespace SParallel\Server\Proxy\Mongodb\Serialization;
 
 use DateTimeInterface;
 use MongoDB\BSON\UTCDateTimeInterface;

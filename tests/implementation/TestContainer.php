@@ -18,7 +18,7 @@ use SParallel\Drivers\DriverFactory;
 use SParallel\Implementation\CallbackCaller;
 use SParallel\Implementation\OpisSerializer;
 use SParallel\Server\Proxy\Mongodb\ProxyMongodbRpcClient;
-use SParallel\Server\Proxy\Mongodb\Serializers\DocumentSerializer;
+use SParallel\Server\Proxy\Mongodb\Serialization\DocumentSerializer;
 use SParallel\Server\Workers\WorkersRpcClient;
 
 class TestContainer implements ContainerInterface

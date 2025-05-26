@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Server\Proxy\Mongodb;
 
 use SParallel\Server\Proxy\Mongodb\Operations\InsertOne\InsertOneTrait;
-use SParallel\Server\Proxy\Mongodb\Serializers\DocumentSerializer;
+use SParallel\Server\Proxy\Mongodb\Serialization\DocumentSerializer;
 use Spiral\Goridge\Relay;
 use Spiral\Goridge\RPC\RPC;
 
