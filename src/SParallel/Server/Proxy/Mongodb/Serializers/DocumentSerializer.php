@@ -25,7 +25,7 @@ readonly class DocumentSerializer
         return json_encode($result);
     }
 
-    public function serializeRecursive(array &$result, int|string $key, mixed $value): void
+    protected function serializeRecursive(array &$result, int|string $key, mixed $value): void
     {
         if (is_scalar($value)) {
             $result[$key] = $value;
