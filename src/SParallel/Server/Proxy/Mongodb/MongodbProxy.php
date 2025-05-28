@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\Server\Proxy\Mongodb;
 
 use SParallel\Exceptions\RunningOperationException;
+use SParallel\Server\Proxy\Mongodb\Operations\Aggregate\AggregateTrait;
 use SParallel\Server\Proxy\Mongodb\Operations\InsertOne\InsertOneTrait;
 use SParallel\Server\Proxy\Mongodb\Operations\RunningOperation;
 use SParallel\Server\Proxy\Mongodb\Operations\UpdateOne\UpdateOneTrait;
@@ -15,6 +16,7 @@ readonly class MongodbProxy
 {
     use InsertOneTrait;
     use UpdateOneTrait;
+    use AggregateTrait;
 
     public function __construct(
         protected RPC $rpc,
