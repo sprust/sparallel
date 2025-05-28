@@ -66,12 +66,6 @@ $threads = TestContainer::resolve()->get(SParallelThreads::class);
 $insertedIds = [];
 
 foreach ($threads->run($callbacks) as $key => $result) {
-    if ($result->exception) {
-        echo "$key: ERROR: {$result->exception->getMessage()}\n";
-
-        continue;
-    }
-
     $insertedIds[$key] = $result->result;
 
     echo "success:\n";
@@ -110,12 +104,6 @@ foreach ($insertedIds as $key => $insertedId) {
 }
 
 foreach ($threads->run($callbacks) as $key => $result) {
-    if ($result->exception) {
-        echo "$key: ERROR: {$result->exception->getMessage()}\n";
-
-        continue;
-    }
-
     echo "success:\n";
     print_r($result->result);
 }

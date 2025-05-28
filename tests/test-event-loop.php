@@ -35,12 +35,6 @@ while ($total--) {
 $treads = TestContainer::resolve()->get(SParallelThreads::class);
 
 foreach ($treads->run($callbacks) as $key => $result) {
-    if ($result->exception) {
-        echo "$key ERROR: {$result->exception->getMessage()}\n";
-
-        continue;
-    }
-
     echo "$key SUCCESS:\n";
     print_r($result);
 }
