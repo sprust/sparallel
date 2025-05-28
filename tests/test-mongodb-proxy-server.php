@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use MongoDB\BSON\ObjectId;
 use MongoDB\BSON\UTCDateTime;
 use SParallel\Server\Proxy\Mongodb\Operations\RunningOperation;
 use SParallel\Server\Proxy\Mongodb\ProxyMongodbRpcClient;
@@ -20,11 +21,15 @@ $operations = [];
 
 $start = microtime(true);
 
+$connection = "mongodb://pms_admin:_sl_password_567@host.docker.internal:27078";
+$database   = 'sparallel-test';
+$collection = 'test';
+
 while ($x--) {
     $operation = $rpc->insertOne(
-        connection: "mongodb://pms_admin:_pms_password_567@host.docker.internal:27078",
-        database: 'sparallel-test',
-        collection: 'test',
+        connection: $connection,
+        database: $database,
+        collection: $collection,
         document: [
             'uniq'      => uniqid(),
             'bool'      => true,
@@ -61,9 +66,10 @@ while ($x--) {
 
 $startWaiting = microtime(true);
 
-while (count($operations) > 0) {
-    usleep(100);
+/** @var array<string> $insertedIds */
+$insertedIds = [];
 
+while (count($operations) > 0) {
     $operationKeys = array_keys($operations);
 
     foreach ($operationKeys as $operationKey) {
@@ -93,7 +99,82 @@ while (count($operations) > 0) {
 
         unset($operations[$operationKey]);
 
-        echo "success:\n" . json_encode($result->result, JSON_PRETTY_PRINT) . "\n";
+        $insertedIds[] = (string) $result->result->insertedId;
+
+        echo "success:\n";
+        print_r($result->result);
+    }
+}
+
+foreach ($insertedIds as $insertedId) {
+    var_dump($insertedId);
+
+    $operation = $rpc->updateOne(
+        connection: $connection,
+        database: $database,
+        collection: $collection,
+        filter: [
+            '_id' => new ObjectId($insertedId),
+        ],
+        update: [
+            '$set' => [
+                'upd' => uniqid(),
+            ],
+        ]
+    );
+
+    $operations[] = $operation;
+
+    $operation = $rpc->updateOne(
+        connection: $connection,
+        database: $database,
+        collection: $collection,
+        filter: [
+            '_id' => 111,
+        ],
+        update: [
+            '$set' => [
+                'upserted' => uniqid(),
+            ],
+        ],
+        opUpsert: true
+    );
+
+    $operations[] = $operation;
+}
+
+while (count($operations) > 0) {
+    $operationKeys = array_keys($operations);
+
+    foreach ($operationKeys as $operationKey) {
+        $operation = $operations[$operationKey];
+
+        if ($operation->error) {
+            echo "op error: $operation->error\n";
+
+            unset($operations[$operationKey]);
+
+            continue;
+        }
+
+        $result = $rpc->updateOneResult($operation->uuid);
+
+        if (!$result->isFinished) {
+            continue;
+        }
+
+        if ($result->error) {
+            echo "res error: $result->error\n";
+
+            unset($operations[$operationKey]);
+
+            continue;
+        }
+
+        unset($operations[$operationKey]);
+
+        echo "success:\n";
+        print_r($result->result);
     }
 }
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SParallel\Server\Proxy\Mongodb\Operations\InsertOne;
 
-use MongoDB\BSON\ObjectId;
 use SParallel\Server\Proxy\Mongodb\Operations\RunningOperation;
 
 trait InsertOneTrait
@@ -39,11 +38,11 @@ trait InsertOneTrait
 
         $result = null;
 
-        if (array_key_exists('Result', $response)) {
+        if ($rawResult = ($response['Result'] ?: null)) {
+            $docResult = $this->documentSerializer->unserialize($rawResult)->toPHP();
+
             $result = new InsertOneResult(
-                insertedId: new ObjectId(
-                    id: $response['Result']['InsertedID']
-                ),
+                insertedId: $docResult->insertedid,
             );
         }
 
