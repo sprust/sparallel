@@ -17,9 +17,11 @@ readonly class DocumentSerializer
     private const DATE_FORMAT = DATE_RFC3339;
 
     private const DATETIME_TYPE = 'datetime';
-    private const ID_TYPE = 'id';
+    private const ID_TYPE       = 'id';
 
     /**
+     * TODO: try to use MongoDB\BSON\Document
+     *
      * @param array<int|string, mixed> $document
      */
     public function serialize(array $document): string
