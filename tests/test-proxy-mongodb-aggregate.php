@@ -32,7 +32,7 @@ while ($counter--) {
         pipeline: [
             [
                 '$match' => [
-                    'uniq' => "6834f3245a58f",
+                    'bool' => true,
                 ]
             ]
         ]
@@ -44,10 +44,10 @@ $threads = TestContainer::resolve()->get(SParallelThreads::class);
 $insertedIds = [];
 
 foreach ($threads->run($callbacks, $threadsLimitCount) as $key => $result) {
-    $insertedIds[$key] = $result->result;
-
-    echo "success:\n";
-    print_r($result->result);
+    foreach ($result->result as $key => $doc) {
+        echo "document $key:\n";
+        print_r($doc);
+    }
 }
 
 $totalTime = microtime(true) - $start;

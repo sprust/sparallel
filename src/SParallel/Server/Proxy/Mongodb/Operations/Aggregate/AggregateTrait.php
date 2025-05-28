@@ -4,19 +4,27 @@ declare(strict_types=1);
 
 namespace SParallel\Server\Proxy\Mongodb\Operations\Aggregate;
 
+use Generator;
+use MongoDB\BSON\Document;
+use MongoDB\BSON\PackedArray;
+use SParallel\Exceptions\ThreadResponseException;
 use SParallel\SParallelThreads;
 
 trait AggregateTrait
 {
+    private const RESULT_KEY = '_result';
+
     /**
      * @param array<int|string, mixed> $pipeline
+     *
+     * @return Generator<int, Document>
      */
     public function aggregate(
         string $connection,
         string $database,
         string $collection,
         array $pipeline,
-    ): AggregateResultReply {
+    ): Generator {
         $response = $this->rpc->call("ProxyMongodbServer.Aggregate", [
             'Connection' => $connection,
             'Database'   => $database,
@@ -26,40 +34,51 @@ trait AggregateTrait
 
         SParallelThreads::continue();
 
-        $runningOperation = $this->parseRunningOperationResponse($response);
+        $operationUuid = $this->parseRunningOperationResponse($response)->uuid;
 
         while (true) {
-            $result = $this->aggregateResult($runningOperation->uuid);
+            $result = $this->aggregateResult($operationUuid);
 
-            if (!$result->isFinished) {
+            if (is_null($result)) {
                 SParallelThreads::continue();
 
                 continue;
             }
 
-            // TODO: generator or iterator
+            if (iterator_count($result) === 0) {
+                break;
+            }
 
-            return $result;
+            foreach ($result as $key => $item) {
+                yield $key => $item;
+            }
         }
     }
 
-    protected function aggregateResult(string $operationUuid): AggregateResultReply
+    protected function aggregateResult(string $operationUuid): ?PackedArray
     {
         $response = $this->rpc->call("ProxyMongodbServer.AggregateResult", [
             'OperationUuid' => $operationUuid,
         ]);
 
-        $result = null;
-
-        if ($rawResult = ($response['Result'] ?: null)) {
-            $result = $this->documentSerializer->unserialize($rawResult);
+        if ($error = $response['Error']) {
+            throw new ThreadResponseException(
+                message: $error,
+            );
         }
 
-        return new AggregateResultReply(
-            isFinished: $response['IsFinished'],
-            error: $response['Error'],
-            result: $result,
-            nextUuid: $response['NextUuid'],
-        );
+        if (!$response['IsFinished']) {
+            return null;
+        }
+
+        if ($rawResult = ($response['Result'] ?: null)) {
+            $document =  $this->documentSerializer->unserialize($rawResult);
+
+            if ($document->has(self::RESULT_KEY)) {
+                return $document->get(self::RESULT_KEY);
+            }
+        }
+
+        return PackedArray::fromPHP([]);
     }
 }

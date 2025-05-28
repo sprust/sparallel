@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Server\Proxy\Mongodb\Operations\UpdateOne;
 
+use SParallel\Exceptions\ThreadResponseException;
 use SParallel\SParallelThreads;
 
 trait UpdateOneTrait
@@ -19,7 +20,7 @@ trait UpdateOneTrait
         array $filter,
         array $update,
         bool $opUpsert = false,
-    ): UpdateOneResultReply {
+    ): UpdateOneResult {
         $response = $this->rpc->call("ProxyMongodbServer.UpdateOne", [
             'Connection' => $connection,
             'Database'   => $database,
@@ -36,7 +37,7 @@ trait UpdateOneTrait
         while (true) {
             $result = $this->updateOneResult($runningOperation->uuid);
 
-            if (!$result->isFinished) {
+            if (is_null($result)) {
                 SParallelThreads::continue();
 
                 continue;
@@ -46,29 +47,29 @@ trait UpdateOneTrait
         }
     }
 
-    protected function updateOneResult(string $operationUuid): UpdateOneResultReply
+    protected function updateOneResult(string $operationUuid): ?UpdateOneResult
     {
         $response = $this->rpc->call("ProxyMongodbServer.UpdateOneResult", [
             'OperationUuid' => $operationUuid,
         ]);
 
-        $result = null;
-
-        if ($rawResult = ($response['Result'] ?: null)) {
-            $docResult = (array) $this->documentSerializer->unserialize($rawResult)->toPHP();
-
-            $result = new UpdateOneResult(
-                matchedCount: (int) $docResult['matchedcount'],
-                modifiedCount: (int) $docResult['modifiedcount'],
-                upsertedCount: (int) $docResult['upsertedcount'],
-                upsertedId: $docResult['upsertedid'],
+        if ($error = $response['Error']) {
+            throw new ThreadResponseException(
+                message: $error,
             );
         }
 
-        return new UpdateOneResultReply(
-            isFinished: $response['IsFinished'],
-            error: $response['Error'],
-            result: $result
+        if (!$response['IsFinished']) {
+            return null;
+        }
+
+        $docResult = (array) $this->documentSerializer->unserialize($response['Result'])->toPHP();
+
+        return new UpdateOneResult(
+            matchedCount: (int) $docResult['matchedcount'],
+            modifiedCount: (int) $docResult['modifiedcount'],
+            upsertedCount: (int) $docResult['upsertedcount'],
+            upsertedId: $docResult['upsertedid'],
         );
     }
 }

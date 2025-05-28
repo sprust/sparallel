@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Server\Proxy\Mongodb\Operations\InsertOne;
 
+use SParallel\Exceptions\ThreadResponseException;
 use SParallel\SParallelThreads;
 
 trait InsertOneTrait
@@ -16,7 +17,7 @@ trait InsertOneTrait
         string $database,
         string $collection,
         array $document,
-    ): InsertOneResultReply {
+    ): InsertOneResult {
         $response = $this->rpc->call("ProxyMongodbServer.InsertOne", [
             'Connection' => $connection,
             'Database'   => $database,
@@ -31,7 +32,7 @@ trait InsertOneTrait
         while (true) {
             $result = $this->insertOneResult($runningOperation->uuid);
 
-            if (!$result->isFinished) {
+            if (is_null($result)) {
                 SParallelThreads::continue();
 
                 continue;
@@ -41,26 +42,26 @@ trait InsertOneTrait
         }
     }
 
-    protected function insertOneResult(string $operationUuid): InsertOneResultReply
+    protected function insertOneResult(string $operationUuid): ?InsertOneResult
     {
         $response = $this->rpc->call("ProxyMongodbServer.InsertOneResult", [
             'OperationUuid' => $operationUuid,
         ]);
 
-        $result = null;
-
-        if ($rawResult = ($response['Result'] ?: null)) {
-            $docResult = (array) $this->documentSerializer->unserialize($rawResult)->toPHP();
-
-            $result = new InsertOneResult(
-                insertedId: $docResult['insertedid'],
+        if ($error = $response['Error']) {
+            throw new ThreadResponseException(
+                message: $error,
             );
         }
 
-        return new InsertOneResultReply(
-            isFinished: $response['IsFinished'],
-            error: $response['Error'],
-            result: $result
+        if (!$response['IsFinished']) {
+            return null;
+        }
+
+        $docResult = (array) $this->documentSerializer->unserialize($response['Result'])->toPHP();
+
+        return new InsertOneResult(
+            insertedId: $docResult['insertedid'],
         );
     }
 }
