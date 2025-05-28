@@ -11,8 +11,6 @@ $total = (int) $_SERVER['argv'][1];
 
 $callbacks = [];
 
-$context = new Context();
-
 while ($total--) {
     $callbacks[] = static function (Context $context) use ($total) {
         echo "--> $total: start\n";
@@ -35,7 +33,7 @@ while ($total--) {
 
 $treads = new SParallelThreads($callbacks);
 
-foreach ($treads->run($context) as $key => $result) {
+foreach ($treads->run() as $key => $result) {
     if ($result->exception) {
         echo "$key ERROR: {$result->exception->getMessage()}\n";
 

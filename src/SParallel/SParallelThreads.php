@@ -10,6 +10,7 @@ use Generator;
 use SParallel\Entities\Context;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\ThreadContinueException;
+use SParallel\Implementation\Timer;
 use SParallel\Objects\ThreadResult;
 use Throwable;
 
@@ -35,8 +36,18 @@ class SParallelThreads
      *
      * @throws ContextCheckerException
      */
-    public function run(Context $context): Generator
+    public function run(?int $timeoutSeconds = null, ?Context $context = null): Generator
     {
+        if (is_null($context)) {
+            $context = new Context();
+        }
+
+        if ($timeoutSeconds && !$context->hasChecker(Timer::class)) {
+            $context->setChecker(
+                new Timer(timeoutSeconds: $timeoutSeconds)
+            );
+        }
+
         while (count($this->fibers) > 0) {
             $context->check();
 
