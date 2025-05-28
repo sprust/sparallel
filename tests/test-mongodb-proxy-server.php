@@ -74,8 +74,8 @@ foreach ($threads->run($callbacks) as $key => $result) {
 
     $insertedIds[$key] = $result->result;
 
-        echo "success:\n";
-        print_r($result->result);
+    echo "success:\n";
+    print_r($result->result);
 }
 
 foreach ($insertedIds as $key => $insertedId) {
@@ -121,5 +121,7 @@ foreach ($threads->run($callbacks) as $key => $result) {
 }
 
 $totalTime = microtime(true) - $start;
+$memPeak   = round(memory_get_peak_usage(true) / 1024 / 1024, 4);
 
-echo "\n\nTotalTime:\t$totalTime\n";
+echo "\n\nMemPeak:\t$memPeak\n";
+echo "TotalTime:\t$totalTime\n";
