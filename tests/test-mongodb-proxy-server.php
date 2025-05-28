@@ -11,9 +11,10 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 $proxy = TestContainer::resolve()->get(MongodbProxy::class);
 
-$total = (int) $_SERVER['argv'][1];
+$total             = (int) ($_SERVER['argv'][1] ?? 5);
+$threadsLimitCount = (int) ($_SERVER['argv'][2] ?? 0);
 
-$x = $total;
+$counter = $total;
 
 /** @var array<Closure> $callbacks */
 $callbacks = [];
@@ -24,8 +25,8 @@ $connection = "mongodb://pms_admin:_sl_password_567@host.docker.internal:27078";
 $database   = 'sparallel-test';
 $collection = 'test';
 
-while ($x--) {
-    $callbacks["insert-$x"] = static fn() => $proxy->insertOne(
+while ($counter--) {
+    $callbacks["insert-$counter"] = static fn() => $proxy->insertOne(
         connection: $connection,
         database: $database,
         collection: $collection,
@@ -65,7 +66,7 @@ $threads = TestContainer::resolve()->get(SParallelThreads::class);
 
 $insertedIds = [];
 
-foreach ($threads->run($callbacks) as $key => $result) {
+foreach ($threads->run($callbacks, $threadsLimitCount) as $key => $result) {
     $insertedIds[$key] = $result->result;
 
     echo "success:\n";
@@ -103,7 +104,7 @@ foreach ($insertedIds as $key => $insertedId) {
     );
 }
 
-foreach ($threads->run($callbacks) as $key => $result) {
+foreach ($threads->run($callbacks, $threadsLimitCount) as $key => $result) {
     echo "success:\n";
     print_r($result->result);
 }
@@ -111,5 +112,7 @@ foreach ($threads->run($callbacks) as $key => $result) {
 $totalTime = microtime(true) - $start;
 $memPeak   = round(memory_get_peak_usage(true) / 1024 / 1024, 4);
 
-echo "\n\nMemPeak:\t$memPeak\n";
-echo "TotalTime:\t$totalTime\n";
+echo "\n\nTotal call:\t$total\n";
+echo "Thr limit:\t$threadsLimitCount\n";
+echo "Mem peak:\t$memPeak\n";
+echo "Total time:\t$totalTime\n";

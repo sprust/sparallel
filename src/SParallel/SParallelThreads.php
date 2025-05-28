@@ -30,8 +30,12 @@ class SParallelThreads
      *
      * @throws ContextCheckerException
      */
-    public function run(array &$callbacks, ?int $timeoutSeconds = null, ?Context $context = null): Generator
-    {
+    public function run(
+        array &$callbacks,
+        int $threadsLimitCount = 0,
+        ?int $timeoutSeconds = null,
+        ?Context $context = null
+    ): Generator {
         if (is_null($context)) {
             $context = new Context();
         }
@@ -50,7 +54,11 @@ class SParallelThreads
         while (count($fibers) > 0) {
             $context->check();
 
-            $keys = array_keys($fibers);
+            if ($threadsLimitCount > 0 && count($fibers) >= $threadsLimitCount) {
+                $keys = array_keys(array_slice($fibers, 0, 100, true));
+            } else {
+                $keys = array_keys($fibers);
+            }
 
             foreach ($keys as $key) {
                 $context->check();
