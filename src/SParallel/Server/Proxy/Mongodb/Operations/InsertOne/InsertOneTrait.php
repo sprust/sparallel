@@ -24,6 +24,8 @@ trait InsertOneTrait
             'Document'   => $this->documentSerializer->serialize($document),
         ]);
 
+        SParallelThreads::continue();
+
         $runningOperation = $this->parseRunningOperationResponse($response);
 
         while (true) {

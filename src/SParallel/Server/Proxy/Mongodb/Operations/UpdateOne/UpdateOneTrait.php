@@ -29,6 +29,8 @@ trait UpdateOneTrait
             'OpUpsert'   => $opUpsert,
         ]);
 
+        SParallelThreads::continue();
+
         $runningOperation = $this->parseRunningOperationResponse($response);
 
         while (true) {
