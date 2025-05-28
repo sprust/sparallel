@@ -7,6 +7,7 @@ namespace SParallel;
 use Closure;
 use Fiber;
 use Generator;
+use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Entities\Context;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\ThreadContinueException;
@@ -16,27 +17,18 @@ use Throwable;
 
 class SParallelThreads
 {
-    /** @var array<int|string, Fiber> */
-    protected array $fibers = [];
-
-    /**
-     * @param array<int|string, Closure(Context): mixed> $callbacks
-     */
-    public function __construct(array &$callbacks)
+    public function __construct(protected CallbackCallerInterface $callbackCaller)
     {
-        foreach ($callbacks as $key => $callback) {
-            $this->fibers[$key] = new Fiber($callback);
-
-            unset($callbacks[$key]);
-        }
     }
 
     /**
+     * @param array<int|string, Closure(Context): mixed> $callbacks
+     *
      * @return Generator<int|string, ThreadResult>
      *
      * @throws ContextCheckerException
      */
-    public function run(?int $timeoutSeconds = null, ?Context $context = null): Generator
+    public function run(array &$callbacks, ?int $timeoutSeconds = null, ?Context $context = null): Generator
     {
         if (is_null($context)) {
             $context = new Context();
@@ -48,23 +40,35 @@ class SParallelThreads
             );
         }
 
-        while (count($this->fibers) > 0) {
+        $fibers = array_map(
+            static fn(Closure $callback) => new Fiber($callback),
+            $callbacks
+        );
+
+        while (count($fibers) > 0) {
             $context->check();
 
-            $keys = array_keys($this->fibers);
+            $keys = array_keys($fibers);
 
             foreach ($keys as $key) {
                 $context->check();
 
-                $fiber = $this->fibers[$key];
+                $fiber = $fibers[$key];
 
                 try {
                     if (!$fiber->isStarted()) {
-                        $fiber->start($context);
+                        $parameters = $this->callbackCaller->makeParameters(
+                            context: $context,
+                            callback: $callbacks[$key]
+                        );
+
+                        unset($callbacks[$key]);
+
+                        $fiber->start(...$parameters);
                     } elseif ($fiber->isTerminated()) {
                         $result = $fiber->getReturn();
 
-                        unset($this->fibers[$key]);
+                        unset($fibers[$key]);
 
                         yield new ThreadResult(
                             key: $key,
@@ -74,7 +78,7 @@ class SParallelThreads
                         $fiber->resume();
                     }
                 } catch (Throwable $exception) {
-                    unset($this->fibers[$key]);
+                    unset($fibers[$key]);
 
                     yield new ThreadResult(
                         key: $key,

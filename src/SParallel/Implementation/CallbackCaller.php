@@ -27,12 +27,27 @@ class CallbackCaller implements CallbackCallerInterface
      */
     public function call(Context $context, Closure $callback): mixed
     {
+        $callbackParameters = $this->makeParameters(
+            context: $context,
+            callback: $callback
+        );
+
+        return $callback(...$callbackParameters);
+    }
+
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws ReflectionException
+     * @throws NotFoundExceptionInterface
+     */
+    public function makeParameters(Context $context, Closure $callback): array
+    {
         $reflection = new ReflectionFunction($callback);
 
         $reflectionParameters = $reflection->getParameters();
 
         if (!count($reflectionParameters)) {
-            return $callback();
+            return [];
         }
 
         $callbackParameters = [];
@@ -58,6 +73,6 @@ class CallbackCaller implements CallbackCallerInterface
             $callbackParameters[$name] = $this->container->get($type);
         }
 
-        return $callback(...$callbackParameters);
+        return $callbackParameters;
     }
 }
