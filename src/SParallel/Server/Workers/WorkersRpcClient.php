@@ -4,18 +4,12 @@ declare(strict_types=1);
 
 namespace SParallel\Server\Workers;
 
-use Spiral\Goridge\Relay;
 use Spiral\Goridge\RPC\RPC;
 
 readonly class WorkersRpcClient
 {
-    protected RPC $rpc;
-
-    public function __construct(string $host, int $port)
+    public function __construct(protected RPC $rpc)
     {
-        $this->rpc = new RPC(
-            Relay::create("tcp://$host:$port")
-        );
     }
 
     public function addTask(

@@ -2,22 +2,21 @@
 
 declare(strict_types=1);
 
-use MongoDB\BSON\ObjectId;
 use MongoDB\BSON\UTCDateTime;
-use SParallel\Server\Proxy\Mongodb\Operations\RunningOperation;
-use SParallel\Server\Proxy\Mongodb\ProxyMongodbRpcClient;
+use SParallel\Server\Proxy\Mongodb\MongodbProxy;
+use SParallel\SParallelThreads;
 use SParallel\TestsImplementation\TestContainer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$rpc = TestContainer::resolve()->get(ProxyMongodbRpcClient::class);
+$proxy = TestContainer::resolve()->get(MongodbProxy::class);
 
 $total = (int) $_SERVER['argv'][1];
 
 $x = $total;
 
-/** @var RunningOperation[] $operations */
-$operations = [];
+/** @var array<Closure> $callbacks */
+$callbacks = [];
 
 $start = microtime(true);
 
@@ -26,7 +25,7 @@ $database   = 'sparallel-test';
 $collection = 'test';
 
 while ($x--) {
-    $operation = $rpc->insertOne(
+    $callbacks["insert-$x"] = static fn() => $proxy->insertOne(
         connection: $connection,
         database: $database,
         collection: $collection,
@@ -59,62 +58,33 @@ while ($x--) {
                 ],
             ],
         ]
-    );
-
-    $operations[] = $operation;
+    )->result->insertedId;
 }
 
-$startWaiting = microtime(true);
+$threads = TestContainer::resolve()->get(SParallelThreads::class);
 
-/** @var array<string> $insertedIds */
 $insertedIds = [];
 
-while (count($operations) > 0) {
-    $operationKeys = array_keys($operations);
+foreach ($threads->run($callbacks) as $key => $result) {
+    if ($result->exception) {
+        echo "$key: ERROR: {$result->exception->getMessage()}\n";
 
-    foreach ($operationKeys as $operationKey) {
-        $operation = $operations[$operationKey];
+        continue;
+    }
 
-        if ($operation->error) {
-            echo "op error: $operation->error\n";
-
-            unset($operations[$operationKey]);
-
-            continue;
-        }
-
-        $result = $rpc->insertOneResult($operation->uuid);
-
-        if (!$result->isFinished) {
-            continue;
-        }
-
-        if ($result->error) {
-            echo "res error: $result->error\n";
-
-            unset($operations[$operationKey]);
-
-            continue;
-        }
-
-        unset($operations[$operationKey]);
-
-        $insertedIds[] = (string) $result->result->insertedId;
+    $insertedIds[$key] = $result->result;
 
         echo "success:\n";
         print_r($result->result);
-    }
 }
 
-foreach ($insertedIds as $insertedId) {
-    var_dump($insertedId);
-
-    $operation = $rpc->updateOne(
+foreach ($insertedIds as $key => $insertedId) {
+    $callbacks["upd-$key-real"] = static fn() => $proxy->updateOne(
         connection: $connection,
         database: $database,
         collection: $collection,
         filter: [
-            '_id' => new ObjectId($insertedId),
+            '_id' => $insertedId,
         ],
         update: [
             '$set' => [
@@ -123,14 +93,12 @@ foreach ($insertedIds as $insertedId) {
         ]
     );
 
-    $operations[] = $operation;
-
-    $operation = $rpc->updateOne(
+    $callbacks["upd-$key-upsert"] = static fn() => $proxy->updateOne(
         connection: $connection,
         database: $database,
         collection: $collection,
         filter: [
-            '_id' => 111,
+            '_id' => uniqid(),
         ],
         update: [
             '$set' => [
@@ -139,46 +107,19 @@ foreach ($insertedIds as $insertedId) {
         ],
         opUpsert: true
     );
-
-    $operations[] = $operation;
 }
 
-while (count($operations) > 0) {
-    $operationKeys = array_keys($operations);
+foreach ($threads->run($callbacks) as $key => $result) {
+    if ($result->exception) {
+        echo "$key: ERROR: {$result->exception->getMessage()}\n";
 
-    foreach ($operationKeys as $operationKey) {
-        $operation = $operations[$operationKey];
-
-        if ($operation->error) {
-            echo "op error: $operation->error\n";
-
-            unset($operations[$operationKey]);
-
-            continue;
-        }
-
-        $result = $rpc->updateOneResult($operation->uuid);
-
-        if (!$result->isFinished) {
-            continue;
-        }
-
-        if ($result->error) {
-            echo "res error: $result->error\n";
-
-            unset($operations[$operationKey]);
-
-            continue;
-        }
-
-        unset($operations[$operationKey]);
-
-        echo "success:\n";
-        print_r($result->result);
+        continue;
     }
+
+    echo "success:\n";
+    print_r($result->result);
 }
 
-$waitingTime = microtime(true) - $startWaiting;
-$totalTime   = microtime(true) - $start;
+$totalTime = microtime(true) - $start;
 
-echo "\n\nWaitingTime:\t$waitingTime\nTotalTime:\t$totalTime\n";
+echo "\n\nTotalTime:\t$totalTime\n";

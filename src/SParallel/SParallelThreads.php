@@ -11,6 +11,8 @@ use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Entities\Context;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\ThreadContinueException;
+use SParallel\Exceptions\ThreadResumeException;
+use SParallel\Exceptions\ThreadStartException;
 use SParallel\Implementation\Timer;
 use SParallel\Objects\ThreadResult;
 use Throwable;
@@ -55,35 +57,40 @@ class SParallelThreads
 
                 $fiber = $fibers[$key];
 
-                try {
-                    if (!$fiber->isStarted()) {
-                        $parameters = $this->callbackCaller->makeParameters(
-                            context: $context,
-                            callback: $callbacks[$key]
-                        );
+                if (!$fiber->isStarted()) {
+                    $parameters = $this->callbackCaller->makeParameters(
+                        context: $context,
+                        callback: $callbacks[$key]
+                    );
 
-                        unset($callbacks[$key]);
+                    unset($callbacks[$key]);
 
+                    try {
                         $fiber->start(...$parameters);
-                    } elseif ($fiber->isTerminated()) {
-                        $result = $fiber->getReturn();
-
-                        unset($fibers[$key]);
-
-                        yield new ThreadResult(
-                            key: $key,
-                            result: $result
+                    } catch (Throwable $exception) {
+                        throw new ThreadStartException(
+                            message: $exception->getMessage(),
+                            previous: $exception
                         );
-                    } elseif ($fiber->isSuspended()) {
-                        $fiber->resume();
                     }
-                } catch (Throwable $exception) {
+                } elseif ($fiber->isTerminated()) {
+                    $result = $fiber->getReturn();
+
                     unset($fibers[$key]);
 
                     yield new ThreadResult(
                         key: $key,
-                        exception: $exception
+                        result: $result
                     );
+                } elseif ($fiber->isSuspended()) {
+                    try {
+                        $fiber->resume();
+                    } catch (Throwable $exception) {
+                        throw new ThreadResumeException(
+                            message: $exception->getMessage(),
+                            previous: $exception
+                        );
+                    }
                 }
             }
         }

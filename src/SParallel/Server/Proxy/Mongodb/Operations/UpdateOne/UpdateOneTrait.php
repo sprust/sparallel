@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Server\Proxy\Mongodb\Operations\UpdateOne;
 
-use SParallel\Server\Proxy\Mongodb\Operations\RunningOperation;
+use SParallel\SParallelThreads;
 
 trait UpdateOneTrait
 {
@@ -19,7 +19,7 @@ trait UpdateOneTrait
         array $filter,
         array $update,
         bool $opUpsert = false,
-    ): RunningOperation {
+    ): UpdateOneResultReply {
         $response = $this->rpc->call("ProxyMongodbServer.UpdateOne", [
             'Connection' => $connection,
             'Database'   => $database,
@@ -29,13 +29,22 @@ trait UpdateOneTrait
             'OpUpsert'   => $opUpsert,
         ]);
 
-        return new RunningOperation(
-            error: $response['Error'],
-            uuid: $response['OperationUuid']
-        );
+        $runningOperation = $this->parseRunningOperationResponse($response);
+
+        while (true) {
+            $result = $this->updateOneResult($runningOperation->uuid);
+
+            if (!$result->isFinished) {
+                SParallelThreads::continue();
+
+                continue;
+            }
+
+            return $result;
+        }
     }
 
-    public function updateOneResult(string $operationUuid): UpdateOneResultReply
+    protected function updateOneResult(string $operationUuid): UpdateOneResultReply
     {
         $response = $this->rpc->call("ProxyMongodbServer.UpdateOneResult", [
             'OperationUuid' => $operationUuid,
@@ -44,15 +53,13 @@ trait UpdateOneTrait
         $result = null;
 
         if ($rawResult = ($response['Result'] ?: null)) {
-            $docResult = $this->documentSerializer->unserialize($rawResult)->toPHP();
-
-            var_dump($rawResult);
+            $docResult = (array) $this->documentSerializer->unserialize($rawResult)->toPHP();
 
             $result = new UpdateOneResult(
-                matchedCount: (int) $docResult->matchedcount,
-                modifiedCount: (int) $docResult->modifiedcount,
-                upsertedCount: (int) $docResult->upsertedcount,
-                upsertedId: $docResult->upsertedid,
+                matchedCount: (int) $docResult['matchedcount'],
+                modifiedCount: (int) $docResult['modifiedcount'],
+                upsertedCount: (int) $docResult['upsertedcount'],
+                upsertedId: $docResult['upsertedid'],
             );
         }
 

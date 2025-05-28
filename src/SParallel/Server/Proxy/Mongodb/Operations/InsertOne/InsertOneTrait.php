@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\Server\Proxy\Mongodb\Operations\InsertOne;
 
-use SParallel\Server\Proxy\Mongodb\Operations\RunningOperation;
+use SParallel\SParallelThreads;
 
 trait InsertOneTrait
 {
@@ -16,7 +16,7 @@ trait InsertOneTrait
         string $database,
         string $collection,
         array $document,
-    ): RunningOperation {
+    ): InsertOneResultReply {
         $response = $this->rpc->call("ProxyMongodbServer.InsertOne", [
             'Connection' => $connection,
             'Database'   => $database,
@@ -24,13 +24,22 @@ trait InsertOneTrait
             'Document'   => $this->documentSerializer->serialize($document),
         ]);
 
-        return new RunningOperation(
-            error: $response['Error'],
-            uuid: $response['OperationUuid']
-        );
+        $runningOperation = $this->parseRunningOperationResponse($response);
+
+        while (true) {
+            $result = $this->insertOneResult($runningOperation->uuid);
+
+            if (!$result->isFinished) {
+                SParallelThreads::continue();
+
+                continue;
+            }
+
+            return $result;
+        }
     }
 
-    public function insertOneResult(string $operationUuid): InsertOneResultReply
+    protected function insertOneResult(string $operationUuid): InsertOneResultReply
     {
         $response = $this->rpc->call("ProxyMongodbServer.InsertOneResult", [
             'OperationUuid' => $operationUuid,
@@ -39,10 +48,10 @@ trait InsertOneTrait
         $result = null;
 
         if ($rawResult = ($response['Result'] ?: null)) {
-            $docResult = $this->documentSerializer->unserialize($rawResult)->toPHP();
+            $docResult = (array) $this->documentSerializer->unserialize($rawResult)->toPHP();
 
             $result = new InsertOneResult(
-                insertedId: $docResult->insertedid,
+                insertedId: $docResult['insertedid'],
             );
         }
 

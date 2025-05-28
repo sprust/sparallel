@@ -17,9 +17,8 @@ use SParallel\Contracts\SParallelLoggerInterface;
 use SParallel\Drivers\DriverFactory;
 use SParallel\Implementation\CallbackCaller;
 use SParallel\Implementation\OpisSerializer;
-use SParallel\Server\Proxy\Mongodb\ProxyMongodbRpcClient;
-use SParallel\Server\Proxy\Mongodb\Serialization\DocumentSerializer;
-use SParallel\Server\Workers\WorkersRpcClient;
+use Spiral\Goridge\Relay;
+use Spiral\Goridge\RPC\RPC;
 
 class TestContainer implements ContainerInterface
 {
@@ -50,21 +49,13 @@ class TestContainer implements ContainerInterface
         $this->resolvers = [
             ContainerInterface::class => fn() => $this,
 
-            SerializerInterface::class                   => fn() => $this->get(OpisSerializer::class),
-            CallbackCallerInterface::class               => fn() => $this->get(CallbackCaller::class),
-            EventsBusInterface::class                    => fn() => $this->get(TestEventsBus::class),
-            DriverFactoryInterface::class                => fn() => $this->get(DriverFactory::class),
-            SParallelLoggerInterface::class              => fn() => $this->get(TestLogger::class),
+            SerializerInterface::class      => fn() => $this->get(OpisSerializer::class),
+            CallbackCallerInterface::class  => fn() => $this->get(CallbackCaller::class),
+            EventsBusInterface::class       => fn() => $this->get(TestEventsBus::class),
+            DriverFactoryInterface::class   => fn() => $this->get(DriverFactory::class),
+            SParallelLoggerInterface::class => fn() => $this->get(TestLogger::class),
 
-            WorkersRpcClient::class => fn() => new WorkersRpcClient(
-                host: 'host.docker.internal',
-                port: 18077
-            ),
-            ProxyMongodbRpcClient::class => fn() => new ProxyMongodbRpcClient(
-                host: 'host.docker.internal',
-                port: 18077,
-                documentSerializer: $this->get(DocumentSerializer::class)
-            ),
+            RPC::class => fn() => new RPC(Relay::create("tcp://host.docker.internal:18077")),
         ];
     }
 

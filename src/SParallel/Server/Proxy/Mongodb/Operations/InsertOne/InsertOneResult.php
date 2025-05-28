@@ -9,7 +9,7 @@ use MongoDB\BSON\ObjectId;
 readonly class InsertOneResult
 {
     public function __construct(
-        public ObjectId $insertedId,
+        public ObjectId|string|int|float|null $insertedId,
     ) {
     }
 }
