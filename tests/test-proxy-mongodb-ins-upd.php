@@ -59,7 +59,7 @@ while ($counter--) {
                 ],
             ],
         ]
-    )->result->insertedId;
+    )->insertedId;
 }
 
 $threads = TestContainer::resolve()->get(SParallelThreads::class);
