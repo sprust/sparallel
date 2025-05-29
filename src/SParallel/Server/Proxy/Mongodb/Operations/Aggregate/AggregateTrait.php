@@ -36,7 +36,7 @@ trait AggregateTrait
 
         $operationUuid = $this->parseRunningOperationResponse($response)->uuid;
 
-        while (true) {
+        while ($operationUuid) {
             $result = $this->aggregateResult($operationUuid);
 
             if (is_null($result)) {
@@ -45,17 +45,23 @@ trait AggregateTrait
                 continue;
             }
 
-            if (iterator_count($result) === 0) {
+            $items         = $result[0];
+            $operationUuid = $result[1];
+
+            if (iterator_count($items) === 0) {
                 break;
             }
 
-            foreach ($result as $key => $item) {
+            foreach ($items as $key => $item) {
                 yield $key => $item;
             }
         }
     }
 
-    protected function aggregateResult(string $operationUuid): ?PackedArray
+    /**
+     * @return array{0: PackedArray, 1: string}|null
+     */
+    protected function aggregateResult(string $operationUuid): ?array
     {
         $response = $this->rpc->call("ProxyMongodbServer.AggregateResult", [
             'OperationUuid' => $operationUuid,
@@ -71,14 +77,15 @@ trait AggregateTrait
             return null;
         }
 
-        if ($rawResult = ($response['Result'] ?: null)) {
-            $document =  $this->documentSerializer->unserialize($rawResult);
+        $rawResult         = $response['Result'];
+        $nextOperationUuid = $response['NextUuid'];
 
-            if ($document->has(self::RESULT_KEY)) {
-                return $document->get(self::RESULT_KEY);
-            }
+        $document = $this->documentSerializer->unserialize($rawResult);
+
+        if ($document->has(self::RESULT_KEY)) {
+            return [$document->get(self::RESULT_KEY), $nextOperationUuid];
         }
 
-        return PackedArray::fromPHP([]);
+        return [PackedArray::fromPHP([]), null];
     }
 }

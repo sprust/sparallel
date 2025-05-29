@@ -44,9 +44,8 @@ $threads = TestContainer::resolve()->get(SParallelThreads::class);
 $insertedIds = [];
 
 foreach ($threads->run($callbacks, $threadsLimitCount) as $key => $result) {
-    foreach ($result->result as $key => $doc) {
-        echo "document $key:\n";
-        print_r($doc);
+    foreach ($result->result as $rKey => $doc) {
+        echo "document $key-$rKey:$doc->_id\n";
     }
 }
 
