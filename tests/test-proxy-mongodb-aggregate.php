@@ -13,6 +13,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 $serv = match ($_SERVER['argv'][1]) {
     'true' => true,
     'false' => false,
+    default => throw new RuntimeException('Invalid server usage flag'),
 };
 
 $total             = (int) ($_SERVER['argv'][2] ?? 5);

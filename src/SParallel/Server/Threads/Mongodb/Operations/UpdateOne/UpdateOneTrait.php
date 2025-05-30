@@ -12,6 +12,7 @@ trait UpdateOneTrait
     /**
      * @param array<int|string, mixed> $filter
      * @param array<int|string, mixed> $update
+     * @param array<string, mixed>     $options
      */
     public function updateOne(
         string $connection,

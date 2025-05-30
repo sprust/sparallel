@@ -15,7 +15,7 @@ trait AggregateTrait
     private const RESULT_KEY = '_result';
 
     /**
-     * @param array<int|string, mixed> $pipeline
+     * @param array<int, array<string, mixed>> $pipeline
      *
      * @return Generator<int, Document>
      */

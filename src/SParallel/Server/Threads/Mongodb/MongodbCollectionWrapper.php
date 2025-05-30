@@ -32,6 +32,10 @@ class MongodbCollectionWrapper
         $this->uri = $this->uriFactory->get();
     }
 
+    /**
+     * @param array<int|string, mixed>|object $document
+     * @param array<string, mixed>            $options
+     */
     public function insertOne(array|object $document, array $options = []): InsertOneResult
     {
         if ($this->useServer) {
@@ -55,6 +59,11 @@ class MongodbCollectionWrapper
         );
     }
 
+    /**
+     * @param array<int|string, mixed>|object $filter
+     * @param array<int|string, mixed>|object $update
+     * @param array<string, mixed>            $options
+     */
     public function updateOne(array|object $filter, array|object $update, array $options = []): UpdateResult
     {
         if ($this->useServer) {
@@ -81,6 +90,10 @@ class MongodbCollectionWrapper
         );
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $pipeline
+     * @param array<string, mixed>             $options
+     */
     public function aggregate(array $pipeline, array $options = []): Iterator
     {
         if ($this->useServer) {
@@ -104,6 +117,10 @@ class MongodbCollectionWrapper
         );
     }
 
+    /**
+     * @param array<int|string, mixed> $operations
+     * @param array<string, mixed>     $options
+     */
     public function bulkWrite(array $operations, array $options = []): BulkWriteResult
     {
         if ($this->useServer) {
@@ -127,7 +144,10 @@ class MongodbCollectionWrapper
         );
     }
 
-    public function __call(string $name, array $arguments)
+    /**
+     * @param array<int, mixed> $arguments
+     */
+    public function __call(string $name, array $arguments): mixed
     {
         return $this->driverCollection->{$name}(...$arguments);
     }

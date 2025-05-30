@@ -32,7 +32,10 @@ class BulkWriteResult extends \MongoDB\BulkWriteResult
         return $this->insertedCount;
     }
 
-    public function getInsertedIds()
+    /**
+     * @return array<ObjectId|string|int|float|null>
+     */
+    public function getInsertedIds(): array
     {
         throw new RuntimeException('Not implemented');
     }
