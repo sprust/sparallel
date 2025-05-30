@@ -5,6 +5,9 @@ services:
     build:
       context: ./docker
       target: php
+      args:
+        - GROUP_ID=${DOCKER_GROUP_ID}
+        - USER_ID=${DOCKER_USER_ID}
     working_dir: /sparallel
     volumes:
       - ./:/sparallel
@@ -18,6 +21,9 @@ services:
     build:
       context: ./docker
       target: golang
+      args:
+        - GROUP_ID=${DOCKER_GROUP_ID}
+        - USER_ID=${DOCKER_USER_ID}
     working_dir: /sparallel/libs/server
     volumes:
       - ./:/sparallel
