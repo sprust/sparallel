@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SParallel\Server\Threads\Mongodb\Operations\BulkWrite;
 
 use MongoDB\BSON\ObjectId;
+use RuntimeException;
 
-readonly class BulkWriteResult
+class BulkWriteResult extends \MongoDB\BulkWriteResult
 {
     /**
      * @param array<ObjectId|string|int|float|null> $upsertedIds
@@ -20,4 +21,48 @@ readonly class BulkWriteResult
         public array $upsertedIds,
     ) {
     }
+
+    public function getDeletedCount(): int
+    {
+        return $this->deletedCount;
+    }
+
+    public function getInsertedCount(): int
+    {
+        return $this->insertedCount;
+    }
+
+    public function getInsertedIds()
+    {
+        throw new RuntimeException('Not implemented');
+    }
+
+    public function getMatchedCount(): int
+    {
+        return $this->matchedCount;
+    }
+
+    public function getModifiedCount(): int
+    {
+        return $this->modifiedCount;
+    }
+
+    public function getUpsertedCount(): int
+    {
+        return $this->upsertedCount;
+    }
+
+    /**
+     * @return array<ObjectId|string|int|float|null>
+     */
+    public function getUpsertedIds(): array
+    {
+        return $this->upsertedIds;
+    }
+
+    public function isAcknowledged(): true
+    {
+        return true;
+    }
+
 }
