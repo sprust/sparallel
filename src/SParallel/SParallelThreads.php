@@ -51,6 +51,9 @@ class SParallelThreads
             $callbacks
         );
 
+        /** @var array<int|string, float> $throttle */
+        $throttle = [];
+
         while (count($fibers) > 0) {
             $context->check();
 
@@ -81,16 +84,25 @@ class SParallelThreads
                             previous: $exception
                         );
                     }
+
+                    $throttle[$key] = microtime(true);;
                 } elseif ($fiber->isTerminated()) {
                     $result = $fiber->getReturn();
 
                     unset($fibers[$key]);
+                    unset($throttle[$key]);
 
                     yield new ThreadResult(
                         key: $key,
                         result: $result
                     );
                 } elseif ($fiber->isSuspended()) {
+                    if ((microtime(true) - $throttle[$key]) < 0.001) {
+                        continue;
+                    }
+
+                    $throttle[$key] = microtime(true);
+
                     try {
                         $fiber->resume();
                     } catch (Throwable $exception) {
