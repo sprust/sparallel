@@ -1,8 +1,14 @@
-PHP_CLI="docker-compose run -it --rm --user $$(id -u):$$(id -g) php"
-GO_CLI="docker-compose run -it --rm --user $$(id -u):$$(id -g) --publish 18077:18077 --workdir=/sparallel/libs/server php"
+PHP_CLI="docker-compose exec php"
+SERVER_CLI="docker-compose exec server"
+
+env-copy:
+	cp -i .env.example .env
 
 build:
 	docker-compose build
+
+up:
+	docker-compose up
 
 down:
 	docker-compose down
@@ -11,7 +17,7 @@ bash-php:
 	"$(PHP_CLI)" bash
 
 bash-server:
-	"$(GO_CLI)" bash
+	"$(SERVER_CLI)" bash
 
 composer:
 	"$(PHP_CLI)" composer ${c}

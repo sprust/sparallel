@@ -1,11 +1,28 @@
 services:
   php:
     container_name: sp-php
-    restart: unless-stopped
+    restart: on-failure
     build:
-      context: ./docker/php
+      context: ./docker
+      target: php
     working_dir: /sparallel
     volumes:
       - ./:/sparallel
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    command: [ "php", "/sparallel/docker/docker-php-stub.php" ]
+
+  server:
+    container_name: sp-server
+    restart: on-failure
+    build:
+      context: ./docker
+      target: golang
+    working_dir: /sparallel/libs/server
+    volumes:
+      - ./:/sparallel
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "18077:18077"
+    command: [ "air", "-c", ".server.air.toml" ]
