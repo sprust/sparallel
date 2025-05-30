@@ -1,13 +1,23 @@
-PHP_CLI="docker-compose run -it --rm --user $$(id -u):$$(id -g) php"
+PHP_CLI="docker-compose exec php"
+SERVER_CLI="docker-compose exec server"
+
+env-copy:
+	cp -i .env.example .env
 
 build:
 	docker-compose build
 
+up:
+	docker-compose up
+
 down:
 	docker-compose down
 
-bash:
+bash-php:
 	"$(PHP_CLI)" bash
+
+bash-server:
+	"$(SERVER_CLI)" bash
 
 composer:
 	"$(PHP_CLI)" composer ${c}
@@ -37,3 +47,9 @@ check:
 	make phpstan
 	make test
 	make benchmark
+
+run-server:
+	go run ./cmd/server/main.go ${c}
+
+htop-workers:
+	htop -t --filter=server-process-handler.php

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace SParallel\TestsImplementation;
 
 use DateTimeImmutable;
-use Psr\Log\LoggerInterface;
+use SParallel\Contracts\SParallelLoggerInterface;
 use Stringable;
 
-class TestLogger implements LoggerInterface
+class TestLogger implements SParallelLoggerInterface
 {
     private static ?string $logFilePath = null;
 

@@ -5,15 +5,11 @@ declare(strict_types=1);
 ini_set('memory_limit', '1G');
 
 use SParallel\Contracts\DriverFactoryInterface;
-use SParallel\Flows\ASync\Fork\ForkDriver;
-use SParallel\Flows\ASync\Hybrid\HybridDriver;
-use SParallel\Flows\ASync\Process\ProcessDriver;
-use SParallel\Services\SParallelService;
+use SParallel\Drivers\Server\ServerDriver;
+use SParallel\SParallelWorkers;
 use SParallel\TestsImplementation\TestContainer;
 use SParallel\TestsImplementation\TestEventsRepository;
 use SParallel\TestsImplementation\TestLogger;
-use SParallel\TestsImplementation\TestProcessesRepository;
-use SParallel\TestsImplementation\TestSocketFilesRepository;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -30,9 +26,7 @@ $callbacks = [
 
 /** @var array<class-string<SParallel\Contracts\DriverInterface>> $driverClasses */
 $driverClasses = [
-    ProcessDriver::class,
-    ForkDriver::class,
-    HybridDriver::class,
+    ServerDriver::class,
 ];
 
 $timeoutSeconds = 5;
@@ -56,8 +50,6 @@ $metrics = [];
 
 $container = TestContainer::resolve();
 
-$container->get(TestProcessesRepository::class)->flush();
-$container->get(TestSocketFilesRepository::class)->flush();
 $container->get(TestEventsRepository::class)->flush();
 
 TestLogger::flush();
@@ -75,13 +67,13 @@ foreach ($driverClasses as $driverClass) {
         $container->get($driverClass),
     );
 
-    $service = $container->get(SParallelService::class);
+    $workers = $container->get(SParallelWorkers::class);
 
     memory_reset_peak_usage();
 
     $counter = 0;
 
-    $generator = $service->run(
+    $generator = $workers->run(
         callbacks: $clonedCallbacks,
         timeoutSeconds: $timeoutSeconds,
         workersLimit: $workersLimit
