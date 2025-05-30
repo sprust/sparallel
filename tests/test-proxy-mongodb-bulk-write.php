@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use MongoDB\BSON\UTCDateTime;
+use SParallel\Contracts\MongodbConnectionUriFactoryInterface;
 use SParallel\Server\Threads\Mongodb\MongodbClient;
 use SParallel\SParallelThreads;
 use SParallel\TestsImplementation\TestContainer;
@@ -21,7 +22,7 @@ $callbacks = [];
 
 $start = microtime(true);
 
-$connection = "mongodb://pms_admin:_sl_password_567@host.docker.internal:27078";
+$connection = TestContainer::resolve()->get(MongodbConnectionUriFactoryInterface::class)->get();
 $database   = 'sparallel-test';
 $collection = 'test';
 
