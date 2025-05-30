@@ -107,7 +107,7 @@ trait BulkWriteTrait
                         'upsert'      => $value[2]['upsert'] ?? false,
                     ],
                     default => throw new InvalidMongodbBulkWriteOperationException(
-                        operationType: (string) $operation
+                        operationType: (string) $type
                     )
                 },
             ];
