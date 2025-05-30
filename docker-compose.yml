@@ -3,7 +3,7 @@ services:
     container_name: sp-php
     restart: on-failure
     build:
-      context: ./docker
+      context: ./docker/php
       target: php
       args:
         - GROUP_ID=${DOCKER_GROUP_ID}
@@ -13,13 +13,13 @@ services:
       - ./:/sparallel
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: [ "php", "/sparallel/docker/docker-php-stub.php" ]
+    command: [ "php", "/sparallel/docker/php/docker-php-stub.php" ]
 
   server:
     container_name: sp-server
     restart: on-failure
     build:
-      context: ./docker
+      context: ./docker/php
       target: golang
       args:
         - GROUP_ID=${DOCKER_GROUP_ID}
