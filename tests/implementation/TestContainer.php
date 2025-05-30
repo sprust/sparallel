@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SParallel\TestsImplementation;
 
 use Closure;
+use Dotenv\Dotenv;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
 use ReflectionException;
@@ -46,6 +47,9 @@ class TestContainer implements ContainerInterface
 
     private function __construct()
     {
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../', '.env');
+        $dotenv->load();
+
         $this->resolvers = [
             ContainerInterface::class => fn() => $this,
 
@@ -55,7 +59,7 @@ class TestContainer implements ContainerInterface
             DriverFactoryInterface::class   => fn() => $this->get(DriverFactory::class),
             SParallelLoggerInterface::class => fn() => $this->get(TestLogger::class),
 
-            RPC::class => fn() => new RPC(Relay::create("tcp://host.docker.internal:18077")),
+            RPC::class => fn() => new RPC(Relay::create("tcp://$_ENV[SERVER_HOST]:$_ENV[SERVER_PORT]")),
         ];
     }
 
