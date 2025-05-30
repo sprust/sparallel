@@ -91,20 +91,20 @@ trait BulkWriteTrait
                 'type'  => $type,
                 'model' => match ($type) {
                     'insertOne' => [
-                        'document' => $value,
+                        'document' => $value[0],
                     ],
                     'updateOne', 'updateMany' => [
                         'filter' => $value[0],
                         'update' => $value[1],
-                        'upsert' => $value[2]['upsert'] ?? false,
+                        'upsert' => $value[2]['upsert'] ?? false, // TODO
                     ],
                     'deleteOne', 'deleteMany' => [
-                        'filter' => $value,
+                        'filter' => $value[0],
                     ],
                     'replaceOne' => [
                         'filter'      => $value[0],
                         'replacement' => $value[1],
-                        'upsert'      => $value[2]['upsert'] ?? false,
+                        'upsert'      => $value[2]['upsert'] ?? false, // TODO
                     ],
                     default => throw new InvalidMongodbBulkWriteOperationException(
                         operationType: (string) $type

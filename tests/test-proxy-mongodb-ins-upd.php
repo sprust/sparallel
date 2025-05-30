@@ -5,12 +5,11 @@ declare(strict_types=1);
 use MongoDB\BSON\UTCDateTime;
 use SParallel\Contracts\MongodbConnectionUriFactoryInterface;
 use SParallel\Server\Threads\Mongodb\MongodbClient;
+use SParallel\Server\Threads\Mongodb\MongodbCollectionWrapper;
 use SParallel\SParallelThreads;
 use SParallel\TestsImplementation\TestContainer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
-
-$mongodbClient = TestContainer::resolve()->get(MongodbClient::class);
 
 $total             = (int) ($_SERVER['argv'][1] ?? 5);
 $threadsLimitCount = (int) ($_SERVER['argv'][2] ?? 0);
@@ -22,15 +21,16 @@ $callbacks = [];
 
 $start = microtime(true);
 
-$connection = TestContainer::resolve()->get(MongodbConnectionUriFactoryInterface::class)->get();
-$database   = 'sparallel-test';
-$collection = 'test';
+$collection = new MongodbCollectionWrapper(
+    uriFactory: TestContainer::resolve()->get(MongodbConnectionUriFactoryInterface::class),
+    mongodbClient: TestContainer::resolve()->get(MongodbClient::class),
+    databaseName: 'sparallel-test',
+    collectionName: 'test',
+    useServer: true,
+);
 
 while ($counter--) {
-    $callbacks["insert-$counter"] = static fn() => $mongodbClient->insertOne(
-        connection: $connection,
-        database: $database,
-        collection: $collection,
+    $callbacks["insert-$counter"] = static fn() => $collection->insertOne(
         document: [
             'uniq'      => uniqid(),
             'bool'      => true,
@@ -60,7 +60,7 @@ while ($counter--) {
                 ],
             ],
         ]
-    )->insertedId;
+    )->getInsertedId();
 }
 
 $threads = TestContainer::resolve()->get(SParallelThreads::class);
@@ -75,10 +75,7 @@ foreach ($threads->run($callbacks, $threadsLimitCount) as $key => $result) {
 }
 
 foreach ($insertedIds as $key => $insertedId) {
-    $callbacks["upd-$key-real"] = static fn() => $mongodbClient->updateOne(
-        connection: $connection,
-        database: $database,
-        collection: $collection,
+    $callbacks["upd-$key-real"] = static fn() => $collection->updateOne(
         filter: [
             '_id' => $insertedId,
         ],
@@ -89,10 +86,7 @@ foreach ($insertedIds as $key => $insertedId) {
         ]
     );
 
-    $callbacks["upd-$key-upsert"] = static fn() => $mongodbClient->updateOne(
-        connection: $connection,
-        database: $database,
-        collection: $collection,
+    $callbacks["upd-$key-upsert"] = static fn() => $collection->updateOne(
         filter: [
             '_id' => uniqid(),
         ],
@@ -101,7 +95,9 @@ foreach ($insertedIds as $key => $insertedId) {
                 'upserted' => uniqid(),
             ],
         ],
-        opUpsert: true
+        options: [
+            'upsert' => true,
+        ]
     );
 }
 

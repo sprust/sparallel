@@ -19,7 +19,7 @@ trait UpdateOneTrait
         string $collection,
         array $filter,
         array $update,
-        bool $opUpsert = false,
+        array $options,
     ): UpdateOneResult {
         $response = $this->rpc->call("ProxyMongodbServer.UpdateOne", [
             'Connection' => $connection,
@@ -27,7 +27,7 @@ trait UpdateOneTrait
             'Collection' => $collection,
             'Filter'     => $this->documentSerializer->serialize($filter),
             'Update'     => $this->documentSerializer->serialize($update),
-            'OpUpsert'   => $opUpsert,
+            'OpUpsert'   => $options['upsert'] ?? false, // TODO
         ]);
 
         SParallelThreads::continue();

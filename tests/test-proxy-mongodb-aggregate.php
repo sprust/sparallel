@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 use SParallel\Contracts\MongodbConnectionUriFactoryInterface;
 use SParallel\Server\Threads\Mongodb\MongodbClient;
+use SParallel\Server\Threads\Mongodb\MongodbCollectionWrapper;
 use SParallel\SParallelThreads;
 use SParallel\TestsImplementation\TestContainer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$mongodbClient = TestContainer::resolve()->get(MongodbClient::class);
-
-$total = (int) ($_SERVER['argv'][1] ?? 5);
+$total             = (int) ($_SERVER['argv'][1] ?? 5);
 $threadsLimitCount = (int) ($_SERVER['argv'][2] ?? 0);
 
 $counter = $total;
@@ -21,15 +20,16 @@ $callbacks = [];
 
 $start = microtime(true);
 
-$connection = TestContainer::resolve()->get(MongodbConnectionUriFactoryInterface::class)->get();
-$database   = 'sparallel-test';
-$collection = 'test';
+$collection = new MongodbCollectionWrapper(
+    uriFactory: TestContainer::resolve()->get(MongodbConnectionUriFactoryInterface::class),
+    mongodbClient: TestContainer::resolve()->get(MongodbClient::class),
+    databaseName: 'sparallel-test',
+    collectionName: 'test',
+    useServer: true,
+);
 
 while ($counter--) {
-    $callbacks["agg-$counter"] = static fn() => $mongodbClient->aggregate(
-        connection: $connection,
-        database: $database,
-        collection: $collection,
+    $callbacks["agg-$counter"] = static fn() => $collection->aggregate(
         pipeline: [
             [
                 '$match' => [
