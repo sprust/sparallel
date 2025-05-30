@@ -11,8 +11,13 @@ use SParallel\TestsImplementation\TestContainer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$total             = (int) ($_SERVER['argv'][1] ?? 5);
-$threadsLimitCount = (int) ($_SERVER['argv'][2] ?? 0);
+$serv = match ($_SERVER['argv'][1]) {
+    'true' => true,
+    'false' => false,
+};
+
+$total             = (int) ($_SERVER['argv'][2] ?? 5);
+$threadsLimitCount = (int) ($_SERVER['argv'][3] ?? 0);
 
 $counter = $total;
 
@@ -26,7 +31,7 @@ $collection = new MongodbCollectionWrapper(
     mongodbClient: TestContainer::resolve()->get(MongodbClient::class),
     databaseName: 'sparallel-test',
     collectionName: 'test',
-    useServer: false,
+    useServer: $serv,
 );
 
 while ($counter--) {
