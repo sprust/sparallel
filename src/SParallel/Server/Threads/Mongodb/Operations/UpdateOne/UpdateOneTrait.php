@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Proxy\Mongodb\Operations\UpdateOne;
+namespace SParallel\Server\Threads\Mongodb\Operations\UpdateOne;
 
 use SParallel\Exceptions\ThreadResponseException;
 use SParallel\SParallelThreads;

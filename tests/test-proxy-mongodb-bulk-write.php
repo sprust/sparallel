@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 use MongoDB\BSON\UTCDateTime;
-use SParallel\Server\Proxy\Mongodb\MongodbProxy;
+use SParallel\Server\Threads\Mongodb\MongodbClient;
 use SParallel\SParallelThreads;
 use SParallel\TestsImplementation\TestContainer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$proxy = TestContainer::resolve()->get(MongodbProxy::class);
+$mongodbClient = TestContainer::resolve()->get(MongodbClient::class);
 
 $total             = (int) ($_SERVER['argv'][1] ?? 5);
 $threadsLimitCount = (int) ($_SERVER['argv'][2] ?? 0);
@@ -28,7 +28,7 @@ $collection = 'test';
 while ($counter--) {
     $date = new UTCDateTime();
 
-    $callbacks["bw-$counter"] = static fn() => $proxy->bulkWrite(
+    $callbacks["bw-$counter"] = static fn() => $mongodbClient->bulkWrite(
         connection: $connection,
         database: $database,
         collection: $collection,

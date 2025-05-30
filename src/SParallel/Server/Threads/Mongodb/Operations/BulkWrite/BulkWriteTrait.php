@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Proxy\Mongodb\Operations\BulkWrite;
+namespace SParallel\Server\Threads\Mongodb\Operations\BulkWrite;
 
 use SParallel\Exceptions\InvalidMongodbBulkWriteOperationException;
 use SParallel\Exceptions\ThreadResponseException;
@@ -74,9 +74,9 @@ trait BulkWriteTrait
     }
 
     /**
-     * @param array<mixed, mixed> $operations
+     * @param array<int, mixed> $operations
      *
-     * @return array<int, array{type: string, value: array<string, mixed>}>
+     * @return array<int, array{type: string, model: array<string, mixed>}>
      */
     protected function prepareOperations(array $operations): array
     {

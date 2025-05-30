@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 use MongoDB\BSON\UTCDateTime;
-use SParallel\Server\Proxy\Mongodb\MongodbProxy;
+use SParallel\Server\Threads\Mongodb\MongodbClient;
 use SParallel\SParallelThreads;
 use SParallel\TestsImplementation\TestContainer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$proxy = TestContainer::resolve()->get(MongodbProxy::class);
+$mongodbClient = TestContainer::resolve()->get(MongodbClient::class);
 
 $total             = (int) ($_SERVER['argv'][1] ?? 5);
 $threadsLimitCount = (int) ($_SERVER['argv'][2] ?? 0);
@@ -26,7 +26,7 @@ $database   = 'sparallel-test';
 $collection = 'test';
 
 while ($counter--) {
-    $callbacks["insert-$counter"] = static fn() => $proxy->insertOne(
+    $callbacks["insert-$counter"] = static fn() => $mongodbClient->insertOne(
         connection: $connection,
         database: $database,
         collection: $collection,
@@ -74,7 +74,7 @@ foreach ($threads->run($callbacks, $threadsLimitCount) as $key => $result) {
 }
 
 foreach ($insertedIds as $key => $insertedId) {
-    $callbacks["upd-$key-real"] = static fn() => $proxy->updateOne(
+    $callbacks["upd-$key-real"] = static fn() => $mongodbClient->updateOne(
         connection: $connection,
         database: $database,
         collection: $collection,
@@ -88,7 +88,7 @@ foreach ($insertedIds as $key => $insertedId) {
         ]
     );
 
-    $callbacks["upd-$key-upsert"] = static fn() => $proxy->updateOne(
+    $callbacks["upd-$key-upsert"] = static fn() => $mongodbClient->updateOne(
         connection: $connection,
         database: $database,
         collection: $collection,

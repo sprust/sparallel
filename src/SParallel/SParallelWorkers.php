@@ -17,7 +17,7 @@ use SParallel\Objects\TaskResult;
 use SParallel\Objects\TaskResults;
 use Throwable;
 
-class SParallelService
+class SParallelWorkers
 {
     public function __construct(
         protected EventsBusInterface $eventsBus,
@@ -117,7 +117,7 @@ class SParallelService
 
         $this->logger->debug(
             sprintf(
-                "service started [wLim: %d]",
+                "workers started [wLim: %d]",
                 $workersLimit
             )
         );
@@ -179,7 +179,7 @@ class SParallelService
         } catch (ContextCheckerException $exception) {
             $this->logger->error(
                 sprintf(
-                    "service got context checker exception: %s\n%s",
+                    "workers got context checker exception: %s\n%s",
                     $exception->getMessage(),
                     $exception
                 )
@@ -194,7 +194,7 @@ class SParallelService
         } catch (Throwable $exception) {
             $this->logger->error(
                 sprintf(
-                    "service got exception: %s\n%s",
+                    "workers got exception: %s\n%s",
                     $exception->getMessage(),
                     $exception
                 )
@@ -211,7 +211,7 @@ class SParallelService
             );
         } finally {
             $this->logger->debug(
-                'service finished'
+                'workers finished'
             );
 
             $this->eventsBus->flowFinished(

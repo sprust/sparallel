@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Proxy\Mongodb;
+namespace SParallel\Server\Threads\Mongodb;
 
 use SParallel\Exceptions\RunningOperationException;
-use SParallel\Server\Proxy\Mongodb\Operations\Aggregate\AggregateTrait;
-use SParallel\Server\Proxy\Mongodb\Operations\BulkWrite\BulkWriteTrait;
-use SParallel\Server\Proxy\Mongodb\Operations\InsertOne\InsertOneTrait;
-use SParallel\Server\Proxy\Mongodb\Operations\RunningOperation;
-use SParallel\Server\Proxy\Mongodb\Operations\UpdateOne\UpdateOneTrait;
-use SParallel\Server\Proxy\Mongodb\Serialization\DocumentSerializer;
+use SParallel\Server\Threads\Mongodb\Operations\Aggregate\AggregateTrait;
+use SParallel\Server\Threads\Mongodb\Operations\BulkWrite\BulkWriteTrait;
+use SParallel\Server\Threads\Mongodb\Operations\InsertOne\InsertOneTrait;
+use SParallel\Server\Threads\Mongodb\Operations\RunningOperation;
+use SParallel\Server\Threads\Mongodb\Operations\UpdateOne\UpdateOneTrait;
+use SParallel\Server\Threads\Mongodb\Serialization\DocumentSerializer;
 use Spiral\Goridge\RPC\RPC;
 
-readonly class MongodbProxy
+readonly class MongodbClient
 {
     use InsertOneTrait;
     use UpdateOneTrait;

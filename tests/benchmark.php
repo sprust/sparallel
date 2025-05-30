@@ -6,7 +6,7 @@ ini_set('memory_limit', '1G');
 
 use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Drivers\Server\ServerDriver;
-use SParallel\SParallelService;
+use SParallel\SParallelWorkers;
 use SParallel\TestsImplementation\TestContainer;
 use SParallel\TestsImplementation\TestEventsRepository;
 use SParallel\TestsImplementation\TestLogger;
@@ -67,13 +67,13 @@ foreach ($driverClasses as $driverClass) {
         $container->get($driverClass),
     );
 
-    $service = $container->get(SParallelService::class);
+    $workers = $container->get(SParallelWorkers::class);
 
     memory_reset_peak_usage();
 
     $counter = 0;
 
-    $generator = $service->run(
+    $generator = $workers->run(
         callbacks: $clonedCallbacks,
         timeoutSeconds: $timeoutSeconds,
         workersLimit: $workersLimit

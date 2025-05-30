@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\TestsFeature\Services\Callback;
+namespace SParallel\TestsFeature\Services;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerExceptionInterface;
@@ -41,8 +41,8 @@ class CallbackCallerTest extends TestCase
         };
 
         [$gotSerializer, $gotContext] = $this->callbackCaller->call(
-            callback: $callback,
-            context: $context
+            context: $context,
+            callback: $callback
         );
 
         $serializer = TestContainer::resolve()->get(SerializerInterface::class);

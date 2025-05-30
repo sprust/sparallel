@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Proxy\Mongodb\Operations\BulkWrite;
+namespace SParallel\Server\Threads\Mongodb\Operations\BulkWrite;
 
 use MongoDB\BSON\ObjectId;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\TestsFeature\Flows;
+namespace SParallel\TestsFeature\Workers;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerExceptionInterface;

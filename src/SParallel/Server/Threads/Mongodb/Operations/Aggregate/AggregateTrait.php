@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Proxy\Mongodb\Operations\Aggregate;
+namespace SParallel\Server\Threads\Mongodb\Operations\Aggregate;
 
 use Generator;
 use MongoDB\BSON\Document;
@@ -86,6 +86,6 @@ trait AggregateTrait
             return [$document->get(self::RESULT_KEY), $nextOperationUuid];
         }
 
-        return [PackedArray::fromPHP([]), null];
+        return [PackedArray::fromPHP([]), ""];
     }
 }

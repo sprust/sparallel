@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\TestsFeature\Services;
+namespace SParallel\TestsFeature\Workers;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -14,15 +14,15 @@ use SParallel\Drivers\Server\ServerDriver;
 use SParallel\Drivers\Sync\SyncDriver;
 use SParallel\Entities\Context;
 use SParallel\Exceptions\ContextCheckerException;
-use SParallel\SParallelService;
-use SParallel\TestCases\SParallelServiceTestCasesTrait;
+use SParallel\SParallelWorkers;
+use SParallel\TestCases\SParallelWorkersTestCasesTrait;
 use SParallel\TestsImplementation\TestContainer;
 use SParallel\TestsImplementation\TestEventsRepository;
 use SParallel\TestsImplementation\TestLogger;
 
-class SParallelServiceTest extends TestCase
+class SParallelWorkersTest extends TestCase
 {
-    use SParallelServiceTestCasesTrait;
+    use SParallelWorkersTestCasesTrait;
 
     protected TestEventsRepository $eventsRepository;
 
@@ -45,7 +45,7 @@ class SParallelServiceTest extends TestCase
     public function success(DriverInterface $driver): void
     {
         $this->onSuccess(
-            service: $this->makeServiceByDriver($driver)
+            workers: $this->makeWorkersByDriver($driver)
         );
     }
 
@@ -57,7 +57,7 @@ class SParallelServiceTest extends TestCase
     public function waitFirstOnlySuccess(DriverInterface $driver): void
     {
         $this->onWaitFirstOnlySuccess(
-            service: $this->makeServiceByDriver($driver),
+            workers: $this->makeWorkersByDriver($driver),
         );
     }
 
@@ -69,7 +69,7 @@ class SParallelServiceTest extends TestCase
     public function waitFirstNotOnlySuccess(DriverInterface $driver): void
     {
         $this->onWaitFirstNotOnlySuccess(
-            service: $this->makeServiceByDriver($driver),
+            workers: $this->makeWorkersByDriver($driver),
         );
     }
 
@@ -81,7 +81,7 @@ class SParallelServiceTest extends TestCase
     public function workersLimit(DriverInterface $driver): void
     {
         $this->onWorkersLimit(
-            service: $this->makeServiceByDriver($driver),
+            workers: $this->makeWorkersByDriver($driver),
         );
     }
 
@@ -93,7 +93,7 @@ class SParallelServiceTest extends TestCase
     public function failure(DriverInterface $driver): void
     {
         $this->onFailure(
-            service: $this->makeServiceByDriver($driver),
+            workers: $this->makeWorkersByDriver($driver),
         );
     }
 
@@ -102,7 +102,7 @@ class SParallelServiceTest extends TestCase
     public function timeout(DriverInterface $driver): void
     {
         $this->onTimeout(
-            service: $this->makeServiceByDriver($driver),
+            workers: $this->makeWorkersByDriver($driver),
         );
     }
 
@@ -114,7 +114,7 @@ class SParallelServiceTest extends TestCase
     public function breakAtFirstError(DriverInterface $driver): void
     {
         $this->onBreakAtFirstError(
-            service: $this->makeServiceByDriver($driver),
+            workers: $this->makeWorkersByDriver($driver),
         );
     }
 
@@ -126,7 +126,7 @@ class SParallelServiceTest extends TestCase
     public function bigPayload(DriverInterface $driver): void
     {
         $this->onBigPayload(
-            service: $this->makeServiceByDriver($driver),
+            workers: $this->makeWorkersByDriver($driver),
         );
     }
 
@@ -138,7 +138,7 @@ class SParallelServiceTest extends TestCase
     public function memoryLeak(DriverInterface $driver): void
     {
         $this->onMemoryLeak(
-            service: $this->makeServiceByDriver($driver),
+            workers: $this->makeWorkersByDriver($driver),
         );
     }
 
@@ -167,9 +167,9 @@ class SParallelServiceTest extends TestCase
 
         $callbacksCount = count($callbacks);
 
-        $service = $this->makeServiceByDriver($driver);
+        $workers = $this->makeWorkersByDriver($driver);
 
-        $results = $service->wait(
+        $results = $workers->wait(
             callbacks: $callbacks,
             timeoutSeconds: 1,
             context: $context
@@ -219,9 +219,9 @@ class SParallelServiceTest extends TestCase
 
         $callbacksCount = count($callbacks);
 
-        $service = $this->makeServiceByDriver($driver);
+        $workers = $this->makeWorkersByDriver($driver);
 
-        $results = $service->wait(
+        $results = $workers->wait(
             callbacks: $callbacks,
             timeoutSeconds: 1,
             context: $context
@@ -281,14 +281,14 @@ class SParallelServiceTest extends TestCase
         ];
     }
 
-    private function makeServiceByDriver(DriverInterface $driver): SParallelService
+    private function makeWorkersByDriver(DriverInterface $driver): SParallelWorkers
     {
         $container = TestContainer::resolve();
 
         $container->get(DriverFactory::class)
             ->forceDriver($driver);
 
-        return $container->get(SParallelService::class);
+        return $container->get(SParallelWorkers::class);
     }
 
     private function assertEventsCount(string $eventName, int $expectedCount): void

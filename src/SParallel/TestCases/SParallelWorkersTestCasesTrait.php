@@ -6,22 +6,22 @@ namespace SParallel\TestCases;
 
 use RuntimeException;
 use SParallel\Exceptions\ContextCheckerException;
-use SParallel\SParallelService;
+use SParallel\SParallelWorkers;
 
 /** @phpstan-ignore-next-line trait.unused */
-trait SParallelServiceTestCasesTrait
+trait SParallelWorkersTestCasesTrait
 {
     /**
      * @throws ContextCheckerException
      */
-    protected function onSuccess(SParallelService $service): void
+    protected function onSuccess(SParallelWorkers $workers): void
     {
         $callbacks = [
             'first'  => static fn() => 'first',
             'second' => static fn() => 'second',
         ];
 
-        $results = $service->wait(
+        $results = $workers->wait(
             callbacks: $callbacks,
             timeoutSeconds: 1
         );
@@ -48,7 +48,7 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws ContextCheckerException
      */
-    protected function onWaitFirstOnlySuccess(SParallelService $service): void
+    protected function onWaitFirstOnlySuccess(SParallelWorkers $workers): void
     {
         $callbacks = [
             'first'  => static function () {
@@ -59,7 +59,7 @@ trait SParallelServiceTestCasesTrait
             'second' => static fn() => throw new RuntimeException('second'),
         ];
 
-        $result = $service->waitFirst(
+        $result = $workers->waitFirst(
             callbacks: $callbacks,
             timeoutSeconds: 2,
             onlySuccess: true,
@@ -78,7 +78,7 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws ContextCheckerException
      */
-    protected function onWaitFirstNotOnlySuccess(SParallelService $service): void
+    protected function onWaitFirstNotOnlySuccess(SParallelWorkers $workers): void
     {
         $callbacks = [
             'second' => static fn() => throw new RuntimeException('second'),
@@ -89,7 +89,7 @@ trait SParallelServiceTestCasesTrait
             },
         ];
 
-        $result = $service->waitFirst(
+        $result = $workers->waitFirst(
             callbacks: $callbacks,
             timeoutSeconds: 2,
             onlySuccess: false,
@@ -108,7 +108,7 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws ContextCheckerException
      */
-    protected function onWorkersLimit(SParallelService $service): void
+    protected function onWorkersLimit(SParallelWorkers $workers): void
     {
         $callbacks = [
             'first'  => static function () {
@@ -125,7 +125,7 @@ trait SParallelServiceTestCasesTrait
 
         $startTime = time();
 
-        $service->wait(
+        $workers->wait(
             callbacks: $callbacks,
             timeoutSeconds: 4,
             workersLimit: 1
@@ -139,7 +139,7 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws ContextCheckerException
      */
-    protected function onFailure(SParallelService $service): void
+    protected function onFailure(SParallelWorkers $workers): void
     {
         $exceptionMessage = uniqid();
 
@@ -148,7 +148,7 @@ trait SParallelServiceTestCasesTrait
             'second' => static fn() => throw new RuntimeException($exceptionMessage),
         ];
 
-        $results = $service->wait(
+        $results = $workers->wait(
             callbacks: $callbacks,
             timeoutSeconds: 1
         );
@@ -200,7 +200,7 @@ trait SParallelServiceTestCasesTrait
         self::assertEquals($exceptionMessage, $resultErrorObject->message);
     }
 
-    protected function onTimeout(SParallelService $service): void
+    protected function onTimeout(SParallelWorkers $workers): void
     {
         $exception = null;
 
@@ -210,7 +210,7 @@ trait SParallelServiceTestCasesTrait
         ];
 
         try {
-            $service->wait(
+            $workers->wait(
                 callbacks: $callbacks,
                 timeoutSeconds: 1
             );
@@ -227,7 +227,7 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws ContextCheckerException
      */
-    protected function onBreakAtFirstError(SParallelService $service): void
+    protected function onBreakAtFirstError(SParallelWorkers $workers): void
     {
         $callbacks = [
             'first'  => static fn() => 'first',
@@ -235,7 +235,7 @@ trait SParallelServiceTestCasesTrait
             'third'  => static fn() => sleep(2),
         ];
 
-        $results = $service->wait(
+        $results = $workers->wait(
             callbacks: $callbacks,
             timeoutSeconds: 1,
             breakAtFirstError: true
@@ -249,7 +249,7 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws ContextCheckerException
      */
-    protected function onBigPayload(SParallelService $service): void
+    protected function onBigPayload(SParallelWorkers $workers): void
     {
         $parameters = str_repeat(uniqid(more_entropy: true), 1);
 
@@ -259,7 +259,7 @@ trait SParallelServiceTestCasesTrait
             'third'  => static fn() => $parameters,
         ];
 
-        $results = $service->wait(
+        $results = $workers->wait(
             callbacks: $callbacks,
             timeoutSeconds: 2,
         );
@@ -272,7 +272,7 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws ContextCheckerException
      */
-    protected function onMemoryLeak(SParallelService $service): void
+    protected function onMemoryLeak(SParallelWorkers $workers): void
     {
         $callbacks = [
             'first'  => static fn() => 'first',
@@ -283,7 +283,7 @@ trait SParallelServiceTestCasesTrait
             },
         ];
 
-        $results = $service->wait(
+        $results = $workers->wait(
             callbacks: $callbacks,
             timeoutSeconds: 1,
         );
@@ -298,11 +298,11 @@ trait SParallelServiceTestCasesTrait
      * @throws ContextCheckerException
      */
     protected function onUnexpectedExitOfParent(
-        SParallelService $processService,
-        SParallelService $testableService
+        SParallelWorkers $processWorkers,
+        SParallelWorkers $testableWorkers
     ): void {
         $parentCallback = [
-            static function () use ($testableService) {
+            static function () use ($testableWorkers) {
                 $callbacks = [
                     'first'  => static fn() => sleep(3),
                     'second' => static function () {
@@ -313,7 +313,7 @@ trait SParallelServiceTestCasesTrait
                     },
                 ];
 
-                $testableService->run(
+                $testableWorkers->run(
                     callbacks: $callbacks,
                     timeoutSeconds: 2
                 );
@@ -324,7 +324,7 @@ trait SParallelServiceTestCasesTrait
             },
         ];
 
-        $results = $processService->wait(
+        $results = $processWorkers->wait(
             callbacks: $parentCallback,
             timeoutSeconds: 2,
         );
@@ -337,10 +337,10 @@ trait SParallelServiceTestCasesTrait
     /**
      * @throws ContextCheckerException
      */
-    protected function onMemoryLeakOfParent(SParallelService $processService, SParallelService $testableService): void
+    protected function onMemoryLeakOfParent(SParallelWorkers $processWorkers, SParallelWorkers $testableWorkers): void
     {
         $parentCallback = [
-            static function () use ($testableService) {
+            static function () use ($testableWorkers) {
                 $callbacks = [
                     'first'  => static fn() => sleep(3),
                     'second' => static function () {
@@ -351,7 +351,7 @@ trait SParallelServiceTestCasesTrait
                     },
                 ];
 
-                $testableService->run(
+                $testableWorkers->run(
                     callbacks: $callbacks,
                     timeoutSeconds: 2
                 );
@@ -362,7 +362,7 @@ trait SParallelServiceTestCasesTrait
             },
         ];
 
-        $results = $processService->wait(
+        $results = $processWorkers->wait(
             callbacks: $parentCallback,
             timeoutSeconds: 2,
         );
