@@ -22,7 +22,6 @@ class MongodbCollectionWrapper
 
     protected ?Collection $driverCollection = null;
 
-
     public function __construct(
         protected MongodbConnectionUriFactoryInterface $uriFactory,
         protected MongodbClient $mongodbClient,
