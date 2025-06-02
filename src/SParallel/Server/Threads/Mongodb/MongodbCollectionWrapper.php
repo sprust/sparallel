@@ -22,12 +22,13 @@ class MongodbCollectionWrapper
 
     protected ?Collection $driverCollection = null;
 
+
     public function __construct(
         protected MongodbConnectionUriFactoryInterface $uriFactory,
         protected MongodbClient $mongodbClient,
         protected string $databaseName,
         protected string $collectionName,
-        protected bool $useServer = true
+        protected int $serverOffUntil = 0
     ) {
         $this->uri = $this->uriFactory->get();
     }
@@ -38,7 +39,7 @@ class MongodbCollectionWrapper
      */
     public function insertOne(array|object $document, array $options = []): InsertOneResult
     {
-        if ($this->useServer) {
+        if ($this->isServerActive()) {
             try {
                 return $this->mongodbClient->insertOne(
                     connection: $this->uri,
@@ -47,9 +48,7 @@ class MongodbCollectionWrapper
                     document: (array) $document,
                 );
             } catch (Throwable) {
-                // TODO: handle exception
-
-                $this->useServer = false;
+                $this->onServerFailed();
             }
         }
 
@@ -66,7 +65,7 @@ class MongodbCollectionWrapper
      */
     public function updateOne(array|object $filter, array|object $update, array $options = []): UpdateResult
     {
-        if ($this->useServer) {
+        if ($this->isServerActive()) {
             try {
                 return $this->mongodbClient->updateOne(
                     connection: $this->uri,
@@ -77,9 +76,7 @@ class MongodbCollectionWrapper
                     options: $options,
                 );
             } catch (Throwable) {
-                // TODO: handle exception
-
-                $this->useServer = false;
+                $this->onServerFailed();
             }
         }
 
@@ -96,7 +93,7 @@ class MongodbCollectionWrapper
      */
     public function aggregate(array $pipeline, array $options = []): Iterator
     {
-        if ($this->useServer) {
+        if ($this->isServerActive()) {
             try {
                 return $this->mongodbClient->aggregate(
                     connection: $this->uri,
@@ -105,9 +102,7 @@ class MongodbCollectionWrapper
                     pipeline: $pipeline,
                 );
             } catch (Throwable) {
-                // TODO: handle exception
-
-                $this->useServer = false;
+                $this->onServerFailed();
             }
         }
 
@@ -123,7 +118,7 @@ class MongodbCollectionWrapper
      */
     public function bulkWrite(array $operations, array $options = []): BulkWriteResult
     {
-        if ($this->useServer) {
+        if ($this->isServerActive()) {
             try {
                 return $this->mongodbClient->bulkWrite(
                     connection: $this->uri,
@@ -132,9 +127,7 @@ class MongodbCollectionWrapper
                     operations: $operations,
                 );
             } catch (Throwable) {
-                // TODO: handle exception
-
-                $this->useServer = false;
+                $this->onServerFailed();
             }
         }
 
@@ -160,5 +153,25 @@ class MongodbCollectionWrapper
         }
 
         return $this->driverCollection;
+    }
+
+    protected function isServerActive(): bool
+    {
+        if ($this->serverOffUntil === 0) {
+            return true;
+        }
+
+        if ($this->serverOffUntil > time()) {
+            return false;
+        }
+
+        $this->serverOffUntil = 0;
+
+        return true;
+    }
+
+    protected function onServerFailed(): void
+    {
+        $this->serverOffUntil = time() + 5;
     }
 }

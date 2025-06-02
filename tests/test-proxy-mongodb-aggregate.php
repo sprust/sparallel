@@ -31,7 +31,7 @@ $collection = new MongodbCollectionWrapper(
     mongodbClient: TestContainer::resolve()->get(MongodbClient::class),
     databaseName: 'sparallel-test',
     collectionName: 'test',
-    useServer: $serv,
+    serverOffUntil: $serv ? 0 : (time() + 60),
 );
 
 while ($counter--) {
