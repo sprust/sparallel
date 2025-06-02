@@ -107,7 +107,7 @@ class SParallelThreads
                             result: $result
                         );
                     } elseif ($fiber->isSuspended()) {
-                        if ((microtime(true) - $throttle[$key]) < 0.001) {
+                        if ((microtime(true) - $throttle[$key]) < 0.0001) {
                             continue;
                         }
 
