@@ -12,6 +12,7 @@ use SParallel\Entities\Context;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\Exceptions\ThreadContinueException;
 use SParallel\Exceptions\ThreadResumeException;
+use SParallel\Exceptions\ThreadsIsRunningException;
 use SParallel\Exceptions\ThreadStartException;
 use SParallel\Implementation\Timer;
 use SParallel\Objects\ThreadResult;
@@ -19,6 +20,8 @@ use Throwable;
 
 class SParallelThreads
 {
+    protected static bool $running = false;
+
     public function __construct(protected CallbackCallerInterface $callbackCaller)
     {
     }
@@ -36,83 +39,93 @@ class SParallelThreads
         ?int $timeoutSeconds = null,
         ?Context $context = null
     ): Generator {
-        if (is_null($context)) {
-            $context = new Context();
+        if (self::$running) {
+            throw new ThreadsIsRunningException();
         }
 
-        if ($timeoutSeconds && !$context->hasChecker(Timer::class)) {
-            $context->setChecker(
-                new Timer(timeoutSeconds: $timeoutSeconds)
-            );
-        }
+        self::$running = true;
 
-        $fibers = array_map(
-            static fn(Closure $callback) => new Fiber($callback),
-            $callbacks
-        );
-
-        /** @var array<int|string, float> $throttle */
-        $throttle = [];
-
-        while (count($fibers) > 0) {
-            $context->check();
-
-            if ($threadsLimitCount > 0 && count($fibers) >= $threadsLimitCount) {
-                $keys = array_keys(array_slice($fibers, 0, 100, true));
-            } else {
-                $keys = array_keys($fibers);
+        try {
+            if (is_null($context)) {
+                $context = new Context();
             }
 
-            foreach ($keys as $key) {
+            if ($timeoutSeconds && !$context->hasChecker(Timer::class)) {
+                $context->setChecker(
+                    new Timer(timeoutSeconds: $timeoutSeconds)
+                );
+            }
+
+            $fibers = array_map(
+                static fn(Closure $callback) => new Fiber($callback),
+                $callbacks
+            );
+
+            /** @var array<int|string, float> $throttle */
+            $throttle = [];
+
+            while (count($fibers) > 0) {
                 $context->check();
 
-                $fiber = $fibers[$key];
+                if ($threadsLimitCount > 0 && count($fibers) >= $threadsLimitCount) {
+                    $keys = array_keys(array_slice($fibers, 0, 100, true));
+                } else {
+                    $keys = array_keys($fibers);
+                }
 
-                if (!$fiber->isStarted()) {
-                    $parameters = $this->callbackCaller->makeParameters(
-                        context: $context,
-                        callback: $callbacks[$key]
-                    );
+                foreach ($keys as $key) {
+                    $context->check();
 
-                    unset($callbacks[$key]);
+                    $fiber = $fibers[$key];
 
-                    try {
-                        $fiber->start(...$parameters);
-                    } catch (Throwable $exception) {
-                        throw new ThreadStartException(
-                            message: $exception->getMessage(),
-                            previous: $exception
+                    if (!$fiber->isStarted()) {
+                        $parameters = $this->callbackCaller->makeParameters(
+                            context: $context,
+                            callback: $callbacks[$key]
                         );
-                    }
 
-                    $throttle[$key] = microtime(true);;
-                } elseif ($fiber->isTerminated()) {
-                    $result = $fiber->getReturn();
+                        unset($callbacks[$key]);
 
-                    unset($fibers[$key]);
-                    unset($throttle[$key]);
+                        try {
+                            $fiber->start(...$parameters);
+                        } catch (Throwable $exception) {
+                            throw new ThreadStartException(
+                                message: $exception->getMessage(),
+                                previous: $exception
+                            );
+                        }
 
-                    yield new ThreadResult(
-                        key: $key,
-                        result: $result
-                    );
-                } elseif ($fiber->isSuspended()) {
-                    if ((microtime(true) - $throttle[$key]) < 0.001) {
-                        continue;
-                    }
+                        $throttle[$key] = microtime(true);;
+                    } elseif ($fiber->isTerminated()) {
+                        $result = $fiber->getReturn();
 
-                    $throttle[$key] = microtime(true);
+                        unset($fibers[$key]);
+                        unset($throttle[$key]);
 
-                    try {
-                        $fiber->resume();
-                    } catch (Throwable $exception) {
-                        throw new ThreadResumeException(
-                            message: $exception->getMessage(),
-                            previous: $exception
+                        yield new ThreadResult(
+                            key: $key,
+                            result: $result
                         );
+                    } elseif ($fiber->isSuspended()) {
+                        if ((microtime(true) - $throttle[$key]) < 0.001) {
+                            continue;
+                        }
+
+                        $throttle[$key] = microtime(true);
+
+                        try {
+                            $fiber->resume();
+                        } catch (Throwable $exception) {
+                            throw new ThreadResumeException(
+                                message: $exception->getMessage(),
+                                previous: $exception
+                            );
+                        }
                     }
                 }
             }
+        } finally {
+            self::$running = false;
         }
     }
 
