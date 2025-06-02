@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Server;
 
+use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
 use SParallel\Entities\Context;
 use SParallel\Server\Workers\WorkersRpcClient;
@@ -19,6 +21,8 @@ readonly class ServerDriver implements DriverInterface
         protected WorkersRpcClient $rpcClient,
         protected ServerTaskTransport $serverTaskTransport,
         protected TaskResultTransport $taskResultTransport,
+        protected EventsBusInterface $eventsBus,
+        protected CallbackCallerInterface $callbackCaller,
     ) {
     }
 
@@ -31,6 +35,8 @@ readonly class ServerDriver implements DriverInterface
             rpcClient: $this->rpcClient,
             serverTaskTransport: $this->serverTaskTransport,
             taskResultTransport: $this->taskResultTransport,
+            eventsBus: $this->eventsBus,
+            callbackCaller: $this->callbackCaller,
         );
     }
 }

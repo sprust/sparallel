@@ -4,21 +4,25 @@ declare(strict_types=1);
 
 namespace SParallel\Server\Workers;
 
-use Spiral\Goridge\RPC\RPC;
+use SParallel\Contracts\RpcClientInterface;
+use Throwable;
 
 readonly class WorkersRpcClient
 {
-    public function __construct(protected RPC $rpc)
+    public function __construct(protected RpcClientInterface $rpcClient)
     {
     }
 
+    /**
+     * @throws Throwable
+     */
     public function addTask(
         string $groupUuid,
         string $taskUuid,
         string $payload,
         int $unixTimeout
     ): void {
-        $this->rpc->call("WorkersServer.AddTask", [
+        $this->rpcClient->call("WorkersServer.AddTask", [
             'GroupUuid'   => $groupUuid,
             'TaskUuid'    => $taskUuid,
             'UnixTimeout' => $unixTimeout,
@@ -26,9 +30,12 @@ readonly class WorkersRpcClient
         ]);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function detectAnyFinishedTask(string $groupUuid): ServerFinishedTask
     {
-        $rpcResponse = $this->rpc->call("WorkersServer.DetectAnyFinishedTask", [
+        $rpcResponse = $this->rpcClient->call('WorkersServer.DetectAnyFinishedTask', [
             'GroupUuid' => $groupUuid,
         ]);
 
@@ -41,9 +48,12 @@ readonly class WorkersRpcClient
         );
     }
 
+    /**
+     * @throws Throwable
+     */
     public function cancelGroup(string $groupUuid): void
     {
-        $this->rpc->call("WorkersServer.CancelGroup", [
+        $this->rpcClient->call("WorkersServer.CancelGroup", [
             'GroupUuid' => $groupUuid,
         ]);
     }

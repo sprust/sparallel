@@ -14,11 +14,13 @@ use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\MongodbConnectionUriFactoryInterface;
+use SParallel\Contracts\RpcClientInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Contracts\SParallelLoggerInterface;
 use SParallel\Drivers\DriverFactory;
 use SParallel\Implementation\CallbackCaller;
 use SParallel\Implementation\OpisSerializer;
+use SParallel\Implementation\RpcClient;
 use Spiral\Goridge\Relay;
 use Spiral\Goridge\RPC\RPC;
 
@@ -62,6 +64,7 @@ class TestContainer implements ContainerInterface
 
             RPC::class => fn() => new RPC(Relay::create("tcp://$_ENV[SERVER_HOST]:$_ENV[SERVER_PORT]")),
 
+            RpcClientInterface::class                   => fn() => $this->get(RpcClient::class),
             MongodbConnectionUriFactoryInterface::class => fn() => $this->get(TestMongodbConnectionUriFactory::class),
         ];
     }

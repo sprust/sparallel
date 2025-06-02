@@ -7,8 +7,12 @@ namespace SParallel\Drivers\Server;
 use Closure;
 use Generator;
 use RuntimeException;
+use SParallel\Contracts\CallbackCallerInterface;
+use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\WaitGroupInterface;
+use SParallel\Drivers\Sync\SyncWaitGroup;
 use SParallel\Entities\Context;
+use SParallel\Exceptions\RpcCallException;
 use SParallel\Exceptions\UnexpectedServerTaskException;
 use SParallel\Objects\TaskResult;
 use SParallel\Server\Workers\ServerTask;
@@ -38,6 +42,8 @@ class ServerWaitGroup implements WaitGroupInterface
         private readonly WorkersRpcClient $rpcClient,
         private readonly ServerTaskTransport $serverTaskTransport,
         private readonly TaskResultTransport $taskResultTransport,
+        private readonly EventsBusInterface $eventsBus,
+        private readonly CallbackCallerInterface $callbackCaller,
     ) {
         $this->groupUuid = $this->makeUuid();
 
@@ -63,20 +69,46 @@ class ServerWaitGroup implements WaitGroupInterface
         foreach ($this->expectedTasks as $taskUuid => $task) {
             $this->context->check();
 
-            $this->rpcClient->addTask(
-                groupUuid: $this->groupUuid,
-                taskUuid: $taskUuid,
-                payload: $this->serverTaskTransport->serialize($task),
-                unixTimeout: $this->unixTimeout
-            );
+            try {
+                $this->rpcClient->addTask(
+                    groupUuid: $this->groupUuid,
+                    taskUuid: $taskUuid,
+                    payload: $this->serverTaskTransport->serialize($task),
+                    unixTimeout: $this->unixTimeout
+                );
+            } catch (Throwable $exception) {
+                $this->eventsBus->onServerGone(
+                    context: $this->context,
+                    exception: new RpcCallException($exception)
+                );
+
+                foreach ($this->initSyncWaitGroup()->get() as $taskResult) {
+                    yield $taskResult;
+                }
+            }
         }
 
         while (count($this->expectedTasks) > 0) {
             $this->context->check();
 
-            $finishedTask = $this->rpcClient->detectAnyFinishedTask(
-                groupUuid: $this->groupUuid
-            );
+            try {
+                $finishedTask = $this->rpcClient->detectAnyFinishedTask(
+                    groupUuid: $this->groupUuid
+                );
+            } catch (Throwable $exception) {
+                $this->eventsBus->onServerGone(
+                    context: $this->context,
+                    exception: new RpcCallException($exception)
+                );
+
+                foreach ($this->initSyncWaitGroup()->get() as $taskResult) {
+                    dump($taskResult->taskKey);
+
+                    yield $taskResult;
+                }
+
+                break;
+            }
 
             if (!$finishedTask->isFinished) {
                 continue;
@@ -119,9 +151,16 @@ class ServerWaitGroup implements WaitGroupInterface
     {
         $this->expectedTasks = [];
 
-        $this->rpcClient->cancelGroup(
-            groupUuid: $this->groupUuid
-        );
+        try {
+            $this->rpcClient->cancelGroup(
+                groupUuid: $this->groupUuid
+            );
+        } catch (Throwable $exception) {
+            $this->eventsBus->onServerGone(
+                context: $this->context,
+                exception: new RpcCallException($exception)
+            );
+        }
     }
 
     private function makeUuid(): string
@@ -140,6 +179,25 @@ class ServerWaitGroup implements WaitGroupInterface
         return true;
     }
 
+    private function initSyncWaitGroup(): SyncWaitGroup
+    {
+        $callbacks = [];
+
+        foreach (array_keys($this->expectedTasks) as $taskKey) {
+            $expectedTask = $this->expectedTasks[$taskKey];
+
+            $callbacks[$expectedTask->key] = $expectedTask->callback;
+
+            unset($this->expectedTasks[$taskKey]);
+        }
+
+        return new SyncWaitGroup(
+            context: $this->context,
+            callbacks: $callbacks,
+            eventsBus: $this->eventsBus,
+            callbackCaller: $this->callbackCaller
+        );
+    }
 
     public function __destruct()
     {

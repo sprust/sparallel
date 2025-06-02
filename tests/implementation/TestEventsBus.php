@@ -6,6 +6,7 @@ namespace SParallel\TestsImplementation;
 
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Entities\Context;
+use SParallel\Exceptions\RpcCallException;
 use Throwable;
 
 class TestEventsBus implements EventsBusInterface
@@ -41,6 +42,11 @@ class TestEventsBus implements EventsBusInterface
     }
 
     public function taskFinished(string $driverName, Context $context): void
+    {
+        $this->eventsRepository->add(__FUNCTION__);
+    }
+
+    public function onServerGone(Context $context, RpcCallException $exception): void
     {
         $this->eventsRepository->add(__FUNCTION__);
     }

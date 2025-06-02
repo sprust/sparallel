@@ -11,7 +11,7 @@ use SParallel\Objects\TaskResult;
 interface WaitGroupInterface
 {
     /**
-     * @return Generator<TaskResult>
+     * @return Generator<int, TaskResult>
      *
      * @throws ContextCheckerException
      */
