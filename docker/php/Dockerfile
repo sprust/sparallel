@@ -1,6 +1,18 @@
 FROM php:8.2-cli AS base
 
-RUN apt update && apt install -y git libzip-dev zip unzip wget git gcc make libcurl4-openssl-dev pkg-config libssl-dev
+RUN apt update && apt install -y \
+    git \
+    libzip-dev \
+    zip \
+    unzip \
+    wget \
+    git \
+    gcc \
+    make \
+    libcurl4-openssl-dev \
+    pkg-config \
+    libssl-dev \
+    procps
 
 # PHP
 RUN pecl install zip mongodb-1.21.0 pcntl && docker-php-ext-enable zip mongodb

@@ -53,3 +53,6 @@ run-server:
 
 htop-workers:
 	htop -t --filter=server-process-handler.php
+
+serv-stats:
+	"$(SERVER_CLI)" go run ./cmd/server/main.go stats
