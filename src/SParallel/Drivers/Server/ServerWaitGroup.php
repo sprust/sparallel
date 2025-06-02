@@ -102,8 +102,6 @@ class ServerWaitGroup implements WaitGroupInterface
                 );
 
                 foreach ($this->initSyncWaitGroup()->get() as $taskResult) {
-                    dump($taskResult->taskKey);
-
                     yield $taskResult;
                 }
 
