@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Threads\Mongodb\Operations\InsertOne;
+namespace SParallel\Server\Concurrency\Mongodb\Operations\InsertOne;
 
-use SParallel\Exceptions\ThreadResponseException;
-use SParallel\SParallelThreads;
+use SParallel\Exceptions\ConcurrencyResponseException;
+use SParallel\SParallelConcurrency;
 
 trait InsertOneTrait
 {
@@ -25,7 +25,7 @@ trait InsertOneTrait
             'Document'   => $this->documentSerializer->serialize($document),
         ]);
 
-        SParallelThreads::continue();
+        SParallelConcurrency::continue();
 
         $runningOperation = $this->parseRunningOperationResponse($response);
 
@@ -33,7 +33,7 @@ trait InsertOneTrait
             $result = $this->insertOneResult($runningOperation->uuid);
 
             if (is_null($result)) {
-                SParallelThreads::continue();
+                SParallelConcurrency::continue();
 
                 continue;
             }
@@ -49,7 +49,7 @@ trait InsertOneTrait
         ]);
 
         if ($error = $response['Error']) {
-            throw new ThreadResponseException(
+            throw new ConcurrencyResponseException(
                 message: $error,
             );
         }

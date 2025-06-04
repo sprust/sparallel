@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Threads\Mongodb\Operations\Aggregate;
+namespace SParallel\Server\Concurrency\Mongodb\Operations\Aggregate;
 
 use Generator;
 use MongoDB\BSON\Document;
 use MongoDB\BSON\PackedArray;
-use SParallel\Exceptions\ThreadResponseException;
-use SParallel\SParallelThreads;
+use SParallel\Exceptions\ConcurrencyResponseException;
+use SParallel\SParallelConcurrency;
 
 trait AggregateTrait
 {
@@ -32,7 +32,7 @@ trait AggregateTrait
             'Pipeline'   => $this->documentSerializer->serialize($pipeline),
         ]);
 
-        SParallelThreads::continue();
+        SParallelConcurrency::continue();
 
         $operationUuid = $this->parseRunningOperationResponse($response)->uuid;
 
@@ -40,7 +40,7 @@ trait AggregateTrait
             $result = $this->aggregateResult($operationUuid);
 
             if (is_null($result)) {
-                SParallelThreads::continue();
+                SParallelConcurrency::continue();
 
                 continue;
             }
@@ -68,7 +68,7 @@ trait AggregateTrait
         ]);
 
         if ($error = $response['Error']) {
-            throw new ThreadResponseException(
+            throw new ConcurrencyResponseException(
                 message: $error,
             );
         }

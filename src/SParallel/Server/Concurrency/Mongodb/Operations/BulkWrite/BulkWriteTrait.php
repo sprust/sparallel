@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Threads\Mongodb\Operations\BulkWrite;
+namespace SParallel\Server\Concurrency\Mongodb\Operations\BulkWrite;
 
 use SParallel\Exceptions\InvalidMongodbBulkWriteOperationException;
-use SParallel\Exceptions\ThreadResponseException;
-use SParallel\SParallelThreads;
+use SParallel\Exceptions\ConcurrencyResponseException;
+use SParallel\SParallelConcurrency;
 
 trait BulkWriteTrait
 {
@@ -28,7 +28,7 @@ trait BulkWriteTrait
             ),
         ]);
 
-        SParallelThreads::continue();
+        SParallelConcurrency::continue();
 
         $operationUuid = $this->parseRunningOperationResponse($response)->uuid;
 
@@ -36,7 +36,7 @@ trait BulkWriteTrait
             $result = $this->bulkWriteResult($operationUuid);
 
             if (is_null($result)) {
-                SParallelThreads::continue();
+                SParallelConcurrency::continue();
 
                 continue;
             }
@@ -61,7 +61,7 @@ trait BulkWriteTrait
         ]);
 
         if ($error = $response['Error']) {
-            throw new ThreadResponseException(
+            throw new ConcurrencyResponseException(
                 message: $error,
             );
         }

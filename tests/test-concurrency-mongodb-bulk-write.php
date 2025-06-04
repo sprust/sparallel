@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 use MongoDB\BSON\UTCDateTime;
 use SParallel\Contracts\MongodbConnectionUriFactoryInterface;
-use SParallel\Server\Threads\Mongodb\MongodbClient;
-use SParallel\Server\Threads\Mongodb\MongodbCollectionWrapper;
-use SParallel\SParallelThreads;
+use SParallel\Server\Concurrency\Mongodb\MongodbClient;
+use SParallel\Server\Concurrency\Mongodb\MongodbCollectionWrapper;
+use SParallel\SParallelConcurrency;
 use SParallel\TestsImplementation\TestContainer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -17,8 +17,8 @@ $serv = match ($_SERVER['argv'][1]) {
     default => throw new RuntimeException('Invalid server usage flag'),
 };
 
-$total             = (int) ($_SERVER['argv'][2] ?? 5);
-$threadsLimitCount = (int) ($_SERVER['argv'][3] ?? 0);
+$total      = (int) ($_SERVER['argv'][2] ?? 5);
+$limitCount = (int) ($_SERVER['argv'][3] ?? 0);
 
 $counter = $total;
 
@@ -159,11 +159,11 @@ while ($counter--) {
     );
 }
 
-$threads = TestContainer::resolve()->get(SParallelThreads::class);
+$concurrency = TestContainer::resolve()->get(SParallelConcurrency::class);
 
 $insertedIds = [];
 
-foreach ($threads->run($callbacks, $threadsLimitCount) as $key => $result) {
+foreach ($concurrency->run($callbacks, $limitCount) as $key => $result) {
     echo "success: $key\n";
     print_r($result->result);
 }
@@ -172,6 +172,6 @@ $totalTime = microtime(true) - $start;
 $memPeak   = round(memory_get_peak_usage(true) / 1024 / 1024, 4);
 
 echo "\n\nTotal call:\t$total\n";
-echo "Thr limit:\t$threadsLimitCount\n";
+echo "Thr limit:\t$limitCount\n";
 echo "Mem peak:\t$memPeak\n";
 echo "Total time:\t$totalTime\n";

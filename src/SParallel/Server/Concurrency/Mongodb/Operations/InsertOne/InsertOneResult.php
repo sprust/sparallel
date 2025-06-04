@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Threads\Mongodb\Operations\InsertOne;
+namespace SParallel\Server\Concurrency\Mongodb\Operations\InsertOne;
 
 use MongoDB\BSON\ObjectId;
 

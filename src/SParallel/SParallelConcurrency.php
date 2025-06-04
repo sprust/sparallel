@@ -10,15 +10,15 @@ use Generator;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Entities\Context;
 use SParallel\Exceptions\ContextCheckerException;
-use SParallel\Exceptions\ThreadContinueException;
-use SParallel\Exceptions\ThreadResumeException;
-use SParallel\Exceptions\ThreadsIsRunningException;
-use SParallel\Exceptions\ThreadStartException;
+use SParallel\Exceptions\ConcurrencyContinueException;
+use SParallel\Exceptions\ConcurrencyResumeException;
+use SParallel\Exceptions\ConcurrencyIsRunningException;
+use SParallel\Exceptions\ConcurrencyStartException;
 use SParallel\Implementation\Timer;
-use SParallel\Objects\ThreadResult;
+use SParallel\Objects\ConcurrencyResult;
 use Throwable;
 
-class SParallelThreads
+class SParallelConcurrency
 {
     protected static bool $running = false;
 
@@ -29,18 +29,18 @@ class SParallelThreads
     /**
      * @param array<int|string, Closure(Context): mixed> $callbacks
      *
-     * @return Generator<int|string, ThreadResult>
+     * @return Generator<int|string, ConcurrencyResult>
      *
      * @throws ContextCheckerException
      */
     public function run(
         array &$callbacks,
-        int $threadsLimitCount = 0,
+        int $limitCount = 0,
         ?int $timeoutSeconds = null,
         ?Context $context = null
     ): Generator {
         if (self::$running) {
-            throw new ThreadsIsRunningException();
+            throw new ConcurrencyIsRunningException();
         }
 
         self::$running = true;
@@ -67,7 +67,7 @@ class SParallelThreads
             while (count($fibers) > 0) {
                 $context->check();
 
-                if ($threadsLimitCount > 0 && count($fibers) >= $threadsLimitCount) {
+                if ($limitCount > 0 && count($fibers) >= $limitCount) {
                     $keys = array_keys(array_slice($fibers, 0, 100, true));
                 } else {
                     $keys = array_keys($fibers);
@@ -89,7 +89,7 @@ class SParallelThreads
                         try {
                             $fiber->start(...$parameters);
                         } catch (Throwable $exception) {
-                            throw new ThreadStartException(
+                            throw new ConcurrencyStartException(
                                 message: $exception->getMessage(),
                                 previous: $exception
                             );
@@ -102,7 +102,7 @@ class SParallelThreads
                         unset($fibers[$key]);
                         unset($throttle[$key]);
 
-                        yield new ThreadResult(
+                        yield new ConcurrencyResult(
                             key: $key,
                             result: $result
                         );
@@ -116,7 +116,7 @@ class SParallelThreads
                         try {
                             $fiber->resume();
                         } catch (Throwable $exception) {
-                            throw new ThreadResumeException(
+                            throw new ConcurrencyResumeException(
                                 message: $exception->getMessage(),
                                 previous: $exception
                             );
@@ -138,7 +138,7 @@ class SParallelThreads
         try {
             Fiber::suspend();
         } catch (Throwable $exception) {
-            throw new ThreadContinueException(
+            throw new ConcurrencyContinueException(
                 previous: $exception
             );
         }

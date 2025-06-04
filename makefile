@@ -55,7 +55,7 @@ test:
 		tests ${c}
 
 test-benchmark:
-	"$(PHP_CLI)" php tests/benchmark.php
+	"$(PHP_CLI)" php tests/test-workers-benchmark.php
 
 test-stats-get:
 	"$(PHP_CLI)" php tests/test-stats-get.php

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Threads\Mongodb\Operations;
+namespace SParallel\Server\Concurrency\Mongodb\Operations;
 
 readonly class RunningOperation
 {

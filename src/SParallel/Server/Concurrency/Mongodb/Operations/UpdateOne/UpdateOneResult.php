@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Threads\Mongodb\Operations\UpdateOne;
+namespace SParallel\Server\Concurrency\Mongodb\Operations\UpdateOne;
 
 use MongoDB\BSON\ObjectId;
 use MongoDB\UpdateResult;

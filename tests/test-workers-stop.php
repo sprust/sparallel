@@ -11,7 +11,7 @@ $rpc = TestContainer::resolve()->get(WorkersRpcClient::class);
 
 $start = microtime(true);
 
-$totalTime   = microtime(true) - $start;
+$totalTime = microtime(true) - $start;
 
 $rpc->stop();
 

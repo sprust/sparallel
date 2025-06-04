@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Threads\Mongodb;
+namespace SParallel\Server\Concurrency\Mongodb;
 
 use Iterator;
 use MongoDB\BulkWriteResult;

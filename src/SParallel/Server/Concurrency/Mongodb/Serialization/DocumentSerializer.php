@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Threads\Mongodb\Serialization;
+namespace SParallel\Server\Concurrency\Mongodb\Serialization;
 
 use DateTimeInterface;
 use MongoDB\BSON\Document;

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Threads\Mongodb\Operations\UpdateOne;
+namespace SParallel\Server\Concurrency\Mongodb\Operations\UpdateOne;
 
-use SParallel\Exceptions\ThreadResponseException;
-use SParallel\SParallelThreads;
+use SParallel\Exceptions\ConcurrencyResponseException;
+use SParallel\SParallelConcurrency;
 
 trait UpdateOneTrait
 {
@@ -31,7 +31,7 @@ trait UpdateOneTrait
             'OpUpsert'   => $options['upsert'] ?? false, // TODO
         ]);
 
-        SParallelThreads::continue();
+        SParallelConcurrency::continue();
 
         $runningOperation = $this->parseRunningOperationResponse($response);
 
@@ -39,7 +39,7 @@ trait UpdateOneTrait
             $result = $this->updateOneResult($runningOperation->uuid);
 
             if (is_null($result)) {
-                SParallelThreads::continue();
+                SParallelConcurrency::continue();
 
                 continue;
             }
@@ -55,7 +55,7 @@ trait UpdateOneTrait
         ]);
 
         if ($error = $response['Error']) {
-            throw new ThreadResponseException(
+            throw new ConcurrencyResponseException(
                 message: $error,
             );
         }

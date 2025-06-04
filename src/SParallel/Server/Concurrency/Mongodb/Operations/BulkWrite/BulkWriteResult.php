@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Threads\Mongodb\Operations\BulkWrite;
+namespace SParallel\Server\Concurrency\Mongodb\Operations\BulkWrite;
 
 use MongoDB\BSON\ObjectId;
 use RuntimeException;

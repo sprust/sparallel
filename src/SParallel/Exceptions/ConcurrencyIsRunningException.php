@@ -6,12 +6,12 @@ namespace SParallel\Exceptions;
 
 use RuntimeException;
 
-class ThreadsIsRunningException extends RuntimeException
+class ConcurrencyIsRunningException extends RuntimeException
 {
     public function __construct()
     {
         parent::__construct(
-            message: 'Threads is already running',
+            message: 'Concurrency is already running',
         );
     }
 }
