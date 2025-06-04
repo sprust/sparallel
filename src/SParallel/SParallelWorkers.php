@@ -109,12 +109,6 @@ class SParallelWorkers
         bool $getFirstSuccess = false,
         ?Context $context = null
     ): Generator {
-        if ($workersLimit < 1) {
-            $workersLimit = 100;
-        } else {
-            $workersLimit = min($workersLimit, 100);
-        }
-
         $this->logger->debug(
             sprintf(
                 "workers started [wLim: %d]",
@@ -142,7 +136,8 @@ class SParallelWorkers
             $waitGroup = $driver->run(
                 context: $context,
                 callbacks: $callbacks,
-                timeoutSeconds: $timeoutSeconds
+                timeoutSeconds: $timeoutSeconds,
+                workersLimit: $workersLimit
             );
 
             $brokeResult = null;

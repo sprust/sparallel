@@ -76,7 +76,7 @@ class SParallelWorkersTest extends TestCase
     /**
      * @throws ContextCheckerException
      */
-    //#[Test] // TODO
+    #[Test]
     #[DataProvider('allDriversDataProvider')]
     public function workersLimit(DriverInterface $driver): void
     {

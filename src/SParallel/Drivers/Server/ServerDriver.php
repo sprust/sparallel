@@ -26,12 +26,17 @@ readonly class ServerDriver implements DriverInterface
     ) {
     }
 
-    public function run(Context $context, array &$callbacks, int $timeoutSeconds): WaitGroupInterface
-    {
+    public function run(
+        Context $context,
+        array &$callbacks,
+        int $timeoutSeconds,
+        int $workersLimit
+    ): WaitGroupInterface {
         return new ServerWaitGroup(
             context: $context,
             callbacks: $callbacks,
             timeoutSeconds: $timeoutSeconds,
+            workersLimit: $workersLimit,
             rpcClient: $this->rpcClient,
             serverTaskTransport: $this->serverTaskTransport,
             taskResultTransport: $this->taskResultTransport,

@@ -30,7 +30,7 @@ class ServerWaitGroup implements WaitGroupInterface
     /**
      * @var array<string, ServerTask>
      */
-    private array $expectedTasks;
+    private array $tasks;
 
     /**
      * @param array<int|string, Closure> $callbacks
@@ -39,6 +39,7 @@ class ServerWaitGroup implements WaitGroupInterface
         private readonly Context $context,
         array &$callbacks,
         int $timeoutSeconds,
+        private readonly int $workersLimit,
         private readonly WorkersRpcClient $rpcClient,
         private readonly ServerTaskTransport $serverTaskTransport,
         private readonly TaskResultTransport $taskResultTransport,
@@ -47,14 +48,14 @@ class ServerWaitGroup implements WaitGroupInterface
     ) {
         $this->groupUuid = $this->makeUuid();
 
-        $this->expectedTasks = [];
+        $this->tasks = [];
 
         $this->unixTimeout = time() + $timeoutSeconds;
 
         $taskKeys = array_keys($callbacks);
 
         foreach ($taskKeys as $taskKey) {
-            $this->expectedTasks[$this->makeUuid()] = new ServerTask(
+            $this->tasks[$this->makeUuid()] = new ServerTask(
                 context: $this->context,
                 key: $taskKey,
                 callback: $callbacks[$taskKey]
@@ -66,34 +67,56 @@ class ServerWaitGroup implements WaitGroupInterface
 
     public function get(): Generator
     {
-        foreach ($this->expectedTasks as $taskUuid => $task) {
+        $workingTasksCount = 0;
+
+        $freeTasks = $this->tasks;
+
+        $expectedTasksCount = count($this->tasks);
+
+        $workersLimit = ($this->workersLimit <= 0 || $this->workersLimit > $expectedTasksCount)
+            ? $expectedTasksCount
+            : $this->workersLimit;
+
+        $groupUuid = $this->groupUuid;
+
+        while (count($this->tasks) > 0) {
             $this->context->check();
 
-            try {
-                $this->rpcClient->addTask(
-                    groupUuid: $this->groupUuid,
-                    taskUuid: $taskUuid,
-                    payload: $this->serverTaskTransport->serialize($task),
-                    unixTimeout: $this->unixTimeout
-                );
-            } catch (Throwable $exception) {
-                $this->eventsBus->onServerGone(
-                    context: $this->context,
-                    exception: new RpcCallException($exception)
-                );
+            foreach ($freeTasks as $taskUuid => $task) {
+                if (($workersLimit - $workingTasksCount) <= 0) {
+                    break;
+                }
 
-                foreach ($this->initSyncWaitGroup()->get() as $taskResult) {
-                    yield $taskResult;
+                $this->context->check();
+
+                try {
+                    $this->rpcClient->addTask(
+                        groupUuid: $groupUuid,
+                        taskUuid: $taskUuid,
+                        payload: $this->serverTaskTransport->serialize($task),
+                        unixTimeout: $this->unixTimeout
+                    );
+
+                    unset($freeTasks[$taskUuid]);
+
+                    ++$workingTasksCount;
+                } catch (Throwable $exception) {
+                    $this->eventsBus->onServerGone(
+                        context: $this->context,
+                        exception: new RpcCallException($exception)
+                    );
+
+                    foreach ($this->initSyncWaitGroup()->get() as $taskResult) {
+                        yield $taskResult;
+                    }
+
+                    return;
                 }
             }
-        }
-
-        while (count($this->expectedTasks) > 0) {
-            $this->context->check();
 
             try {
                 $finishedTask = $this->rpcClient->detectAnyFinishedTask(
-                    groupUuid: $this->groupUuid
+                    groupUuid: $groupUuid
                 );
             } catch (Throwable $exception) {
                 $this->eventsBus->onServerGone(
@@ -105,16 +128,18 @@ class ServerWaitGroup implements WaitGroupInterface
                     yield $taskResult;
                 }
 
-                break;
+                return;
             }
 
             if (!$finishedTask->isFinished) {
                 continue;
             }
 
-            if (!array_key_exists($finishedTask->taskUuid, $this->expectedTasks)) {
+            $finishedTaskUuid = $finishedTask->taskUuid;
+
+            if (!array_key_exists($finishedTaskUuid, $this->tasks)) {
                 throw new UnexpectedServerTaskException(
-                    $finishedTask->taskUuid
+                    $finishedTaskUuid
                 );
             }
 
@@ -125,21 +150,23 @@ class ServerWaitGroup implements WaitGroupInterface
                     );
                 } catch (Throwable $exception) {
                     $result = new TaskResult(
-                        taskKey: $this->expectedTasks[$finishedTask->taskUuid]->key,
+                        taskKey: $this->tasks[$finishedTaskUuid]->key,
                         exception: $exception,
                         result: $finishedTask->response
                     );
                 }
             } else {
                 $result = new TaskResult(
-                    taskKey: $this->expectedTasks[$finishedTask->taskUuid]->key,
+                    taskKey: $this->tasks[$finishedTaskUuid]->key,
                     exception: new RuntimeException(
                         message: trim($finishedTask->response)
                     )
                 );
             }
 
-            unset($this->expectedTasks[$finishedTask->taskUuid]);
+            unset($this->tasks[$finishedTaskUuid]);
+
+            --$workingTasksCount;
 
             yield $result;
         }
@@ -147,7 +174,7 @@ class ServerWaitGroup implements WaitGroupInterface
 
     public function cancel(): void
     {
-        $this->expectedTasks = [];
+        $this->tasks = [];
 
         try {
             $this->rpcClient->cancelGroup(
@@ -181,12 +208,12 @@ class ServerWaitGroup implements WaitGroupInterface
     {
         $callbacks = [];
 
-        foreach (array_keys($this->expectedTasks) as $taskKey) {
-            $expectedTask = $this->expectedTasks[$taskKey];
+        foreach (array_keys($this->tasks) as $taskKey) {
+            $expectedTask = $this->tasks[$taskKey];
 
             $callbacks[$expectedTask->key] = $expectedTask->callback;
 
-            unset($this->expectedTasks[$taskKey]);
+            unset($this->tasks[$taskKey]);
         }
 
         return new SyncWaitGroup(

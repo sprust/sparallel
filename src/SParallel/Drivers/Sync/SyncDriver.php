@@ -20,8 +20,12 @@ readonly class SyncDriver implements DriverInterface
     ) {
     }
 
-    public function run(Context $context, array &$callbacks, int $timeoutSeconds): WaitGroupInterface
-    {
+    public function run(
+        Context $context,
+        array &$callbacks,
+        int $timeoutSeconds,
+        int $workersLimit,
+    ): WaitGroupInterface {
         return new SyncWaitGroup(
             context: $context,
             callbacks: $callbacks,

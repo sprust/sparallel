@@ -15,5 +15,10 @@ interface DriverInterface
      *
      * @throws ContextCheckerException
      */
-    public function run(Context $context, array &$callbacks, int $timeoutSeconds): WaitGroupInterface;
+    public function run(
+        Context $context,
+        array &$callbacks,
+        int $timeoutSeconds,
+        int $workersLimit,
+    ): WaitGroupInterface;
 }
