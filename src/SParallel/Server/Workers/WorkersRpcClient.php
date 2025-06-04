@@ -16,13 +16,23 @@ readonly class WorkersRpcClient
     /**
      * @throws Throwable
      */
+    public function reload(): void
+    {
+        $this->rpcClient->call('WorkersServer.Reload', [
+            'Message' => 'reload, please.',
+        ]);
+    }
+
+    /**
+     * @throws Throwable
+     */
     public function addTask(
         string $groupUuid,
         string $taskUuid,
         string $payload,
         int $unixTimeout
     ): void {
-        $this->rpcClient->call("WorkersServer.AddTask", [
+        $this->rpcClient->call('WorkersServer.AddTask', [
             'GroupUuid'   => $groupUuid,
             'TaskUuid'    => $taskUuid,
             'UnixTimeout' => $unixTimeout,
@@ -53,7 +63,7 @@ readonly class WorkersRpcClient
      */
     public function cancelGroup(string $groupUuid): void
     {
-        $this->rpcClient->call("WorkersServer.CancelGroup", [
+        $this->rpcClient->call('WorkersServer.CancelGroup', [
             'GroupUuid' => $groupUuid,
         ]);
     }
