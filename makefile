@@ -22,26 +22,9 @@ bash-server:
 composer:
 	"$(PHP_CLI)" composer ${c}
 
-test:
-	"$(PHP_CLI)" ./vendor/bin/phpunit \
-		-d memory_limit=512M \
-		--colors=auto \
-		--testdox \
-  		--display-incomplete \
-  		--display-skipped \
-  		--display-deprecations \
-  		--display-phpunit-deprecations \
-  		--display-errors \
-  		--display-notices \
-  		--display-warnings \
-		tests ${c}
-
 phpstan:
 	"$(PHP_CLI)" ./vendor/bin/phpstan analyse \
 		--memory-limit=1G
-
-benchmark:
-	"$(PHP_CLI)" php tests/benchmark.php
 
 check:
 	make phpstan
@@ -56,3 +39,26 @@ htop-workers:
 
 serv-stats:
 	"$(SERVER_CLI)" go run ./cmd/server/main.go stats
+
+test:
+	"$(PHP_CLI)" ./vendor/bin/phpunit \
+		-d memory_limit=512M \
+		--colors=auto \
+		--testdox \
+  		--display-incomplete \
+  		--display-skipped \
+  		--display-deprecations \
+  		--display-phpunit-deprecations \
+  		--display-errors \
+  		--display-notices \
+  		--display-warnings \
+		tests ${c}
+
+test-benchmark:
+	"$(PHP_CLI)" php tests/benchmark.php
+
+test-workers-reload:
+	"$(PHP_CLI)" php tests/test-workers-stop.php
+
+test-workers-stop:
+	"$(PHP_CLI)" php tests/test-workers-stop.php
