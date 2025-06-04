@@ -11,11 +11,19 @@ $stop = false;
 pcntl_signal(SIGTERM, function () use (&$stop) {
     $stop = true;
 
-    echo "received SIGTERM. Exit...\n";
+    echo time() . ": received SIGTERM. Exit...\n";
 });
 
-while (!$stop) {
-    echo 'ping: ' . time() . PHP_EOL;
+$echoAt = time();
 
-    sleep(10);
+while (!$stop) {
+    if (time() - $echoAt > 10) {
+        echo time() . ': ping' . PHP_EOL;
+
+        $echoAt = time();
+    }
+
+    sleep(1);
 }
+
+echo time() . ': exit' . PHP_EOL;
