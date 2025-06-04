@@ -6,7 +6,7 @@ namespace SParallel\Exceptions;
 
 use RuntimeException;
 
-class ThreadResponseException extends RuntimeException
+class ConcurrencyResponseException extends RuntimeException
 {
 
 }
