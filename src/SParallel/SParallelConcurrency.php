@@ -18,6 +18,8 @@ use SParallel\Implementation\Timer;
 use SParallel\Objects\ConcurrencyResult;
 use Throwable;
 
+// TODO: not completed
+
 class SParallelConcurrency
 {
     protected static bool $running = false;
