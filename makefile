@@ -29,7 +29,7 @@ phpstan:
 check:
 	make phpstan
 	make test
-	make benchmark
+	make test-benchmark
 
 run-server:
 	go run ./cmd/server/main.go ${c}

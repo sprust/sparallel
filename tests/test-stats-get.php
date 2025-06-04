@@ -13,6 +13,7 @@ $start = microtime(true);
 
 $totalTime   = microtime(true) - $start;
 
+/** @phpstan-ignore-next-line while.alwaysTrue */
 while (true) {
     try {
         $json = $rpc->get();

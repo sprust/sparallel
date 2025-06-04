@@ -88,7 +88,7 @@ foreach ($driverClasses as $driverClass) {
                 microtime(true),
                 $result->taskKey,
                 $counter,
-                $result->error->message,
+                substr($result->error->message, 0, 50),
             );
 
             continue;
