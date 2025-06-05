@@ -31,14 +31,8 @@ check:
 	make test
 	make test-benchmark
 
-run-server:
-	go run ./cmd/server/main.go ${c}
-
 htop-workers:
 	htop -t --filter=server-process-handler.php
-
-serv-stats:
-	"$(SERVER_CLI)" go run ./cmd/server/main.go stats
 
 test:
 	"$(PHP_CLI)" ./vendor/bin/phpunit \
