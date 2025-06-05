@@ -1,11 +1,54 @@
 services:
   php:
     container_name: sp-php
-    restart: unless-stopped
+    restart: on-failure
     build:
       context: ./docker/php
+      target: php
+      args:
+        - GROUP_ID=${DOCKER_GROUP_ID}
+        - USER_ID=${DOCKER_USER_ID}
     working_dir: /sparallel
     volumes:
       - ./:/sparallel
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    command: [ "php", "/sparallel/docker/php/docker-php-stub.php" ]
+
+  server:
+    container_name: sp-server
+    restart: on-failure
+    build:
+      context: ./docker/php
+      target: golang
+      args:
+        - GROUP_ID=${DOCKER_GROUP_ID}
+        - USER_ID=${DOCKER_USER_ID}
+    working_dir: /sparallel/libs/server
+    volumes:
+      - ./:/sparallel
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "18077:18077"
+    command: [ "air", "-c", ".server.air.toml" ]
+
+  mongodb:
+    container_name: sp-mongodb
+    image: mongo:8.0.5
+    restart: unless-stopped
+    command: [ "mongod", "--wiredTigerCacheSizeGB", "5" ]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ADMIN_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD}
+      MONGO_ADMIN_USERNAME: ${MONGO_ADMIN_USERNAME}
+      MONGO_ADMIN_PASSWORD: ${MONGO_ADMIN_PASSWORD}
+    ports:
+      - ${MONGO_DOCKER_PORT}:${MONGO_PORT}
+    volumes:
+      - ./docker/mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - mongodb:/data/db
+
+volumes:
+  mongodb:
+    driver: local

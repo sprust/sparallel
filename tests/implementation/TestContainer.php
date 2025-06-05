@@ -5,25 +5,24 @@ declare(strict_types=1);
 namespace SParallel\TestsImplementation;
 
 use Closure;
+use Dotenv\Dotenv;
 use Psr\Container\ContainerInterface;
-use Psr\Log\LoggerInterface;
 use ReflectionClass;
 use ReflectionException;
 use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\FlowInterface;
-use SParallel\Contracts\FlowTypeResolverInterface;
-use SParallel\Contracts\ForkStarterInterface;
-use SParallel\Contracts\HybridProcessCommandResolverInterface;
-use SParallel\Contracts\ProcessCommandResolverInterface;
+use SParallel\Contracts\MongodbConnectionUriFactoryInterface;
+use SParallel\Contracts\RpcClientInterface;
 use SParallel\Contracts\SerializerInterface;
-use SParallel\Flows\ASync\ASyncFlow;
-use SParallel\Flows\DriverFactory;
-use SParallel\Services\Callback\CallbackCaller;
-use SParallel\Services\Socket\SocketService;
-use SParallel\Transport\OpisSerializer;
+use SParallel\Contracts\SParallelLoggerInterface;
+use SParallel\Drivers\DriverFactory;
+use SParallel\Implementation\CallbackCaller;
+use SParallel\Implementation\OpisSerializer;
+use SParallel\Implementation\RpcClient;
+use Spiral\Goridge\Relay;
+use Spiral\Goridge\RPC\RPC;
 
 class TestContainer implements ContainerInterface
 {
@@ -51,23 +50,22 @@ class TestContainer implements ContainerInterface
 
     private function __construct()
     {
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../', '.env');
+        $dotenv->load();
+
         $this->resolvers = [
             ContainerInterface::class => fn() => $this,
 
-            SerializerInterface::class                   => fn() => $this->get(OpisSerializer::class),
-            CallbackCallerInterface::class               => fn() => $this->get(CallbackCaller::class),
-            EventsBusInterface::class                    => fn() => $this->get(TestEventsBus::class),
-            ForkStarterInterface::class                  => fn() => $this->get(TestForkStarter::class),
-            DriverFactoryInterface::class                => fn() => $this->get(DriverFactory::class),
-            FlowInterface::class                         => fn() => $this->get(ASyncFlow::class),
-            LoggerInterface::class                       => fn() => $this->get(TestLogger::class),
-            ProcessCommandResolverInterface::class       => fn() => $this->get(TestProcessCommandResolver::class),
-            HybridProcessCommandResolverInterface::class => fn() => $this->get(TestHybridProcessCommandResolver::class),
-            FlowTypeResolverInterface::class             => fn() => $this->get(TestFlowTypeResolver::class),
+            SerializerInterface::class      => fn() => $this->get(OpisSerializer::class),
+            CallbackCallerInterface::class  => fn() => $this->get(CallbackCaller::class),
+            EventsBusInterface::class       => fn() => $this->get(TestEventsBus::class),
+            DriverFactoryInterface::class   => fn() => $this->get(DriverFactory::class),
+            SParallelLoggerInterface::class => fn() => $this->get(TestLogger::class),
 
-            SocketService::class => fn() => new SocketService(
-                socketPathDirectory: __DIR__ . '/../storage/sockets',
-            ),
+            RPC::class => fn() => new RPC(Relay::create("tcp://$_ENV[SERVER_HOST]:$_ENV[SERVER_PORT]")),
+
+            RpcClientInterface::class                   => fn() => $this->get(RpcClient::class),
+            MongodbConnectionUriFactoryInterface::class => fn() => $this->get(TestMongodbConnectionUriFactory::class),
         ];
     }
 

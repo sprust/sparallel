@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace SParallel\TestsImplementation;
 
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Services\Context;
+use SParallel\Entities\Context;
+use SParallel\Exceptions\RpcCallException;
 use Throwable;
 
 class TestEventsBus implements EventsBusInterface
 {
     public function __construct(
-        protected TestProcessesRepository $processesRepository,
         protected TestEventsRepository $eventsRepository,
     ) {
     }
@@ -46,13 +46,8 @@ class TestEventsBus implements EventsBusInterface
         $this->eventsRepository->add(__FUNCTION__);
     }
 
-    public function processCreated(int $pid): void
+    public function onServerGone(Context $context, RpcCallException $exception): void
     {
-        $this->processesRepository->add($pid);
-    }
-
-    public function processFinished(int $pid): void
-    {
-        $this->processesRepository->deleteByPid($pid);
+        $this->eventsRepository->add(__FUNCTION__);
     }
 }

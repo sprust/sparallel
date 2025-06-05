@@ -5,27 +5,20 @@ declare(strict_types=1);
 namespace SParallel\Contracts;
 
 use Closure;
-use SParallel\Entities\SocketServer;
-use SParallel\Services\Context;
+use SParallel\Entities\Context;
+use SParallel\Exceptions\ContextCheckerException;
 
 interface DriverInterface
 {
     /**
      * @param array<int|string, Closure> $callbacks
+     *
+     * @throws ContextCheckerException
      */
-    public function init(
+    public function run(
         Context $context,
-        array $callbacks,
+        array &$callbacks,
+        int $timeoutSeconds,
         int $workersLimit,
-        SocketServer $socketServer
-    ): void;
-
-    public function create(
-        Context $context,
-        SocketServer $socketServer,
-        int|string $key,
-        Closure $callback
-    ): TaskInterface;
-
-    public function break(Context $context): void;
+    ): WaitGroupInterface;
 }
