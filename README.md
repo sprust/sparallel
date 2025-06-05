@@ -5,7 +5,7 @@
 Init
 
 ```php
-$service = \SParallel\TestsImplementation\TestContainer::resolve()
+$workers = \SParallel\TestsImplementation\TestContainer::resolve()
     ->get(\SParallel\SParallelWorkers::class);
 
 $callbacks = [
@@ -26,11 +26,11 @@ Wait all tasks to finish and get results
 
 ```php
 /** 
- * @var \SParallel\SParallelWorkers $service 
+ * @var \SParallel\SParallelWorkers $workers 
  * @var array<string, Closure> $callbacks 
  */
 
-$results = $service->wait(
+$results = $workers->wait(
     callbacks: $callbacks,
     timeoutSeconds: 2,
 );
@@ -54,11 +54,11 @@ Run tasks and get results at any task completion
 
 ```php
 /** 
- * @var \SParallel\SParallelWorkers $service 
+ * @var \SParallel\SParallelWorkers $workers 
  * @var array<string, Closure> $callbacks 
  */
 
-$results = $service->run(
+$results = $workers->run(
     callbacks: $callbacks,
     timeoutSeconds: 2,
 );
