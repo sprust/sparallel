@@ -13,7 +13,6 @@ use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\MongodbConnectionUriFactoryInterface;
 use SParallel\Contracts\RpcClientInterface;
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Contracts\SParallelLoggerInterface;
@@ -64,8 +63,7 @@ class TestContainer implements ContainerInterface
 
             RPC::class => fn() => new RPC(Relay::create("tcp://$_ENV[SERVER_HOST]:$_ENV[SERVER_PORT]")),
 
-            RpcClientInterface::class                   => fn() => $this->get(RpcClient::class),
-            MongodbConnectionUriFactoryInterface::class => fn() => $this->get(TestMongodbConnectionUriFactory::class),
+            RpcClientInterface::class => fn() => $this->get(RpcClient::class),
         ];
     }
 

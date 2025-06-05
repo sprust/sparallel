@@ -61,7 +61,7 @@ test-stats-get:
 	"$(PHP_CLI)" php tests/test-stats-get.php
 
 test-workers-reload:
-	"$(PHP_CLI)" php tests/test-workers-stop.php
+	"$(PHP_CLI)" php tests/test-workers-reload.php
 
 test-workers-stop:
 	"$(PHP_CLI)" php tests/test-workers-stop.php

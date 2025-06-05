@@ -8,14 +8,10 @@ RUN apt update && apt install -y \
     wget \
     git \
     gcc \
-    make \
-    libcurl4-openssl-dev \
-    pkg-config \
-    libssl-dev \
-    procps
+    make
 
 # PHP
-RUN pecl install zip mongodb-1.21.0 pcntl && docker-php-ext-enable zip mongodb
+RUN pecl install zip pcntl && docker-php-ext-enable zip
 
 RUN docker-php-ext-install sockets pcntl && docker-php-ext-enable sockets
 
