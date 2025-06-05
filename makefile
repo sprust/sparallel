@@ -34,6 +34,9 @@ check:
 htop-workers:
 	htop -t --filter=server-process-handler.php
 
+zombies:
+	top -b n1 | grep 'Z'
+
 test:
 	"$(PHP_CLI)" ./vendor/bin/phpunit \
 		-d memory_limit=512M \
