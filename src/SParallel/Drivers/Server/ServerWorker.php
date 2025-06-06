@@ -4,33 +4,39 @@ declare(strict_types=1);
 
 namespace SParallel\Drivers\Server;
 
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
+use SParallel\Contracts\ContainerFactoryInterface;
 use SParallel\Contracts\EventsBusInterface;
-use SParallel\Contracts\SParallelLoggerInterface;
 use SParallel\Transport\ServerTaskTransport;
 use SParallel\Transport\TaskResultTransport;
 use Throwable;
 
-readonly class ServerWorker
+class ServerWorker
 {
-    private int $lenOfHeaderLen;
+    private readonly int $lenOfHeaderLen;
 
-    public function __construct(
-        protected EventsBusInterface $eventsBus,
-        protected ServerTaskTransport $serverTaskTransport,
-        protected CallbackCallerInterface $callbackCaller,
-        protected TaskResultTransport $taskResultTransport,
-        protected SParallelLoggerInterface $logger,
-    ) {
+    private ?ContainerInterface $container;
+    private ?TaskResultTransport $taskResultTransport;
+    private ?EventsBusInterface $eventsBus;
+    private ?ServerTaskTransport $serverTaskTransport;
+    private ?CallbackCallerInterface $callbackCaller;
+
+    public function __construct()
+    {
         $this->lenOfHeaderLen = 20;
     }
 
-    public function serve(): never
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    public function serve(ContainerFactoryInterface $containerFactory): never
     {
         $myPid = getmypid();
-
-        $this->logger->debug("Server worker [$myPid] started");
 
         /** @phpstan-ignore-next-line - while.alwaysTrue */
         while (true) {
@@ -42,6 +48,8 @@ readonly class ServerWorker
                 continue;
             }
 
+            $this->onStartingTask($containerFactory);
+
             if (!is_numeric($readPayloadLen)) {
                 $serializedResult = $this->taskResultTransport->serialize(
                     taskKey: uniqid('task-unexpected-length:'),
@@ -51,6 +59,9 @@ readonly class ServerWorker
                 );
 
                 $this->writeResult($serializedResult);
+
+                unset($serializedResult);
+                $this->onFinishedTask();
 
                 continue;
             }
@@ -73,8 +84,6 @@ readonly class ServerWorker
                 $payloadLen = strlen($payload);
             }
 
-            $this->logger->debug("Server worker [$myPid] got data with length [$readPayloadLen]");
-
             try {
                 $task = $this->serverTaskTransport->unserialize($payload);
             } catch (Throwable $exception) {
@@ -86,7 +95,8 @@ readonly class ServerWorker
                 $this->writeResult($serializedResult);
 
                 unset($serializedResult);
-                
+                $this->onFinishedTask();
+
                 continue;
             }
 
@@ -126,7 +136,32 @@ readonly class ServerWorker
             $this->writeResult($serializedResult);
 
             unset($serializedResult);
+            $this->onFinishedTask();
         }
+    }
+
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    private function onStartingTask(ContainerFactoryInterface $containerFactory): void
+    {
+        $this->container = $containerFactory->create();
+
+        $this->taskResultTransport = $this->container->get(TaskResultTransport::class);
+        $this->eventsBus           = $this->container->get(EventsBusInterface::class);
+        $this->serverTaskTransport = $this->container->get(ServerTaskTransport::class);
+        $this->callbackCaller      = $this->container->get(CallbackCallerInterface::class);
+    }
+
+    private function onFinishedTask(): void
+    {
+        $this->taskResultTransport = null;
+        $this->eventsBus           = null;
+        $this->serverTaskTransport = null;
+        $this->callbackCaller      = null;
+
+        $this->container = null;
     }
 
     private function writeResult(string $serializedResult): void

@@ -11,6 +11,7 @@ use ReflectionClass;
 use ReflectionException;
 use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
+use SParallel\Contracts\ContainerFactoryInterface;
 use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Contracts\EventsBusInterface;
 use SParallel\Contracts\RpcClientInterface;
@@ -55,11 +56,12 @@ class TestContainer implements ContainerInterface
         $this->resolvers = [
             ContainerInterface::class => fn() => $this,
 
-            SerializerInterface::class      => fn() => $this->get(OpisSerializer::class),
-            CallbackCallerInterface::class  => fn() => $this->get(CallbackCaller::class),
-            EventsBusInterface::class       => fn() => $this->get(TestEventsBus::class),
-            DriverFactoryInterface::class   => fn() => $this->get(DriverFactory::class),
-            SParallelLoggerInterface::class => fn() => $this->get(TestLogger::class),
+            SerializerInterface::class       => fn() => $this->get(OpisSerializer::class),
+            CallbackCallerInterface::class   => fn() => $this->get(CallbackCaller::class),
+            EventsBusInterface::class        => fn() => $this->get(TestEventsBus::class),
+            DriverFactoryInterface::class    => fn() => $this->get(DriverFactory::class),
+            SParallelLoggerInterface::class  => fn() => $this->get(TestLogger::class),
+            ContainerFactoryInterface::class => fn() => $this->get(TestContainerFactory::class),
 
             RPC::class => fn() => new RPC(Relay::create("tcp://$_ENV[SERVER_HOST]:$_ENV[SERVER_PORT]")),
 
