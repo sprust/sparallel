@@ -43,6 +43,7 @@ trait SParallelWorkersTestCasesTrait
         );
 
         self::assertEquals('first', $resultsArray['first']->result);
+        self::assertEquals('second', $resultsArray['second']->result);
     }
 
     /**
@@ -292,5 +293,48 @@ trait SParallelWorkersTestCasesTrait
         self::assertTrue($results->hasFailed());
         self::assertTrue($results->count() === 2);
         self::assertTrue(count($results->getFailed()) === 1);
+    }
+
+    /**
+     * @throws ContextCheckerException
+     */
+    protected function onEchoAndDump(SParallelWorkers $workers): void
+    {
+        $callbacks = [
+            'first'  => static function () {
+                echo 'first';
+
+                return 'first';
+            },
+            'second' => static function () {
+                dump('second');
+
+                return 'second';
+            },
+        ];
+
+        $results = $workers->wait(
+            callbacks: $callbacks,
+            timeoutSeconds: 1
+        );
+
+        self::assertTrue($results->isFinished());
+        self::assertFalse($results->hasFailed());
+        self::assertEquals(2, $results->count());
+
+        $resultsArray = $results->getResults();
+
+        self::assertArrayHasKey(
+            'first',
+            $resultsArray
+        );
+
+        self::assertArrayHasKey(
+            'second',
+            $resultsArray
+        );
+
+        self::assertEquals('first', $resultsArray['first']->result);
+        self::assertEquals('second', $resultsArray['second']->result);
     }
 }

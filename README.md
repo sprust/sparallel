@@ -1,5 +1,7 @@
 # Parallel PHP via processes (another)
 
+<summary>⚠️ Dont use STDOUT inside workers</summary>
+
 ## example ##
 
 Init

@@ -146,6 +146,18 @@ class SParallelWorkersTest extends TestCase
      * @throws ContextCheckerException
      */
     #[Test]
+    #[DataProvider('asyncDriversDataProvider')]
+    public function echoAndDump(DriverInterface $driver): void
+    {
+        $this->onEchoAndDump(
+            workers: $this->makeWorkersByDriver($driver),
+        );
+    }
+
+    /**
+     * @throws ContextCheckerException
+     */
+    #[Test]
     #[DataProvider('allDriversDataProvider')]
     public function eventsSuccess(DriverInterface $driver): void
     {

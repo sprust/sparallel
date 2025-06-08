@@ -11,6 +11,7 @@ use RuntimeException;
 use SParallel\Contracts\CallbackCallerInterface;
 use SParallel\Contracts\ContainerFactoryInterface;
 use SParallel\Contracts\EventsBusInterface;
+use SParallel\Output\OutputControl;
 use SParallel\Transport\ServerTaskTransport;
 use SParallel\Transport\TaskResultTransport;
 use Throwable;
@@ -47,6 +48,8 @@ class ServerWorker
 
                 continue;
             }
+
+            OutputControl::disable();
 
             $this->onStartingTask($containerFactory);
 
@@ -167,6 +170,8 @@ class ServerWorker
     private function writeResult(string $serializedResult): void
     {
         $lengthHeader = sprintf("%0{$this->lenOfHeaderLen}d", mb_strlen($serializedResult));
+
+        OutputControl::enable();
 
         fflush(STDOUT);
         fwrite(STDOUT, $lengthHeader . $serializedResult);
