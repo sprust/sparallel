@@ -1,6 +1,7 @@
 # Parallel PHP via processes (another)
 
-<summary>⚠️ Dont use STDOUT inside workers</summary>
+<summary>⚠️ Don't use a writing to STDOUT inside workers</summary>
+<summary>⚠️ VarDumper is muted inside workers</summary>
 
 ## example ##
 
