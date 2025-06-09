@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SParallel\TestCases;
 
+use Exception;
 use RuntimeException;
 use SParallel\Exceptions\ContextCheckerException;
 use SParallel\SParallelWorkers;
@@ -57,7 +58,7 @@ trait SParallelWorkersTestCasesTrait
 
                 return 'first';
             },
-            'second' => static fn() => throw new RuntimeException('second'),
+            'second' => static fn() => throw new Exception('second'),
         ];
 
         $result = $workers->waitFirst(
@@ -67,7 +68,7 @@ trait SParallelWorkersTestCasesTrait
         );
 
         self::assertTrue(
-            is_null($result->error)
+            is_null($result->exception)
         );
 
         self::assertEquals(
@@ -82,7 +83,7 @@ trait SParallelWorkersTestCasesTrait
     protected function onWaitFirstNotOnlySuccess(SParallelWorkers $workers): void
     {
         $callbacks = [
-            'second' => static fn() => throw new RuntimeException('second'),
+            'second' => static fn() => throw new Exception('second'),
             'first'  => static function () {
                 sleep(1);
 
@@ -97,12 +98,12 @@ trait SParallelWorkersTestCasesTrait
         );
 
         self::assertFalse(
-            is_null($result->error)
+            is_null($result->exception)
         );
 
         self::assertEquals(
             'second',
-            $result->error->message
+            $result->exception->getMessage()
         );
     }
 
@@ -146,7 +147,10 @@ trait SParallelWorkersTestCasesTrait
 
         $callbacks = [
             'first'  => static fn() => 'first',
-            'second' => static fn() => throw new RuntimeException($exceptionMessage),
+            'second' => static fn() => throw new Exception(
+                message: $exceptionMessage,
+                previous: new RuntimeException(),
+            ),
         ];
 
         $results = $workers->wait(
@@ -172,13 +176,13 @@ trait SParallelWorkersTestCasesTrait
         );
 
         self::assertEquals('first', $resultsArray['first']->result);
-        self::assertTrue(is_null($resultsArray['first']->error));
+        self::assertTrue(is_null($resultsArray['first']->exception));
 
-        $resultErrorObject = $resultsArray['second']->error;
+        $resultErrorObject = $resultsArray['second']->exception;
 
         self::assertFalse(is_null($resultErrorObject));
-        self::assertEquals(RuntimeException::class, $resultErrorObject->exceptionClass);
-        self::assertEquals($exceptionMessage, $resultErrorObject->message);
+        self::assertEquals(Exception::class, $resultErrorObject::class);
+        self::assertEquals($exceptionMessage, $resultErrorObject->getMessage());
 
         $failedResultsArray = $results->getFailed();
 
@@ -194,11 +198,11 @@ trait SParallelWorkersTestCasesTrait
             $failedResultsArray
         );
 
-        $resultErrorObject = $failedResultsArray['second']->error;
+        $resultErrorObject = $failedResultsArray['second']->exception;
 
         self::assertFalse(is_null($resultErrorObject));
-        self::assertEquals(RuntimeException::class, $resultErrorObject->exceptionClass);
-        self::assertEquals($exceptionMessage, $resultErrorObject->message);
+        self::assertEquals(Exception::class, $resultErrorObject::class);
+        self::assertEquals($exceptionMessage, $resultErrorObject->getMessage());
     }
 
     protected function onTimeout(SParallelWorkers $workers): void
@@ -232,7 +236,7 @@ trait SParallelWorkersTestCasesTrait
     {
         $callbacks = [
             'first'  => static fn() => 'first',
-            'second' => static fn() => throw new RuntimeException(),
+            'second' => static fn() => throw new Exception(),
             'third'  => static fn() => sleep(2),
         ];
 

@@ -22,7 +22,7 @@ class TaskResults
     {
         $this->results[$result->taskKey] = $result;
 
-        if (!is_null($result->error)) {
+        if (!is_null($result->exception)) {
             $this->failed[$result->taskKey] = $result;
 
             $this->hasFailed = true;

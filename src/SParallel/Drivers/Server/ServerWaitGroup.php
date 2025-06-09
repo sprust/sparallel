@@ -143,7 +143,7 @@ class ServerWaitGroup implements WaitGroupInterface
                 );
             }
 
-            if ($this->isSerializedString($finishedTask->response)) {
+            if ($this->isEncodedJson($finishedTask->response)) {
                 try {
                     $result = $this->taskResultTransport->unserialize(
                         data: $finishedTask->response
@@ -193,15 +193,11 @@ class ServerWaitGroup implements WaitGroupInterface
         return uniqid(more_entropy: true);
     }
 
-    private function isSerializedString(string $data): bool
+    private function isEncodedJson(string $data): bool
     {
-        $pattern = '/^((s|i|d|b|a|O|C):|N;)/';
+        json_decode($data);
 
-        if (!preg_match($pattern, $data)) {
-            return false;
-        }
-
-        return true;
+        return json_last_error() === JSON_ERROR_NONE;
     }
 
     private function initSyncWaitGroup(): SyncWaitGroup

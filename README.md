@@ -40,12 +40,12 @@ $results = $workers->wait(
 
 if ($results->hasFailed()) {
     foreach ($results->getFailed() as $key => $failedResult) {
-        echo "$taskKey: ERROR: " . ($failedResult->error?->message ?: 'unknown error') . "\n";
+        echo "$taskKey: ERROR: " . ($failedResult->exception?->getMessage() ?: 'unknown error') . "\n";
     }
 }
 
 foreach ($results->getResults() as $result) {
-    if ($result->error) {
+    if ($result->exception) {
         continue;
     }
 
@@ -67,8 +67,8 @@ $results = $workers->run(
 );
 
 foreach ($results as $taskKey => $result) {
-    if ($result->error) {
-        echo "$taskKey: ERROR: " . ($result->error->message ?: 'unknown error') . "\n";
+    if ($result->exception) {
+        echo "$taskKey: ERROR: " . ($result->exception->getMessage() ?: 'unknown error') . "\n";
         
         continue;
     }

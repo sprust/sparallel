@@ -146,7 +146,7 @@ class SParallelWorkers
                 $context->check();
 
                 if ($getFirstAny || $getFirstSuccess) {
-                    if ($getFirstSuccess && $result->error) {
+                    if ($getFirstSuccess && $result->exception) {
                         continue;
                     }
 
@@ -157,7 +157,7 @@ class SParallelWorkers
                     break;
                 }
 
-                if ($breakAtFirstError && $result->error) {
+                if ($breakAtFirstError && $result->exception) {
                     $waitGroup->cancel();
 
                     $brokeResult = $result;

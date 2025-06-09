@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace SParallel\TestCases;
 
 use Closure;
+use Exception;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
-use RuntimeException;
 use SParallel\Contracts\DriverFactoryInterface;
 use SParallel\Contracts\DriverInterface;
+use SParallel\Exceptions\ContextCheckerException;
 use SParallel\SParallelWorkers;
 
 readonly class Benchmark
@@ -30,6 +31,7 @@ readonly class Benchmark
      *
      * @throws NotFoundExceptionInterface
      * @throws ContainerExceptionInterface
+     * @throws ContextCheckerException
      */
     public function start(
         ContainerInterface $container,
@@ -74,6 +76,7 @@ readonly class Benchmark
                 $container->get($driverClass),
             );
 
+            /** @var SParallelWorkers $workers */
             $workers = $container->get(SParallelWorkers::class);
 
             memory_reset_peak_usage();
@@ -89,13 +92,13 @@ readonly class Benchmark
             foreach ($generator as $result) {
                 ++$counter;
 
-                if ($result->error) {
+                if ($result->exception) {
                     echo sprintf(
                         "%f\t%s\tERROR\t%s\t%s\n",
                         microtime(true),
                         $result->taskKey,
                         $counter,
-                        substr($result->error->message, 0, 50),
+                        substr($result->exception->getMessage(), 0, 50),
                     );
 
                     continue;
@@ -220,7 +223,7 @@ readonly class Benchmark
         $result = [];
 
         while ($count--) {
-            $result['except' . '-' . $count] = static fn() => throw new RuntimeException(
+            $result['except' . '-' . $count] = static fn() => throw new Exception(
                 "$count: exception: " . uniqid(more_entropy: true)
             );
         }

@@ -13,31 +13,42 @@ class TaskResultTransport
 {
     public function __construct(
         protected SerializerInterface $serializer,
+        protected ExceptionTransport $exceptionTransport,
     ) {
     }
 
     public function serialize(int|string $taskKey, ?Throwable $exception = null, mixed $result = null): string
     {
-        return $this->serializer->serialize(
-            new TaskResult(
-                taskKey: $taskKey,
-                exception: $exception,
-                result: $result,
-            )
-        );
+        return json_encode([
+            'taskKey'   => $taskKey,
+            'exception' => $exception ? $this->exceptionTransport->serialize($exception) : null,
+            'result'    => $this->serializer->serialize($result),
+        ]);
     }
 
     public function unserialize(string $data): TaskResult
     {
-        $response = $this->serializer->unserialize($data);
+        $response = json_decode($data, true);
 
-        if ($response instanceof TaskResult) {
-            return $response;
+        $isArray = is_array($response);
+
+        if ($isArray
+            && array_key_exists('taskKey', $response)
+            && array_key_exists('exception', $response)
+            && array_key_exists('result', $response)
+        ) {
+            return new TaskResult(
+                taskKey: $response['taskKey'],
+                exception: $response['exception']
+                    ? $this->exceptionTransport->unserialize($response['exception'])
+                    : null,
+                result: $this->serializer->unserialize($response['result']),
+            );
         }
 
         throw new UnserializeException(
-            expected: TaskResult::class,
-            got: gettype($response)
+            expected: 'array with keys "taskKey", "exception", "result"',
+            got: $isArray ? implode(', ', array_keys($response)) : gettype($response)
         );
     }
 }
