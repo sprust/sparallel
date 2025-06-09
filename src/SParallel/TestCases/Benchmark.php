@@ -43,7 +43,6 @@ readonly class Benchmark
             ...$this->makeCaseSleep(),
             ...$this->makeCaseMemoryLimit(),
             ...$this->makeCaseThrow(),
-
         ];
 
         $keys = array_keys($callbacks);
