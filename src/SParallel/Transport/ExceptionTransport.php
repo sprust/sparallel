@@ -10,6 +10,9 @@ use SParallel\Contracts\SerializerInterface;
 use SParallel\Exceptions\UnserializeException;
 use Throwable;
 
+/**
+ * TODO: check, optimize
+ */
 readonly class ExceptionTransport
 {
     public function __construct(protected SerializerInterface $serializer)
@@ -21,9 +24,27 @@ readonly class ExceptionTransport
     {
         $reflection = new ReflectionClass($exception);
 
-        $properties = [];
+        $properties = [
+            'class'    => $exception::class,
+            'message'  => $exception->getMessage(),
+            'code'     => $exception->getCode(),
+            'file'     => $exception->getFile(),
+            'line'     => $exception->getLine(),
+            'trace'    => $exception->getTrace(),
+            'previous' => $exception->getPrevious()
+                ? $this->serialize($exception->getPrevious())
+                : null,
+        ];
+
+        $customProperties = [];
 
         foreach ($reflection->getProperties() as $property) {
+            $name = $property->getName();
+
+            if (array_key_exists($name, $properties)) {
+                continue;
+            }
+
             $value = $property->getValue($exception);
 
             if ($value instanceof Throwable) {
@@ -31,16 +52,19 @@ readonly class ExceptionTransport
                     '#__exception' => $this->serialize($value),
                 ];
             } else {
-                $value = $this->serializer->serialize($value);
+                if (is_array($value) && $property->getName() === 'trace') {
+                    $value = json_encode($value);
+                } else {
+                    $value = $this->serializer->serialize($value);
+                }
             }
 
-            $properties[$property->getName()] = $value;
+            $customProperties[$property->getName()] = $value;
         }
 
-        return json_encode([
-            'class' => $exception::class,
-            '#__props' => $properties,
-        ]);
+        $properties['#__props'] = $customProperties;
+
+        return json_encode($properties);
     }
 
     public function unserialize(string $data): Throwable
@@ -49,15 +73,33 @@ readonly class ExceptionTransport
 
         $isArray = is_array($data);
 
-        if (!$isArray || !array_key_exists('class', $data) || !array_key_exists('#__props', $data)) {
-            throw new UnserializeException(
-                expected: 'array with keys "class", "#__props"',
-                got: $isArray ? implode(', ', array_keys($data)) : gettype($data)
-            );
+        if (!$isArray
+            || !array_key_exists('class', $data)
+            || !array_key_exists('message', $data)
+            || !array_key_exists('code', $data)
+            || !array_key_exists('file', $data)
+            || !array_key_exists('line', $data)
+            || !array_key_exists('trace', $data)
+            || !array_key_exists('previous', $data)
+            || !array_key_exists('#__props', $data)
+        ) {
+            if ($isArray) {
+                throw new UnserializeException(
+                    expected: 'undefined keys "class", "message", "code", "file", "line", "trace", "previous", "#__props"',
+                    got: implode(', ', array_keys($data))
+                );
+            } else {
+                throw new UnserializeException(
+                    expected: 'array',
+                    got: gettype($data)
+                );
+            }
         }
 
         try {
             $reflection = new ReflectionClass($data['class']);
+
+            unset($data['class']);
 
             $exception = $reflection->newInstanceWithoutConstructor();
 
@@ -73,6 +115,10 @@ readonly class ExceptionTransport
                 $properties[$property] = $value;
             }
 
+            unset($data['#__props']);
+
+            $properties = array_merge($properties, $data);
+
             $reflection = new ReflectionClass($exception);
 
             foreach ($reflection->getProperties() as $property) {
@@ -81,20 +127,29 @@ readonly class ExceptionTransport
                 }
 
                 if ($property->name === 'trace') {
-                    $value = array_map(function ($frame) {
-                        return [
-                            'file' => $frame['file'] ?? '',
-                            'line' => $frame['line'] ?? 0,
-                            'function' => $frame['function'] ?? '{main}',
-                            'class' => $frame['class'] ?? '',
-                            'type' => $frame['type'] ?? '',
-                            'args' => $frame['args'] ?? [],
-                            'object' => $frame['object'] ?? null
-                        ];
-                    }, $properties[$property->name]);
+                    $value = array_map(
+                        function (array $frame) {
+                            return [
+                                'file'     => $frame['file'] ?? '',
+                                'line'     => $frame['line'] ?? 0,
+                                'function' => $frame['function'] ?? '{main}',
+                                'class'    => $frame['class'] ?? '',
+                                'type'     => $frame['type'] ?? '',
+                                'args'     => $frame['args'] ?? [],
+                                'object'   => $frame['object'] ?? null,
+                            ];
+                        },
+                        $properties[$property->name]
+                    );
+                } elseif ($property->name === 'previous') {
+                    $value = $properties[$property->name]
+                        ? $this->unserialize($properties[$property->name])
+                        : null;
                 } else {
                     $value = $properties[$property->name];
                 }
+
+                unset($properties[$property->name]);
 
                 $reflection->getProperty($property->name)
                     ->setValue($exception, $value);
