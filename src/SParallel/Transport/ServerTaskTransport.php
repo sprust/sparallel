@@ -6,7 +6,7 @@ namespace SParallel\Transport;
 
 use SParallel\Contracts\SerializerInterface;
 use SParallel\Exceptions\UnserializeException;
-use SParallel\Server\Workers\ServerTask;
+use SParallel\Server\Dto\ServerTask;
 
 readonly class ServerTaskTransport
 {

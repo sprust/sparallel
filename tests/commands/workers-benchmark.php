@@ -10,7 +10,7 @@ use SParallel\TestsImplementation\TestContainer;
 use SParallel\TestsImplementation\TestEventsRepository;
 use SParallel\TestsImplementation\TestLogger;
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 $benchmark = new Benchmark(
     uniqueCount: 5,

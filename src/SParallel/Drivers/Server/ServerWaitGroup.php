@@ -15,7 +15,7 @@ use SParallel\Entities\Context;
 use SParallel\Exceptions\RpcCallException;
 use SParallel\Exceptions\UnexpectedServerTaskException;
 use SParallel\Objects\TaskResult;
-use SParallel\Server\Workers\ServerTask;
+use SParallel\Server\Dto\ServerTask;
 use SParallel\Server\Workers\WorkersRpcClient;
 use SParallel\Transport\ServerTaskTransport;
 use SParallel\Transport\TaskResultTransport;

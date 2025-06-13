@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SParallel\Server\Workers;
+namespace SParallel\Server\Dto;
 
 readonly class ServerFinishedTask
 {

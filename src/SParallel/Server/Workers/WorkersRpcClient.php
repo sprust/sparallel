@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SParallel\Server\Workers;
 
 use SParallel\Contracts\RpcClientInterface;
+use SParallel\Server\Dto\ResponseAnswer;
+use SParallel\Server\Dto\ServerFinishedTask;
 use Throwable;
 
 readonly class WorkersRpcClient
@@ -16,11 +18,15 @@ readonly class WorkersRpcClient
     /**
      * @throws Throwable
      */
-    public function reload(): void
+    public function reload(): ResponseAnswer
     {
-        $this->rpcClient->call('WorkersServer.Reload', [
+        $response = $this->rpcClient->call('WorkersServer.Reload', [
             'Message' => 'reload, please.',
         ]);
+
+        return new ResponseAnswer(
+            answer: $response['Answer']
+        );
     }
 
     /**

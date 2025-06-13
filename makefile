@@ -29,7 +29,7 @@ phpstan:
 check:
 	make phpstan
 	make test
-	make test-benchmark
+	make command-workers-benchmark
 
 htop-workers:
 	htop -t --filter=server-process-handler.php
@@ -51,14 +51,14 @@ test:
   		--display-warnings \
 		tests ${c}
 
-test-benchmark:
-	"$(PHP_CLI)" php tests/test-workers-benchmark.php
+command-server-stats:
+	"$(PHP_CLI)" php tests/commands/server-stats.php
 
-test-stats-get:
-	"$(PHP_CLI)" php tests/test-stats-get.php
+command-server-stop:
+	"$(PHP_CLI)" php tests/commands/server-stop.php
 
-test-workers-reload:
-	"$(PHP_CLI)" php tests/test-workers-reload.php
+command-server-workers-reload:
+	"$(PHP_CLI)" php tests/commands/server-workers-reload.php
 
-test-workers-stop:
-	"$(PHP_CLI)" php tests/test-workers-stop.php
+command-workers-benchmark:
+	"$(PHP_CLI)" php tests/commands/workers-benchmark.php
