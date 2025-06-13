@@ -11,9 +11,9 @@ $rpc = TestContainer::resolve()->get(WorkersRpcClient::class);
 
 $start = microtime(true);
 
-$totalTime = microtime(true) - $start;
-
 $response = $rpc->reload();
+
+$totalTime = microtime(true) - $start;
 
 echo "Answer:\t\t$response->answer\n";
 echo "TotalTime:\t$totalTime\n";

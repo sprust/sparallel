@@ -51,6 +51,9 @@ test:
   		--display-warnings \
 		tests ${c}
 
+command-load-server-bin:
+	"$(PHP_CLI)" php tests/commands/load-server-bin.php
+
 command-server-sleep:
 	"$(PHP_CLI)" php tests/commands/server-sleep.php
 

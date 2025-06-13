@@ -14,7 +14,8 @@
         "opis/closure": "^4.3",
         "psr/container": "^2.0",
         "psr/log": "^3.0",
-        "spiral/goridge": "^4.2"
+        "spiral/goridge": "^4.2",
+        "ext-curl": "*"
     },
     "autoload": {
         "psr-4": {

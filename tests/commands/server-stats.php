@@ -9,10 +9,6 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 
 $rpc = TestContainer::resolve()->get(ManagerRpcClient::class);
 
-$start = microtime(true);
-
-$totalTime = microtime(true) - $start;
-
 /** @phpstan-ignore-next-line while.alwaysTrue */
 while (true) {
     try {
