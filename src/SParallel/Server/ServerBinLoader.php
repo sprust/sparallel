@@ -24,28 +24,29 @@ readonly class ServerBinLoader
     {
         $url = $this->makeUrl();
 
-        $curl = curl_init();
+        $tmpFilePath = $this->path . '.tmp';
 
-        $timeout = 15;
+        $fp = fopen($tmpFilePath, 'wb');
 
-        curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        $curl = curl_init($url);
+
+        $timeout = 60;
+
+        curl_setopt($curl, CURLOPT_FILE, $fp);
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
 
-        $content = curl_exec($curl);
+        $success = curl_exec($curl);
 
-        curl_close($curl);
-
-        if ($content === false) {
+        if (!$success) {
             throw new RuntimeException(
-                "Can't download file from [$url]"
+                "Can't download file from [$url]: " . curl_error($curl)
             );
         }
 
-        $tmpFilePath = $this->path . '.tmp';
-
-        file_put_contents($tmpFilePath, $content);
+        curl_close($curl);
+        fclose($fp);
 
         rename($tmpFilePath, $this->path);
 
