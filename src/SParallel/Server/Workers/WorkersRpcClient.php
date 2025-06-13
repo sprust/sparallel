@@ -32,16 +32,6 @@ readonly class WorkersRpcClient
     /**
      * @throws Throwable
      */
-    public function stop(): void
-    {
-        $this->rpcClient->call('WorkersServer.Stop', [
-            'Message' => 'stop, please.',
-        ]);
-    }
-
-    /**
-     * @throws Throwable
-     */
     public function addTask(
         string $groupUuid,
         string $taskUuid,
