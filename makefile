@@ -51,6 +51,12 @@ test:
   		--display-warnings \
 		tests ${c}
 
+command-server-sleep:
+	"$(PHP_CLI)" php tests/commands/server-sleep.php
+
+command-server-wake-up:
+	"$(PHP_CLI)" php tests/commands/server-wake-up.php
+
 command-server-stats:
 	"$(PHP_CLI)" php tests/commands/server-stats.php
 
