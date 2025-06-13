@@ -98,7 +98,11 @@ readonly class ManagerRpcClient
                     count: $workersWorkers['Count'],
                     freeCount: $workersWorkers['FreeCount'],
                     busyCount: $workersWorkers['BusyCount'],
-                    loadPercent: $workersWorkers['LoadPercent']
+                    loadPercent: $workersWorkers['LoadPercent'],
+                    addedCount: $workersWorkers['AddedCount'],
+                    tookCount: $workersWorkers['TookCount'],
+                    freedCount: $workersWorkers['FreedCount'],
+                    deletedCount: $workersWorkers['DeletedCount'],
                 ),
                 tasks: new TasksInfo(
                     waitingCount: $workersTasks['WaitingCount'],

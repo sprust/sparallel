@@ -11,6 +11,10 @@ readonly class WorkersInfo
         public int $freeCount,
         public int $busyCount,
         public int $loadPercent,
+        public int $addedCount,
+        public int $tookCount,
+        public int $freedCount,
+        public int $deletedCount,
     ) {
     }
 }
