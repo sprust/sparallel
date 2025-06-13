@@ -106,7 +106,14 @@ readonly class ManagerRpcClient
                 ),
                 tasks: new TasksInfo(
                     waitingCount: $workersTasks['WaitingCount'],
-                    finishedCount: $workersTasks['FinishedCount']
+                    finishedCount: $workersTasks['FinishedCount'],
+                    addedTotalCount: $workersTasks['AddedTotalCount'],
+                    reAddedTotalCount: $workersTasks['ReAddedTotalCount'],
+                    tookTotalCount: $workersTasks['TookTotalCount'],
+                    finishedTotalCount: $workersTasks['FinishedTotalCount'],
+                    successTotalCount: $workersTasks['SuccessTotalCount'],
+                    errorTotalCount: $workersTasks['ErrorTotalCount'],
+                    timeoutTotalCount: $workersTasks['TimeoutTotalCount'],
                 )
             )
         );
