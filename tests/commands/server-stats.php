@@ -11,12 +11,12 @@ $rpc = TestContainer::resolve()->get(ManagerRpcClient::class);
 
 $start = microtime(true);
 
-$totalTime   = microtime(true) - $start;
+$totalTime = microtime(true) - $start;
 
 /** @phpstan-ignore-next-line while.alwaysTrue */
 while (true) {
     try {
-        $json = $rpc->stats();
+        $stats = $rpc->stats();
     } catch (Throwable $exception) {
         system('clear');
 
@@ -29,7 +29,7 @@ while (true) {
 
     system('clear');
 
-    dump(json_decode($json, true));
+    dump($stats);
 
     sleep(1);
 }
