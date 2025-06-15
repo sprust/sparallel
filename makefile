@@ -10,6 +10,12 @@ build:
 up:
 	docker-compose up
 
+up-php:
+	docker start sp-php
+
+stop:
+	docker-compose stop
+
 down:
 	docker-compose down
 
