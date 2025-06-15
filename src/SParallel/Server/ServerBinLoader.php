@@ -30,30 +30,50 @@ class ServerBinLoader
 
         $tmpFilePath = $this->path . '.tmp';
 
-        $fp = fopen($tmpFilePath, 'wb');
+        $context = stream_context_create(
+            options: [
+                'http' => [
+                    'timeout' => 60,
+                    'connect_timeout' => 10,
+                ],
+            ],
+            params: [
+                'notification' => function (
+                    int $notificationCode,
+                    int $severity,
+                    ?string $message,
+                    int $messageCode,
+                    int $bytesTransferred,
+                    ?int $bytesMax
+                ) {
+                    if ($notificationCode == STREAM_NOTIFY_PROGRESS && $bytesMax > 0) {
+                        $progress = round($bytesTransferred * 100 / $bytesMax, 4);
 
-        $ch = curl_init($url);
+                        echo sprintf(
+                            "\nDownloading server binary: %d%% (%d/%d bytes)",
+                            $progress,
+                            $bytesTransferred,
+                            $bytesMax
+                        );
+                    }
+                },
+            ]
+        );
 
-        $timeout = 60;
+        $content = file_get_contents(
+            filename: $url,
+            context: $context
+        );
 
-        curl_setopt($ch, CURLOPT_FILE, $fp);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_NOPROGRESS, false);
-        curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, [$this, 'progressCallback']);
+        echo "\n";
 
-        $success = curl_exec($ch);
-
-        if (!$success) {
+        if ($content === false) {
             throw new RuntimeException(
-                "Can't download file from [$url]: " . curl_error($ch)
+                "Can't download file from [$url]"
             );
         }
 
-        curl_close($ch);
-        fclose($fp);
+        file_put_contents($tmpFilePath, $content);
 
         rename($tmpFilePath, $this->path);
 
