@@ -45,6 +45,7 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH" && mkdir -p /.cache && chmod -R 777 /.cache
 
 RUN go install github.com/air-verse/air@latest
+RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
 
 RUN mkdir -p -m 777 /go/pkg/mod/cache/download
 RUN chown $USER_ID:$GROUP_ID /go/pkg/mod/cache/download

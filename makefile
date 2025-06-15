@@ -25,6 +25,9 @@ bash-php:
 bash-server:
 	"$(SERVER_CLI)" bash
 
+server-linter:
+	"$(SERVER_CLI)" golangci-lint run
+
 composer:
 	"$(PHP_CLI)" composer ${c}
 
