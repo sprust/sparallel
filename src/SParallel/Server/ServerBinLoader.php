@@ -6,13 +6,11 @@ namespace SParallel\Server;
 
 use RuntimeException;
 
-class ServerBinLoader
+readonly class ServerBinLoader
 {
-    private readonly string $version;
+    private string $version;
 
-    private float $previousProgress = 0;
-
-    public function __construct(private readonly string $path)
+    public function __construct(private string $path)
     {
         $this->version = 'latest';
     }
@@ -24,8 +22,6 @@ class ServerBinLoader
 
     public function load(): void
     {
-        $this->previousProgress = 0;
-
         $url = $this->makeUrl();
 
         $tmpFilePath = $this->path . '.tmp';
@@ -95,20 +91,5 @@ class ServerBinLoader
     private function makeUrl(): string
     {
         return "https://github.com/sprust/sparallel-server/releases/download/$this->version/sparallel_server";
-    }
-
-    private function progressCallback($resource, $downloadSize, $downloadedSize, $uploadSize, $uploadedSize): void
-    {
-        if ($downloadSize != 0) {
-            $progress = round($downloadedSize * 100 / $downloadSize);
-
-            if ($progress > $this->previousProgress) {
-                $this->previousProgress = $progress;
-
-                echo "Downloading server binary... $progress%\n";
-            }
-        }
-
-        sleep(1);
     }
 }
