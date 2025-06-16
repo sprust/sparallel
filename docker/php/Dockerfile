@@ -47,12 +47,12 @@ RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH" && mkdir -p /
 RUN go install github.com/air-verse/air@latest
 RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
 
+ARG USER_ID
+ARG GROUP_ID
+
 RUN mkdir -p -m 777 /go/pkg/mod/cache/download
 RUN chown $USER_ID:$GROUP_ID /go/pkg/mod/cache/download
 RUN chmod -R 777 /go/
-
-ARG USER_ID
-ARG GROUP_ID
 
 # Check if user and group doesn't exist before creating
 RUN getent group "$GROUP_ID" || addgroup --gid "$GROUP_ID" user
